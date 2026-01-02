@@ -20,14 +20,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `button.{list_name}_apply_recurrence_settings`: Apply configured settings
 - New service `better_todo.apply_recurrence_from_ui`: Reads helper entity values and applies recurrence to specified task
 - Users can now configure recurrence visually without using Developer Tools
+- **Automatic Task Grouping**: Tasks are now automatically organized into groups:
+  - "No due date" / "Sin fecha de vencimiento": Tasks without a due date
+  - "This week" / "Esta semana": Tasks due this week
+  - "Forthcoming" / "Próximamente": Tasks due after this week
+  - "Done" / "Completadas": Completed tasks
+- Dashboard support infrastructure for creating custom "Better ToDo" dashboard (experimental)
 
 ### Changed
 - Integration now creates 6 additional helper entities + 1 button per todo list for recurrence management
 - Recurrence configuration workflow is now UI-first instead of service-first
+- Tasks are automatically sorted by group and due date for better organization
+- Added translations for task group names in English and Spanish
 
 ### Notes
 - **Backward compatible**: Existing `set_task_recurrence` and `get_task_recurrence` services remain fully functional
 - No breaking changes for existing installations
+- Task grouping is automatic and does not require configuration
 - Version bumped to 0.4.0 following semantic versioning (new feature, backward compatible)
 
 ## [0.3.0] - 2026-01-02

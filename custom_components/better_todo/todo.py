@@ -3,16 +3,19 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import replace
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.components.todo import (
     TodoItem,
+    TodoItemStatus,
     TodoListEntity,
     TodoListEntityFeature,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 from .const import (
     ATTR_RECURRENCE_CURRENT_COUNT,
@@ -24,6 +27,10 @@ from .const import (
     ATTR_RECURRENCE_INTERVAL,
     ATTR_RECURRENCE_UNIT,
     DOMAIN,
+    GROUP_DONE,
+    GROUP_FORTHCOMING,
+    GROUP_NO_DUE_DATE,
+    GROUP_THIS_WEEK,
     RECURRENCE_UNIT_DAYS,
 )
 
@@ -70,10 +77,73 @@ class BetterTodoEntity(TodoListEntity):
             return replace(item, uid=str(uuid.uuid4()))
         return item
 
+    def _get_item_group(self, item: TodoItem) -> str:
+        """Get the group category for a todo item.
+        
+        Returns one of: GROUP_DONE, GROUP_NO_DUE_DATE, GROUP_THIS_WEEK, GROUP_FORTHCOMING
+        """
+        # Check if item is completed
+        if item.status == TodoItemStatus.COMPLETED:
+            return GROUP_DONE
+        
+        # Check if item has no due date
+        if not item.due:
+            return GROUP_NO_DUE_DATE
+        
+        # Parse the due date
+        try:
+            # due can be a date string in format YYYY-MM-DD
+            if isinstance(item.due, str):
+                due_date = datetime.strptime(item.due, "%Y-%m-%d").date()
+            else:
+                due_date = item.due
+            
+            # Get current date in the user's timezone
+            now = dt_util.now().date()
+            
+            # Calculate end of this week (Sunday)
+            days_until_sunday = (6 - now.weekday()) % 7
+            end_of_week = now + timedelta(days=days_until_sunday)
+            
+            # Categorize
+            if due_date <= end_of_week:
+                return GROUP_THIS_WEEK
+            else:
+                return GROUP_FORTHCOMING
+        except (ValueError, AttributeError, TypeError):
+            # If we can't parse the date, treat as no due date
+            return GROUP_NO_DUE_DATE
+
+    def _sort_items(self, items: list[TodoItem]) -> list[TodoItem]:
+        """Sort items by group and due date.
+        
+        Order: No due date -> This week -> Forthcoming -> Done
+        Within each group, sort by due date (earliest first).
+        """
+        # Define group order
+        group_order = {
+            GROUP_NO_DUE_DATE: 0,
+            GROUP_THIS_WEEK: 1,
+            GROUP_FORTHCOMING: 2,
+            GROUP_DONE: 3,
+        }
+        
+        def sort_key(item: TodoItem) -> tuple[int, str]:
+            """Generate sort key for an item."""
+            group = self._get_item_group(item)
+            group_priority = group_order.get(group, 99)
+            
+            # For due date, use empty string if no date (will sort first in group)
+            due_str = item.due if item.due else ""
+            
+            return (group_priority, due_str)
+        
+        return sorted(items, key=sort_key)
+
     @property
     def todo_items(self) -> list[TodoItem] | None:
-        """Return the to-do items."""
-        return self._items
+        """Return the to-do items sorted by group."""
+        return self._sort_items(self._items)
 
     async def async_create_todo_item(self, item: TodoItem) -> None:
         """Create a To-do item."""

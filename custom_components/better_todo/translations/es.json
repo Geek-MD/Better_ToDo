@@ -27,6 +27,24 @@
       }
     }
   },
+  "entity": {
+    "sensor": {
+      "group_names": {
+        "no_due_date": {
+          "name": "Sin fecha de vencimiento"
+        },
+        "this_week": {
+          "name": "Esta semana"
+        },
+        "forthcoming": {
+          "name": "Próximamente"
+        },
+        "done": {
+          "name": "Completadas"
+        }
+      }
+    }
+  },
   "services": {
     "set_task_recurrence": {
       "name": "Configurar repetición de tarea",

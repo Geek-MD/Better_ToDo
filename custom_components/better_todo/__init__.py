@@ -71,6 +71,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
+    # Note: Dashboard creation is handled through device grouping
+    # All entities are automatically grouped under their device in the UI
+
     # Register services
     async def handle_set_task_recurrence(call: ServiceCall) -> None:
         """Handle the set_task_recurrence service call."""
