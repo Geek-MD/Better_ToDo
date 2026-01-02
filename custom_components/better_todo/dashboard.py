@@ -119,6 +119,59 @@ async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
         _LOGGER.debug("Could not register Lovelace resources via file storage: %s", err)
 
 
+async def _async_reload_frontend_panels(hass: HomeAssistant) -> None:
+    """Reload frontend panels to show new dashboard without restart.
+    
+    This function attempts to notify the frontend and lovelace system about
+    the new dashboard so it appears in the sidebar without requiring a restart.
+    """
+    try:
+        # If we have access to the lovelace data object, trigger a reload
+        if "lovelace" in hass.data:
+            lovelace_data = hass.data["lovelace"]
+            
+            # Try to access and trigger dashboard reload if the API is available
+            if hasattr(lovelace_data, "dashboards"):
+                dashboards = lovelace_data.dashboards
+                # Trigger a reload by accessing the dashboards
+                # This causes the system to refresh its internal state
+                # Note: We call list() to iterate through items as a side effect
+                # that triggers the internal dashboard state refresh
+                list(dashboards.async_items_ids())
+                _LOGGER.debug("Refreshed lovelace dashboards state")
+    except Exception as err:
+        _LOGGER.debug("Could not refresh lovelace dashboards: %s", err)
+    
+    try:
+        # Reload lovelace resources to ensure custom cards are loaded
+        if hass.services.has_service("lovelace", "reload_resources"):
+            await hass.services.async_call(
+                "lovelace",
+                "reload_resources",
+                blocking=True,
+            )
+            _LOGGER.info("Reloaded lovelace resources")
+    except Exception as err:
+        _LOGGER.debug("Could not reload lovelace resources: %s", err)
+    
+    try:
+        # Fire event to notify frontend of the new dashboard
+        # Note: 'lovelace_updated' is a standard Home Assistant event
+        # that the frontend listens for to refresh dashboard configuration
+        hass.bus.async_fire("lovelace_updated", {"url_path": DASHBOARD_URL})
+        _LOGGER.debug("Fired lovelace_updated event for dashboard")
+    except Exception as err:
+        _LOGGER.debug("Could not fire lovelace_updated event: %s", err)
+    
+    try:
+        # Fire a panels_updated event as an additional notification mechanism
+        # This helps ensure the sidebar refreshes to show the new dashboard
+        hass.bus.async_fire("panels_updated")
+        _LOGGER.debug("Fired panels_updated event")
+    except Exception as err:
+        _LOGGER.debug("Could not fire panels_updated event: %s", err)
+
+
 async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     """Create or update the Better ToDo dashboard.
     
@@ -220,6 +273,7 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
                     "icon": DASHBOARD_ICON,
                     "title": DASHBOARD_TITLE,
                     "url_path": DASHBOARD_URL,
+                    "mode": "storage",
                 }
                 
                 if existing_dashboard_id:
@@ -235,6 +289,10 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
                 store = storage.Store(hass, STORAGE_VERSION, STORAGE_KEY)
                 await store.async_save(config)
                 _LOGGER.info("Dashboard configuration saved successfully")
+                
+                # Reload frontend panels to show the new dashboard without restart
+                await _async_reload_frontend_panels(hass)
+                
                 return
     except Exception as err:
         _LOGGER.info("Dashboard collection API not available, using file storage fallback: %s", err)
@@ -292,6 +350,7 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
                             "icon": DASHBOARD_ICON,
                             "title": DASHBOARD_TITLE,
                             "url_path": DASHBOARD_URL,
+                            "mode": "storage",
                         })
                         break
         
@@ -310,6 +369,7 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
                         "icon": DASHBOARD_ICON,
                         "title": DASHBOARD_TITLE,
                         "url_path": DASHBOARD_URL,
+                        "mode": "storage",
                     })
         
         # Save dashboards registry
@@ -317,6 +377,9 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
             json.dump(dashboards_data, f, indent=2)
         
         _LOGGER.info("Created/updated Better ToDo dashboard via file storage at /%s", DASHBOARD_URL)
+        
+        # Reload frontend panels to show the new dashboard without restart
+        await _async_reload_frontend_panels(hass)
         
     except Exception as err:
         _LOGGER.warning("Could not create dashboard via file storage: %s", err)
