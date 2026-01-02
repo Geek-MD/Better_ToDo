@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2026-01-02
+
+### Fixed
+- **Dashboard Display Issue**: Fixed Better ToDo dashboard showing Overview content instead of custom card
+  - Added `mode: "storage"` field to dashboard metadata to properly identify dashboard type
+  - Dashboard now correctly displays the custom Better ToDo card with task lists
+  - Fixes issue where dashboard would show generic Overview instead of Better ToDo tasks
+- **No Restart Required**: Dashboard now appears immediately after integration setup
+  - Added `_async_reload_frontend_panels()` function to reload lovelace configuration
+  - Triggers lovelace resources reload after dashboard creation
+  - Fires `lovelace_updated` and `panels_updated` events to notify frontend
+  - Users no longer need to restart Home Assistant to see the Better ToDo dashboard
+
+### Technical Details
+- Dashboard metadata now includes `mode: "storage"` in both API and file storage methods
+- Frontend reload mechanism uses multiple approaches for maximum compatibility:
+  - Refreshes lovelace dashboards state through internal API
+  - Calls `lovelace.reload_resources` service to reload custom cards
+  - Fires events to notify frontend of configuration changes
+- All changes maintain backward compatibility with existing installations
+
+### Notes
+- Existing installations will benefit from these fixes on next integration reload
+- No manual configuration changes required
+- Dashboard should now appear in sidebar immediately after setup
+
 ## [0.5.1] - 2026-01-02
 
 ### Fixed
