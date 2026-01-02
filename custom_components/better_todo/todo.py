@@ -3,16 +3,19 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import replace
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.components.todo import (
     TodoItem,
+    TodoItemStatus,
     TodoListEntity,
     TodoListEntityFeature,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 from .const import (
     ATTR_RECURRENCE_CURRENT_COUNT,
@@ -24,8 +27,16 @@ from .const import (
     ATTR_RECURRENCE_INTERVAL,
     ATTR_RECURRENCE_UNIT,
     DOMAIN,
+    GROUP_DONE,
+    GROUP_FORTHCOMING,
+    GROUP_NO_DUE_DATE,
+    GROUP_THIS_WEEK,
     RECURRENCE_UNIT_DAYS,
 )
+
+# Header prefixes for group identification
+HEADER_PREFIX = "📌 "
+HEADER_SUFFIX = " 📌"
 
 
 async def async_setup_entry(
@@ -63,6 +74,8 @@ class BetterTodoEntity(TodoListEntity):
         self._items: list[TodoItem] = []
         # Store recurrence metadata for each task (keyed by uid)
         self._recurrence_data: dict[str, dict[str, Any]] = {}
+        # Will be set when entity is added to hass
+        self._hass: HomeAssistant | None = None
 
     def _ensure_item_uid(self, item: TodoItem) -> TodoItem:
         """Ensure the TodoItem has a UID, generating one if needed."""
@@ -70,10 +83,228 @@ class BetterTodoEntity(TodoListEntity):
             return replace(item, uid=str(uuid.uuid4()))
         return item
 
+    def _get_group_label(self, group: str) -> str:
+        """Get the translated label for a group category.
+        
+        Returns the appropriate label based on the system language.
+        """
+        if self.hass is None:
+            language = "en"
+        else:
+            language = self.hass.config.language
+        
+        # Spanish translations
+        if language.startswith("es"):
+            labels = {
+                GROUP_NO_DUE_DATE: "📭 Sin fecha de vencimiento",
+                GROUP_THIS_WEEK: "📅 Esta semana",
+                GROUP_FORTHCOMING: "📆 Próximamente",
+                GROUP_DONE: "✅ Completadas",
+            }
+        else:
+            # English and other languages default to English
+            labels = {
+                GROUP_NO_DUE_DATE: "📭 No due date",
+                GROUP_THIS_WEEK: "📅 This week",
+                GROUP_FORTHCOMING: "📆 Forthcoming",
+                GROUP_DONE: "✅ Done",
+            }
+        
+        return labels.get(group, group)
+
+    def _is_header_item(self, item: TodoItem) -> bool:
+        """Check if an item is a category header.
+        
+        Headers are identified by having a summary starting with the header prefix.
+        """
+        if not item.summary:
+            return False
+        return bool(item.summary.startswith(HEADER_PREFIX) and item.summary.endswith(HEADER_SUFFIX))
+
+    def _get_header_group(self, item: TodoItem) -> str | None:
+        """Extract the group from a header item.
+        
+        Returns the group key if this is a header, None otherwise.
+        """
+        if not self._is_header_item(item):
+            return None
+        
+        # Remove prefix and suffix to get the label
+        label = item.summary[len(HEADER_PREFIX):-len(HEADER_SUFFIX)]
+        
+        # Map back to group keys
+        if self.hass is None:
+            language = "en"
+        else:
+            language = self.hass.config.language
+        
+        if language.startswith("es"):
+            label_to_group = {
+                "📭 Sin fecha de vencimiento": GROUP_NO_DUE_DATE,
+                "📅 Esta semana": GROUP_THIS_WEEK,
+                "📆 Próximamente": GROUP_FORTHCOMING,
+                "✅ Completadas": GROUP_DONE,
+            }
+        else:
+            label_to_group = {
+                "📭 No due date": GROUP_NO_DUE_DATE,
+                "📅 This week": GROUP_THIS_WEEK,
+                "📆 Forthcoming": GROUP_FORTHCOMING,
+                "✅ Done": GROUP_DONE,
+            }
+        
+        return label_to_group.get(label)
+
+    def _create_header_item(self, group: str) -> TodoItem:
+        """Create a header item for a group category."""
+        label = self._get_group_label(group)
+        return TodoItem(
+            uid=f"header_{group}",
+            summary=f"{HEADER_PREFIX}{label}{HEADER_SUFFIX}",
+            status=TodoItemStatus.NEEDS_ACTION,
+        )
+
+    def _get_week_start_day(self) -> int:
+        """Get the first day of the week based on locale settings.
+        
+        Returns:
+            0 for Monday (used in most locales including Spanish)
+            6 for Sunday (used in US English and some other locales)
+        
+        Home Assistant's language/locale determines the week start:
+        - Spanish (es): Monday (0)
+        - English (en): Sunday (6) for US, Monday (0) for UK/others
+        
+        This uses Python's weekday() where Monday=0, Sunday=6
+        """
+        if self.hass is None:
+            # Default to Monday if hass not available
+            return 0
+        
+        # Get the language from Home Assistant configuration
+        language = self.hass.config.language
+        
+        # Map languages to their first weekday
+        # Sunday (6) for US English and similar locales
+        # Monday (0) for most other locales including Spanish
+        sunday_first_locales = ["en-US", "en_US"]
+        
+        # Check if the language uses Sunday as first day
+        if language in sunday_first_locales:
+            return 6  # Sunday
+        
+        # Default to Monday for all other locales (including "es", "en-GB", etc.)
+        return 0  # Monday
+
+    def _get_item_group(self, item: TodoItem) -> str:
+        """Get the group category for a todo item.
+        
+        Returns one of: GROUP_DONE, GROUP_NO_DUE_DATE, GROUP_THIS_WEEK, GROUP_FORTHCOMING
+        """
+        # Check if item is completed
+        if item.status == TodoItemStatus.COMPLETED:
+            return GROUP_DONE
+        
+        # Check if item has no due date
+        if not item.due:
+            return GROUP_NO_DUE_DATE
+        
+        # Parse the due date
+        try:
+            # due can be a date string in format YYYY-MM-DD
+            if isinstance(item.due, str):
+                due_date = datetime.strptime(item.due, "%Y-%m-%d").date()
+            else:
+                due_date = item.due
+            
+            # Get current date in the user's timezone
+            now = dt_util.now().date()
+            
+            # Get the week start day based on locale
+            week_start = self._get_week_start_day()
+            
+            # Calculate the start and end of the current week
+            # weekday() returns 0=Monday, 6=Sunday
+            current_weekday = now.weekday()
+            
+            if week_start == 0:  # Week starts on Monday
+                # Calculate days since Monday
+                days_since_start = current_weekday
+                # Calculate days until Sunday (end of week)
+                days_until_end = 6 - current_weekday
+            else:  # Week starts on Sunday (week_start == 6)
+                # Calculate days since Sunday
+                days_since_start = (current_weekday + 1) % 7
+                # Calculate days until Saturday (end of week)
+                days_until_end = 6 - days_since_start
+            
+            week_start_date = now - timedelta(days=days_since_start)
+            week_end_date = now + timedelta(days=days_until_end)
+            
+            # Categorize: task is "this week" if due date is within current week
+            if week_start_date <= due_date <= week_end_date:
+                return GROUP_THIS_WEEK
+            else:
+                return GROUP_FORTHCOMING
+        except (ValueError, AttributeError, TypeError):
+            # If we can't parse the date, treat as no due date
+            return GROUP_NO_DUE_DATE
+
+    def _sort_items(self, items: list[TodoItem]) -> list[TodoItem]:
+        """Sort items by group and due date, inserting category headers.
+        
+        Order: No due date -> This week -> Forthcoming -> Done
+        Within each group, sort by due date (earliest first).
+        Inserts header items between groups for visual separation.
+        """
+        # Filter out existing header items and actual task items
+        actual_items = [item for item in items if not self._is_header_item(item)]
+        
+        if not actual_items:
+            return []
+        
+        # Define group order
+        group_order = {
+            GROUP_NO_DUE_DATE: 0,
+            GROUP_THIS_WEEK: 1,
+            GROUP_FORTHCOMING: 2,
+            GROUP_DONE: 3,
+        }
+        
+        # Group items by category
+        grouped: dict[str, list[TodoItem]] = {
+            GROUP_NO_DUE_DATE: [],
+            GROUP_THIS_WEEK: [],
+            GROUP_FORTHCOMING: [],
+            GROUP_DONE: [],
+        }
+        
+        for item in actual_items:
+            group = self._get_item_group(item)
+            if group in grouped:
+                grouped[group].append(item)
+        
+        # Sort items within each group by due date
+        for group in grouped:
+            grouped[group].sort(key=lambda item: item.due if item.due else "")
+        
+        # Build final list with headers
+        result: list[TodoItem] = []
+        
+        for group in sorted(group_order.keys(), key=lambda g: group_order[g]):
+            group_items = grouped[group]
+            if group_items:  # Only add header if group has items
+                # Add header
+                result.append(self._create_header_item(group))
+                # Add items in this group
+                result.extend(group_items)
+        
+        return result
+
     @property
     def todo_items(self) -> list[TodoItem] | None:
-        """Return the to-do items."""
-        return self._items
+        """Return the to-do items sorted by group."""
+        return self._sort_items(self._items)
 
     async def async_create_todo_item(self, item: TodoItem) -> None:
         """Create a To-do item."""
@@ -187,5 +418,5 @@ class BetterTodoEntity(TodoListEntity):
             "name": self._entry.data["name"],
             "manufacturer": "Better ToDo",
             "model": "Todo List",
-            "sw_version": "0.3.0",
+            "sw_version": "0.4.0",
         }

@@ -72,9 +72,42 @@ Once configured, your Better ToDo lists will appear in the ToDo section of Home 
 - **Delete tasks**: Remove completed or unwanted tasks
 - **Reorder tasks**: Drag and drop to organize your tasks
 
+#### Automatic Task Organization with Visual Category Headers
+
+Tasks are automatically organized into groups with visible category headers in the UI:
+
+- 📭 **No due date**: Tasks without a due date
+- 📅 **This week**: Tasks due within the current calendar week (respects your locale settings - Monday start for Spanish/European locales, Sunday start for US English)
+- 📆 **Forthcoming**: Tasks due after this week
+- ✅ **Done**: Completed tasks
+
+**Features:**
+- Category headers appear as visual separators in your todo list
+- Headers are automatically translated based on your Home Assistant language setting
+- Tasks within each group are sorted by due date (earliest first)
+- Replaces the default "Active" and "Completed" grouping with more detailed categories
+
 ### Task Recurrence
 
-Better ToDo supports recurring tasks through the built-in services. To configure recurrence for a task:
+Better ToDo offers two ways to configure recurring tasks:
+
+#### Option 1: Using Helper Entities (Recommended)
+
+Each todo list comes with helper entities for easy recurrence configuration:
+
+1. Find the recurrence helper entities for your list in **Settings** → **Devices & Services** → **Better ToDo** → Your List Device
+2. Set the values:
+   - **Task UID**: Enter the UID of the task (find it in entity attributes)
+   - **Recurrence interval**: How often to repeat (1-365)
+   - **Recurrence unit**: Time unit (days/months/years)
+   - **Recurrence end type**: Choose never, count, or date
+   - **Recurrence end count**: Number of repetitions (if using count)
+   - **Recurrence end date**: End date (if using date)
+3. Press the **Apply recurrence settings** button
+
+#### Option 2: Using Services (Advanced)
+
+For automation or advanced use, configure recurrence via services:
 
 1. Go to **Developer Tools** → **Services**
 2. Select the service `better_todo.set_task_recurrence`

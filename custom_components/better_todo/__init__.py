@@ -19,11 +19,18 @@ from .const import (
     DOMAIN,
 )
 
-PLATFORMS: list[Platform] = [Platform.TODO]
+PLATFORMS: list[Platform] = [
+    Platform.TODO,
+    Platform.NUMBER,
+    Platform.SELECT,
+    Platform.BUTTON,
+    Platform.TEXT,
+]
 
 # Service names
 SERVICE_SET_TASK_RECURRENCE = "set_task_recurrence"
 SERVICE_GET_TASK_RECURRENCE = "get_task_recurrence"
+SERVICE_APPLY_RECURRENCE_FROM_UI = "apply_recurrence_from_ui"
 
 # Service schemas
 SET_TASK_RECURRENCE_SCHEMA = vol.Schema(
@@ -48,6 +55,12 @@ GET_TASK_RECURRENCE_SCHEMA = vol.Schema(
     }
 )
 
+APPLY_RECURRENCE_FROM_UI_SCHEMA = vol.Schema(
+    {
+        vol.Required("entity_id"): cv.entity_id,
+    }
+)
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Better ToDo from a config entry."""
@@ -57,6 +70,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     entry.async_on_unload(entry.add_update_listener(async_update_options))
+
+    # Note: Dashboard creation is handled through device grouping
+    # All entities are automatically grouped under their device in the UI
 
     # Register services
     async def handle_set_task_recurrence(call: ServiceCall) -> None:
@@ -110,6 +126,88 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Trigger state update to refresh attributes
         entity.async_write_ha_state()
 
+    async def handle_apply_recurrence_from_ui(call: ServiceCall) -> None:
+        """Handle the apply_recurrence_from_ui service call.
+        
+        This service reads the helper entity values and applies them to the task.
+        It uses the following helper entities from the same config entry:
+        - text.{list_name}_task_uid: The task to apply recurrence to
+        - number.{list_name}_recurrence_interval: The interval value
+        - select.{list_name}_recurrence_unit: The time unit (days/months/years)
+        - select.{list_name}_recurrence_end_type: How to end (never/count/date)
+        - number.{list_name}_recurrence_end_count: Count value if end type is count
+        - text.{list_name}_recurrence_end_date: Date value if end type is date
+        """
+        entity_id = call.data["entity_id"]
+        
+        # Find the todo entity
+        todo_entity = None
+        entry_id = None
+        for eid, entry_data in hass.data[DOMAIN].items():
+            if isinstance(entry_data, dict) and "entities" in entry_data:
+                todo_entity = entry_data["entities"].get(entity_id)
+                if todo_entity is not None:
+                    entry_id = eid
+                    break
+        
+        if todo_entity is None or entry_id is None:
+            return
+        
+        # Get the helper entity IDs based on the entry_id
+        task_uid_entity_id = f"text.{todo_entity._entry.data['name'].lower().replace(' ', '_')}_task_uid"
+        interval_entity_id = f"number.{todo_entity._entry.data['name'].lower().replace(' ', '_')}_recurrence_interval"
+        unit_entity_id = f"select.{todo_entity._entry.data['name'].lower().replace(' ', '_')}_recurrence_unit"
+        end_type_entity_id = f"select.{todo_entity._entry.data['name'].lower().replace(' ', '_')}_recurrence_end_type"
+        end_count_entity_id = f"number.{todo_entity._entry.data['name'].lower().replace(' ', '_')}_recurrence_end_count"
+        end_date_entity_id = f"text.{todo_entity._entry.data['name'].lower().replace(' ', '_')}_recurrence_end_date"
+        
+        # Get the values from the helper entities
+        task_uid = hass.states.get(task_uid_entity_id)
+        interval = hass.states.get(interval_entity_id)
+        unit = hass.states.get(unit_entity_id)
+        end_type = hass.states.get(end_type_entity_id)
+        end_count = hass.states.get(end_count_entity_id)
+        end_date = hass.states.get(end_date_entity_id)
+        
+        if task_uid is None or not task_uid.state:
+            return
+        
+        # Determine recurrence settings
+        recurrence_enabled = True
+        recurrence_interval = int(float(interval.state)) if interval else 1
+        recurrence_unit = unit.state if unit else "days"
+        recurrence_end_type_value = end_type.state if end_type else "never"
+        
+        # Apply recurrence
+        if recurrence_end_type_value == "never":
+            todo_entity.set_task_recurrence(
+                uid=task_uid.state,
+                recurrence_enabled=recurrence_enabled,
+                recurrence_interval=recurrence_interval,
+                recurrence_unit=recurrence_unit,
+                recurrence_end_enabled=False,
+            )
+        elif recurrence_end_type_value == "count" and end_count:
+            todo_entity.set_task_recurrence(
+                uid=task_uid.state,
+                recurrence_enabled=recurrence_enabled,
+                recurrence_interval=recurrence_interval,
+                recurrence_unit=recurrence_unit,
+                recurrence_end_enabled=True,
+                recurrence_end_type="count",
+                recurrence_end_count=int(float(end_count.state)),
+            )
+        elif recurrence_end_type_value == "date" and end_date:
+            todo_entity.set_task_recurrence(
+                uid=task_uid.state,
+                recurrence_enabled=recurrence_enabled,
+                recurrence_interval=recurrence_interval,
+                recurrence_unit=recurrence_unit,
+                recurrence_end_enabled=True,
+                recurrence_end_type="date",
+                recurrence_end_date=end_date.state,
+            )
+
     # Register services only once
     if not hass.services.has_service(DOMAIN, SERVICE_SET_TASK_RECURRENCE):
         hass.services.async_register(
@@ -125,6 +223,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             SERVICE_GET_TASK_RECURRENCE,
             handle_get_task_recurrence,
             schema=GET_TASK_RECURRENCE_SCHEMA,
+        )
+
+    if not hass.services.has_service(DOMAIN, SERVICE_APPLY_RECURRENCE_FROM_UI):
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_APPLY_RECURRENCE_FROM_UI,
+            handle_apply_recurrence_from_ui,
+            schema=APPLY_RECURRENCE_FROM_UI_SCHEMA,
         )
 
     return True
@@ -146,5 +252,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if not hass.config_entries.async_entries(DOMAIN):
         hass.services.async_remove(DOMAIN, SERVICE_SET_TASK_RECURRENCE)
         hass.services.async_remove(DOMAIN, SERVICE_GET_TASK_RECURRENCE)
+        hass.services.async_remove(DOMAIN, SERVICE_APPLY_RECURRENCE_FROM_UI)
 
     return unload_ok

@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-01-02
+
+### Added
+- **UI-Accessible Recurrence Configuration**: New helper entities for configuring task recurrence directly from the Home Assistant UI
+- New entity platforms: Number, Select, Button, and Text for each todo list
+- Helper entities per list:
+  - `number.{list_name}_recurrence_interval`: Set interval value (1-365)
+  - `number.{list_name}_recurrence_end_count`: Set end count (1-999)
+  - `select.{list_name}_recurrence_unit`: Choose time unit (days/months/years)
+  - `select.{list_name}_recurrence_end_type`: Choose end type (never/count/date)
+  - `text.{list_name}_task_uid`: Specify target task UID
+  - `text.{list_name}_recurrence_end_date`: Set end date (YYYY-MM-DD)
+  - `button.{list_name}_apply_recurrence_settings`: Apply configured settings
+- New service `better_todo.apply_recurrence_from_ui`: Reads helper entity values and applies recurrence to specified task
+- Users can now configure recurrence visually without using Developer Tools
+- **Automatic Task Grouping with Visual Category Headers**: Tasks are now automatically organized into groups with visible category headers:
+  - "📭 No due date" / "📭 Sin fecha de vencimiento": Tasks without a due date
+  - "📅 This week" / "📅 Esta semana": Tasks due within the current calendar week (respects locale: Monday start for Spanish, Sunday start for US English)
+  - "📆 Forthcoming" / "📆 Próximamente": Tasks due after this week
+  - "✅ Done" / "✅ Completadas": Completed tasks
+  - Category headers are displayed as visual separators in the todo list UI
+  - Headers are automatically translated based on Home Assistant's language setting
+- Dashboard support infrastructure for creating custom "Better ToDo" dashboard (experimental)
+
+### Changed
+- Integration now creates 6 additional helper entities + 1 button per todo list for recurrence management
+- Recurrence configuration workflow is now UI-first instead of service-first
+- Tasks are automatically sorted by group and due date for better organization
+- Task categories now display as visual headers in the todo list (replacing default "Active"/"Completed" labels)
+- Category headers are automatically translated based on system language (English/Spanish supported)
+- "This week" calculation now respects system locale (Monday start for most locales including Spanish, Sunday start for US English)
+
+### Notes
+- **Backward compatible**: Existing `set_task_recurrence` and `get_task_recurrence` services remain fully functional
+- No breaking changes for existing installations
+- Task grouping is automatic and does not require configuration
+- Version bumped to 0.4.0 following semantic versioning (new feature, backward compatible)
+
 ## [0.3.0] - 2026-01-02
 
 ### Added

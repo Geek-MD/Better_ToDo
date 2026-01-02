@@ -97,3 +97,17 @@ get_task_recurrence:
         entity:
           domain: todo
           integration: better_todo
+
+apply_recurrence_from_ui:
+  name: Apply recurrence from UI
+  description: Apply recurrence settings from the helper entities (number, select, text) to the task specified in the task UID entity. This service is automatically called when pressing the "Apply recurrence settings" button.
+  fields:
+    entity_id:
+      name: Entity ID
+      description: The todo list entity
+      required: true
+      example: "todo.better_todo"
+      selector:
+        entity:
+          domain: todo
+          integration: better_todo

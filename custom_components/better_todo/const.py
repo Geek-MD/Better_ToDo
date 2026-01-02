@@ -27,3 +27,14 @@ RECURRENCE_UNIT_YEARS = "years"
 # Recurrence end types
 RECURRENCE_END_TYPE_COUNT = "count"
 RECURRENCE_END_TYPE_DATE = "date"
+
+# Dashboard constants
+DASHBOARD_URL = "better-todo"
+DASHBOARD_TITLE = "Better ToDo"
+DASHBOARD_ICON = "mdi:checkbox-marked-circle-outline"
+
+# Task grouping constants
+GROUP_NO_DUE_DATE = "no_due_date"
+GROUP_THIS_WEEK = "this_week"
+GROUP_FORTHCOMING = "forthcoming"
+GROUP_DONE = "done"
