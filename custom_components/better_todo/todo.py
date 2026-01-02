@@ -34,7 +34,12 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Better ToDo todo platform."""
-    async_add_entities([BetterTodoEntity(entry)], True)
+    entity = BetterTodoEntity(entry)
+    async_add_entities([entity], True)
+    
+    # Store entity reference for service access
+    if entry.entry_id in hass.data[DOMAIN]:
+        hass.data[DOMAIN][entry.entry_id]["entities"][entity.entity_id] = entity
 
 
 class BetterTodoEntity(TodoListEntity):
@@ -59,6 +64,12 @@ class BetterTodoEntity(TodoListEntity):
         # Store recurrence metadata for each task (keyed by uid)
         self._recurrence_data: dict[str, dict[str, Any]] = {}
 
+    def _ensure_item_uid(self, item: TodoItem) -> TodoItem:
+        """Ensure the TodoItem has a UID, generating one if needed."""
+        if item.uid is None:
+            return replace(item, uid=str(uuid.uuid4()))
+        return item
+
     @property
     def todo_items(self) -> list[TodoItem] | None:
         """Return the to-do items."""
@@ -67,8 +78,7 @@ class BetterTodoEntity(TodoListEntity):
     async def async_create_todo_item(self, item: TodoItem) -> None:
         """Create a To-do item."""
         # Ensure the item has a UID
-        if item.uid is None:
-            item = replace(item, uid=str(uuid.uuid4()))
+        item = self._ensure_item_uid(item)
         self._items.append(item)
         self.async_write_ha_state()
 
@@ -78,7 +88,7 @@ class BetterTodoEntity(TodoListEntity):
         if item.uid is None:
             # If no UID, we can't update - this shouldn't happen
             return
-            
+
         # Find and update the item by uid
         for idx, existing_item in enumerate(self._items):
             if existing_item.uid == item.uid:
@@ -138,7 +148,8 @@ class BetterTodoEntity(TodoListEntity):
         recurrence_end_date: str | None = None,
     ) -> None:
         """Set recurrence configuration for a task."""
-        if uid not in [item.uid for item in self._items]:
+        # Check if task exists using generator expression for efficiency
+        if not any(item.uid == uid for item in self._items):
             return
 
         if recurrence_enabled:

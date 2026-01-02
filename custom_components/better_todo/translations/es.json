@@ -72,15 +72,11 @@
     },
     "get_task_recurrence": {
       "name": "Obtener repetición de tarea",
-      "description": "Obtener configuración de repetición para una tarea",
+      "description": "Actualizar y obtener configuración de repetición para todas las tareas. Los datos están disponibles en el atributo 'recurrence_data' de la entidad.",
       "fields": {
         "entity_id": {
           "name": "ID de entidad",
-          "description": "La entidad de lista de tareas que contiene la tarea"
-        },
-        "task_uid": {
-          "name": "UID de tarea",
-          "description": "El identificador único de la tarea"
+          "description": "La entidad de lista de tareas"
         }
       }
     }

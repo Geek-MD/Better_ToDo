@@ -86,21 +86,14 @@ set_task_recurrence:
 
 get_task_recurrence:
   name: Get task recurrence
-  description: Get recurrence settings for a task
+  description: Refresh and retrieve recurrence settings for all tasks in the list. Recurrence data is available in the entity's 'recurrence_data' attribute.
   fields:
     entity_id:
       name: Entity ID
-      description: The todo list entity containing the task
+      description: The todo list entity
       required: true
       example: "todo.better_todo"
       selector:
         entity:
           domain: todo
           integration: better_todo
-    task_uid:
-      name: Task UID
-      description: The unique identifier of the task
-      required: true
-      example: "01HQWXYZ123456789"
-      selector:
-        text:

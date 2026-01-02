@@ -45,7 +45,6 @@ SET_TASK_RECURRENCE_SCHEMA = vol.Schema(
 GET_TASK_RECURRENCE_SCHEMA = vol.Schema(
     {
         vol.Required("entity_id"): cv.entity_id,
-        vol.Required("task_uid"): cv.string,
     }
 )
 
@@ -53,7 +52,7 @@ GET_TASK_RECURRENCE_SCHEMA = vol.Schema(
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Better ToDo from a config entry."""
     hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][entry.entry_id] = entry.data
+    hass.data[DOMAIN][entry.entry_id] = {"config": entry.data, "entities": {}}
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
@@ -65,9 +64,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entity_id = call.data["entity_id"]
         task_uid = call.data["task_uid"]
 
-        # Get the entity
-        entity = hass.data["entity_components"]["todo"].get_entity(entity_id)
-        if entity is None or entity.platform.domain != DOMAIN:
+        # Find the entity in stored entities
+        entity = None
+        for entry_data in hass.data[DOMAIN].values():
+            if isinstance(entry_data, dict) and "entities" in entry_data:
+                entity = entry_data["entities"].get(entity_id)
+                if entity is not None:
+                    break
+
+        if entity is None:
             return
 
         # Set recurrence
@@ -83,16 +88,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
     async def handle_get_task_recurrence(call: ServiceCall) -> None:
-        """Handle the get_task_recurrence service call."""
+        """Handle the get_task_recurrence service call.
+        
+        This service triggers an entity state update to ensure the latest
+        recurrence data is available in the entity's attributes.
+        Access the data via the entity's 'recurrence_data' attribute.
+        """
         entity_id = call.data["entity_id"]
-        # task_uid = call.data["task_uid"]  # Not used, data available in extra_state_attributes
 
-        # Get the entity
-        entity = hass.data["entity_components"]["todo"].get_entity(entity_id)
-        if entity is None or entity.platform.domain != DOMAIN:
+        # Find the entity in stored entities
+        entity = None
+        for entry_data in hass.data[DOMAIN].values():
+            if isinstance(entry_data, dict) and "entities" in entry_data:
+                entity = entry_data["entities"].get(entity_id)
+                if entity is not None:
+                    break
+
+        if entity is None:
             return
 
-        # Get recurrence - data is available in entity's extra_state_attributes
+        # Trigger state update to refresh attributes
+        entity.async_write_ha_state()
 
     # Register services only once
     if not hass.services.has_service(DOMAIN, SERVICE_SET_TASK_RECURRENCE):
