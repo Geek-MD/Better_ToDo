@@ -1,6 +1,8 @@
 """Todo platform for Better ToDo integration."""
 from __future__ import annotations
 
+import uuid
+from dataclasses import replace
 from typing import Any
 
 from homeassistant.components.todo import (
@@ -12,7 +14,18 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .const import (
+    ATTR_RECURRENCE_CURRENT_COUNT,
+    ATTR_RECURRENCE_ENABLED,
+    ATTR_RECURRENCE_END_COUNT,
+    ATTR_RECURRENCE_END_DATE,
+    ATTR_RECURRENCE_END_ENABLED,
+    ATTR_RECURRENCE_END_TYPE,
+    ATTR_RECURRENCE_INTERVAL,
+    ATTR_RECURRENCE_UNIT,
+    DOMAIN,
+    RECURRENCE_UNIT_DAYS,
+)
 
 
 async def async_setup_entry(
@@ -21,7 +34,12 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the Better ToDo todo platform."""
-    async_add_entities([BetterTodoEntity(entry)], True)
+    entity = BetterTodoEntity(entry)
+    async_add_entities([entity], True)
+    
+    # Store entity reference for service access
+    if entry.entry_id in hass.data[DOMAIN]:
+        hass.data[DOMAIN][entry.entry_id]["entities"][entity.entity_id] = entity
 
 
 class BetterTodoEntity(TodoListEntity):
@@ -43,6 +61,14 @@ class BetterTodoEntity(TodoListEntity):
         self._attr_unique_id = entry.entry_id
         self._attr_name = None  # Will use the device name
         self._items: list[TodoItem] = []
+        # Store recurrence metadata for each task (keyed by uid)
+        self._recurrence_data: dict[str, dict[str, Any]] = {}
+
+    def _ensure_item_uid(self, item: TodoItem) -> TodoItem:
+        """Ensure the TodoItem has a UID, generating one if needed."""
+        if item.uid is None:
+            return replace(item, uid=str(uuid.uuid4()))
+        return item
 
     @property
     def todo_items(self) -> list[TodoItem] | None:
@@ -51,11 +77,18 @@ class BetterTodoEntity(TodoListEntity):
 
     async def async_create_todo_item(self, item: TodoItem) -> None:
         """Create a To-do item."""
+        # Ensure the item has a UID
+        item = self._ensure_item_uid(item)
         self._items.append(item)
         self.async_write_ha_state()
 
     async def async_update_todo_item(self, item: TodoItem) -> None:
         """Update a To-do item."""
+        # Ensure the item has a UID
+        if item.uid is None:
+            # If no UID, we can't update - this shouldn't happen
+            return
+
         # Find and update the item by uid
         for idx, existing_item in enumerate(self._items):
             if existing_item.uid == item.uid:
@@ -66,6 +99,9 @@ class BetterTodoEntity(TodoListEntity):
     async def async_delete_todo_items(self, uids: list[str]) -> None:
         """Delete To-do items."""
         self._items = [item for item in self._items if item.uid not in uids]
+        # Clean up recurrence data for deleted items
+        for uid in uids:
+            self._recurrence_data.pop(uid, None)
         self.async_write_ha_state()
 
     async def async_move_todo_item(
@@ -100,6 +136,49 @@ class BetterTodoEntity(TodoListEntity):
 
         self.async_write_ha_state()
 
+    def set_task_recurrence(
+        self,
+        uid: str,
+        recurrence_enabled: bool,
+        recurrence_interval: int | None = None,
+        recurrence_unit: str | None = None,
+        recurrence_end_enabled: bool = False,
+        recurrence_end_type: str | None = None,
+        recurrence_end_count: int | None = None,
+        recurrence_end_date: str | None = None,
+    ) -> None:
+        """Set recurrence configuration for a task."""
+        # Check if task exists using generator expression for efficiency
+        if not any(item.uid == uid for item in self._items):
+            return
+
+        if recurrence_enabled:
+            self._recurrence_data[uid] = {
+                ATTR_RECURRENCE_ENABLED: True,
+                ATTR_RECURRENCE_INTERVAL: recurrence_interval or 1,
+                ATTR_RECURRENCE_UNIT: recurrence_unit or RECURRENCE_UNIT_DAYS,
+                ATTR_RECURRENCE_END_ENABLED: recurrence_end_enabled,
+                ATTR_RECURRENCE_END_TYPE: recurrence_end_type,
+                ATTR_RECURRENCE_END_COUNT: recurrence_end_count,
+                ATTR_RECURRENCE_END_DATE: recurrence_end_date,
+                ATTR_RECURRENCE_CURRENT_COUNT: 0,
+            }
+        else:
+            self._recurrence_data.pop(uid, None)
+
+        self.async_write_ha_state()
+
+    def get_task_recurrence(self, uid: str) -> dict[str, Any] | None:
+        """Get recurrence configuration for a task."""
+        return self._recurrence_data.get(uid)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes."""
+        return {
+            "recurrence_data": self._recurrence_data,
+        }
+
     @property
     def device_info(self) -> dict[str, Any]:
         """Return device information about this entity."""
@@ -108,5 +187,5 @@ class BetterTodoEntity(TodoListEntity):
             "name": self._entry.data["name"],
             "manufacturer": "Better ToDo",
             "model": "Todo List",
-            "sw_version": "0.1.0",
+            "sw_version": "0.2.0",
         }

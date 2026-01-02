@@ -6,6 +6,9 @@
         "description": "Crear una nueva lista de Better ToDo",
         "data": {
           "name": "Nombre de la lista"
+        },
+        "data_description": {
+          "name": "Ingrese un nombre para su lista de tareas (ej., 'Lista de la compra', 'Tareas del trabajo', 'Proyectos del hogar')"
         }
       }
     },
@@ -20,6 +23,60 @@
         "description": "Actualizar la configuración de la lista de Better ToDo",
         "data": {
           "name": "Nombre de la lista"
+        }
+      }
+    }
+  },
+  "services": {
+    "set_task_recurrence": {
+      "name": "Configurar repetición de tarea",
+      "description": "Configurar opciones de repetición para una tarea",
+      "fields": {
+        "entity_id": {
+          "name": "ID de entidad",
+          "description": "La entidad de lista de tareas que contiene la tarea"
+        },
+        "task_uid": {
+          "name": "UID de tarea",
+          "description": "El identificador único de la tarea"
+        },
+        "recurrence_enabled": {
+          "name": "Habilitar repetición",
+          "description": "Habilitar o deshabilitar la repetición para esta tarea"
+        },
+        "recurrence_interval": {
+          "name": "Intervalo de repetición",
+          "description": "El valor del intervalo de repetición"
+        },
+        "recurrence_unit": {
+          "name": "Unidad de repetición",
+          "description": "La unidad de tiempo para la repetición"
+        },
+        "recurrence_end_enabled": {
+          "name": "Habilitar término de repetición",
+          "description": "Habilitar o deshabilitar un límite para la repetición"
+        },
+        "recurrence_end_type": {
+          "name": "Tipo de término de repetición",
+          "description": "Cómo limitar la repetición"
+        },
+        "recurrence_end_count": {
+          "name": "Cantidad de repeticiones",
+          "description": "Número de veces que se repetirá la tarea"
+        },
+        "recurrence_end_date": {
+          "name": "Fecha de término de repetición",
+          "description": "Fecha en la que se dejará de repetir la tarea"
+        }
+      }
+    },
+    "get_task_recurrence": {
+      "name": "Obtener repetición de tarea",
+      "description": "Actualizar y obtener configuración de repetición para todas las tareas. Los datos están disponibles en el atributo 'recurrence_data' de la entidad.",
+      "fields": {
+        "entity_id": {
+          "name": "ID de entidad",
+          "description": "La entidad de lista de tareas"
         }
       }
     }

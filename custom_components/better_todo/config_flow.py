@@ -12,7 +12,7 @@ from homeassistant.helpers import config_validation as cv
 
 from .const import DOMAIN
 
-CONFIG_SCHEMA = vol.Schema({vol.Required("name"): cv.string})
+CONFIG_SCHEMA = vol.Schema({vol.Required("name", default="Shopping List"): cv.string})
 
 
 class BetterTodoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]

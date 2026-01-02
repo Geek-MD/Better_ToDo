@@ -6,6 +6,9 @@
         "description": "Create a new Better ToDo list",
         "data": {
           "name": "List name"
+        },
+        "data_description": {
+          "name": "Enter a name for your todo list (e.g., 'Shopping List', 'Work Tasks', 'Home Projects')"
         }
       }
     },
@@ -20,6 +23,60 @@
         "description": "Update the Better ToDo list configuration",
         "data": {
           "name": "List name"
+        }
+      }
+    }
+  },
+  "services": {
+    "set_task_recurrence": {
+      "name": "Set task recurrence",
+      "description": "Configure recurrence settings for a task",
+      "fields": {
+        "entity_id": {
+          "name": "Entity ID",
+          "description": "The todo list entity containing the task"
+        },
+        "task_uid": {
+          "name": "Task UID",
+          "description": "The unique identifier of the task"
+        },
+        "recurrence_enabled": {
+          "name": "Enable recurrence",
+          "description": "Enable or disable recurrence for this task"
+        },
+        "recurrence_interval": {
+          "name": "Recurrence interval",
+          "description": "The interval value for recurrence"
+        },
+        "recurrence_unit": {
+          "name": "Recurrence unit",
+          "description": "The time unit for recurrence"
+        },
+        "recurrence_end_enabled": {
+          "name": "Enable recurrence end",
+          "description": "Enable or disable a limit for recurrence"
+        },
+        "recurrence_end_type": {
+          "name": "Recurrence end type",
+          "description": "How to limit the recurrence"
+        },
+        "recurrence_end_count": {
+          "name": "Recurrence end count",
+          "description": "Number of times to repeat the task"
+        },
+        "recurrence_end_date": {
+          "name": "Recurrence end date",
+          "description": "Date when to stop repeating the task"
+        }
+      }
+    },
+    "get_task_recurrence": {
+      "name": "Get task recurrence",
+      "description": "Refresh and retrieve recurrence settings for all tasks. Data is available in the entity's 'recurrence_data' attribute.",
+      "fields": {
+        "entity_id": {
+          "name": "Entity ID",
+          "description": "The todo list entity"
         }
       }
     }
