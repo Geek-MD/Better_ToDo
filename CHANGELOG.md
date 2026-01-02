@@ -39,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Notes
 - **To use the new card manually**: Add `type: custom:better-todo-card` to your dashboard configuration
 - **Better ToDo Dashboard**: Check sidebar for "Better ToDo" dashboard with all lists
+- **About native "To-do lists" dashboard**: HA automatically creates this dashboard for TODO entities. Better ToDo entities will appear there, but we recommend using the "Better ToDo" dashboard for the enhanced experience
+- **To hide native dashboard**: Settings → Dashboards → "To-do lists" → Hide from sidebar
 - The standard `todo-list` card still works but will show the old "Active"/"Completed" format
 - Custom card is backward compatible and works with existing Better ToDo lists
 - Version bumped to 0.4.3 due to multiple corrections and enhancements

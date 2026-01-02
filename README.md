@@ -64,9 +64,27 @@ You can create more ToDo lists by adding the integration again with different na
 
 ## Usage
 
+### Better ToDo Dashboard
+
+After installation, Better ToDo automatically creates a dedicated dashboard named **"Better ToDo"** in your sidebar. This is the recommended way to access your todo lists.
+
+**The Better ToDo dashboard includes:**
+- All your todo lists with custom category headers
+- Professional, emoji-free appearance
+- Recurrence configuration for each list
+- Automatic organization by: No due date, This week, Forthcoming, Completed
+
+**Note about the native "To-do lists" dashboard:**
+Home Assistant automatically creates a "To-do lists" dashboard when TODO entities exist. Your Better ToDo lists will appear there too, but for the best experience with custom category headers, **use the "Better ToDo" dashboard** instead.
+
+To hide the native "To-do lists" dashboard:
+1. Go to **Settings** → **Dashboards**
+2. Find **"To-do lists"**
+3. Click the three dots (⋮) → **Hide from sidebar**
+
 ### Managing Tasks
 
-Once configured, your Better ToDo lists will appear in the ToDo section of Home Assistant. You can:
+Once configured, you can manage your tasks from the Better ToDo dashboard:
 
 - **Create tasks**: Add new items to your list
 - **Edit tasks**: Update task details, descriptions, and due dates
@@ -154,13 +172,36 @@ Better ToDo integrates with Home Assistant's automation system. You can trigger 
 - Due dates approaching
 - Recurring tasks
 
-### Lovelace Cards
+### Lovelace Cards and Dashboards
 
-Better ToDo provides two options for displaying your lists:
+Better ToDo automatically creates a dedicated **"Better ToDo" dashboard** when you install the integration. This dashboard appears in your sidebar and includes:
+- All your Better ToDo lists with custom cards
+- Category headers: "No due date", "This week", "Forthcoming", "Completed"
+- Recurrence configuration cards for each list
 
-#### Better ToDo Custom Card (Recommended - v0.4.3+)
+**Recommended:** Use the "Better ToDo" dashboard for the best experience.
 
-Use the custom Better ToDo card for enhanced category headers without HA's default "Active"/"Completed" sections:
+#### Better ToDo Dashboard (Automatically Created - v0.4.3+)
+
+The integration automatically creates a dashboard named "Better ToDo" in your sidebar with all your lists using custom cards.
+
+**To access:**
+1. Look for "Better ToDo" in your Home Assistant sidebar
+2. All your todo lists will be displayed with professional category headers
+3. No emoticons - clean, professional appearance
+
+#### About the Native "To-do lists" Dashboard
+
+**Note:** Home Assistant automatically creates a native "To-do lists" dashboard when TODO entities exist. Better ToDo entities will appear there too, but **we recommend using the "Better ToDo" dashboard** instead for the enhanced experience with custom category headers.
+
+If you want to hide the native "To-do lists" dashboard:
+1. Go to Settings → Dashboards
+2. Find "To-do lists" dashboard
+3. Click the three dots menu → Hide from sidebar
+
+#### Manual Card Configuration
+
+You can also manually add the custom Better ToDo card to any dashboard:
 
 ```yaml
 type: custom:better-todo-card
@@ -177,14 +218,14 @@ title: My Tasks  # Optional
 
 #### Standard Home Assistant Card
 
-You can also use the native Home Assistant ToDo card:
+You can also use the native Home Assistant ToDo card (not recommended):
 
 ```yaml
 type: todo-list
 entity: todo.my_list_name
 ```
 
-**Note:** The standard card will show HA's default "Active" and "Completed" headers, which may overlap with the custom category headers created by Better ToDo's backend grouping.
+**Note:** The standard card will show HA's default "Active" and "Completed" headers without the custom category organization.
 
 ## Requirements
 
