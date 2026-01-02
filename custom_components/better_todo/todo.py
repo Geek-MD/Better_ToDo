@@ -394,6 +394,7 @@ class BetterTodoEntity(Entity):
         
         return {
             "items": sorted_items_dict,
+            "todo_items": sorted_items_dict,  # Alias for custom cards compatibility
             "completed_items": completed_items_dict,
             "recurrence_data": self._recurrence_data,
             "total_tasks": len([i for i in self._items if not self._is_header_item(i)]),
