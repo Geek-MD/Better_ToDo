@@ -1,10 +1,10 @@
 {
-  "name": "Recurrent Tasks",
+  "name": "Better ToDo",
   "content_in_root": false,
-  "domains": ["recurrent_tasks"],
+  "domains": ["better_todo"],
   "country": "global",
   "render_readme": true,
-  "filename": "custom_components/recurrent_tasks/manifest.json",
+  "filename": "custom_components/better_todo/manifest.json",
   "category": "integration",
   "homeassistant": "2024.6.0"
 }
