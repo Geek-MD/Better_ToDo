@@ -70,12 +70,46 @@ class BetterTodoEntity(TodoListEntity):
         self._items: list[TodoItem] = []
         # Store recurrence metadata for each task (keyed by uid)
         self._recurrence_data: dict[str, dict[str, Any]] = {}
+        # Will be set when entity is added to hass
+        self._hass: HomeAssistant | None = None
 
     def _ensure_item_uid(self, item: TodoItem) -> TodoItem:
         """Ensure the TodoItem has a UID, generating one if needed."""
         if item.uid is None:
             return replace(item, uid=str(uuid.uuid4()))
         return item
+
+    def _get_week_start_day(self) -> int:
+        """Get the first day of the week based on locale settings.
+        
+        Returns:
+            0 for Monday (used in most locales including Spanish)
+            6 for Sunday (used in US English and some other locales)
+        
+        Home Assistant's language/locale determines the week start:
+        - Spanish (es): Monday (0)
+        - English (en): Sunday (6) for US, Monday (0) for UK/others
+        
+        This uses Python's weekday() where Monday=0, Sunday=6
+        """
+        if self.hass is None:
+            # Default to Monday if hass not available
+            return 0
+        
+        # Get the language from Home Assistant configuration
+        language = self.hass.config.language
+        
+        # Map languages to their first weekday
+        # Sunday (6) for US English and similar locales
+        # Monday (0) for most other locales including Spanish
+        sunday_first_locales = ["en-US", "en_US"]
+        
+        # Check if the language uses Sunday as first day
+        if language in sunday_first_locales:
+            return 6  # Sunday
+        
+        # Default to Monday for all other locales (including "es", "en-GB", etc.)
+        return 0  # Monday
 
     def _get_item_group(self, item: TodoItem) -> str:
         """Get the group category for a todo item.
@@ -101,12 +135,29 @@ class BetterTodoEntity(TodoListEntity):
             # Get current date in the user's timezone
             now = dt_util.now().date()
             
-            # Calculate end of this week (Sunday)
-            days_until_sunday = (6 - now.weekday()) % 7
-            end_of_week = now + timedelta(days=days_until_sunday)
+            # Get the week start day based on locale
+            week_start = self._get_week_start_day()
             
-            # Categorize
-            if due_date <= end_of_week:
+            # Calculate the start and end of the current week
+            # weekday() returns 0=Monday, 6=Sunday
+            current_weekday = now.weekday()
+            
+            if week_start == 0:  # Week starts on Monday
+                # Calculate days since Monday
+                days_since_start = current_weekday
+                # Calculate days until Sunday (end of week)
+                days_until_end = 6 - current_weekday
+            else:  # Week starts on Sunday (week_start == 6)
+                # Calculate days since Sunday
+                days_since_start = (current_weekday + 1) % 7
+                # Calculate days until Saturday (end of week)
+                days_until_end = 6 - days_since_start
+            
+            week_start_date = now - timedelta(days=days_since_start)
+            week_end_date = now + timedelta(days=days_until_end)
+            
+            # Categorize: task is "this week" if due date is within current week
+            if week_start_date <= due_date <= week_end_date:
                 return GROUP_THIS_WEEK
             else:
                 return GROUP_FORTHCOMING

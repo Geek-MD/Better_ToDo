@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Users can now configure recurrence visually without using Developer Tools
 - **Automatic Task Grouping**: Tasks are now automatically organized into groups:
   - "No due date" / "Sin fecha de vencimiento": Tasks without a due date
-  - "This week" / "Esta semana": Tasks due this week
+  - "This week" / "Esta semana": Tasks due within the current calendar week (respects locale: Monday start for Spanish, Sunday start for US English)
   - "Forthcoming" / "Próximamente": Tasks due after this week
   - "Done" / "Completadas": Completed tasks
 - Dashboard support infrastructure for creating custom "Better ToDo" dashboard (experimental)
@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Recurrence configuration workflow is now UI-first instead of service-first
 - Tasks are automatically sorted by group and due date for better organization
 - Added translations for task group names in English and Spanish
+- "This week" calculation now respects system locale (Monday start for most locales including Spanish, Sunday start for US English)
 
 ### Notes
 - **Backward compatible**: Existing `set_task_recurrence` and `get_task_recurrence` services remain fully functional

@@ -77,7 +77,7 @@ Once configured, your Better ToDo lists will appear in the ToDo section of Home 
 Tasks are automatically organized into groups for better visibility:
 
 - 📭 **No due date**: Tasks without a due date
-- 📅 **This week**: Tasks due within the current week
+- 📅 **This week**: Tasks due within the current calendar week (respects your locale settings - Monday start for Spanish/European locales, Sunday start for US English)
 - 📆 **Forthcoming**: Tasks due after this week
 - ✅ **Done**: Completed tasks
 
