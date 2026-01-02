@@ -234,9 +234,10 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
                 # Save the dashboard configuration
                 store = storage.Store(hass, STORAGE_VERSION, STORAGE_KEY)
                 await store.async_save(config)
+                _LOGGER.info("Dashboard configuration saved successfully")
                 return
     except Exception as err:
-        _LOGGER.debug("Could not use dashboard collection API: %s", err)
+        _LOGGER.info("Dashboard collection API not available, using file storage fallback: %s", err)
     
     # Fallback: Try direct file creation in .storage
     try:
@@ -323,6 +324,34 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
 
 async def async_remove_dashboard(hass: HomeAssistant) -> None:
     """Remove the Better ToDo dashboard when the last entry is removed."""
+    # Try to remove the dashboard using the Lovelace API first
+    try:
+        if "lovelace" in hass.data:
+            lovelace_data = hass.data["lovelace"]
+            
+            # Check if dashboards collection exists
+            if hasattr(lovelace_data, "dashboards"):
+                dashboards = lovelace_data.dashboards
+                
+                # Find and remove our dashboard
+                for dashboard_id in dashboards.async_items_ids():
+                    dashboard = await dashboards.async_get_item(dashboard_id)
+                    if dashboard.get("url_path") == DASHBOARD_URL:
+                        await dashboards.async_delete_item(dashboard_id)
+                        _LOGGER.info("Removed Better ToDo dashboard via API")
+                        
+                        # Also remove the dashboard configuration from storage
+                        try:
+                            store = storage.Store(hass, STORAGE_VERSION, STORAGE_KEY)
+                            await store.async_remove()
+                        except Exception as err:
+                            _LOGGER.debug("Could not remove dashboard storage: %s", err)
+                        
+                        return
+    except Exception as err:
+        _LOGGER.debug("Could not use dashboard collection API for removal: %s", err)
+    
+    # Fallback: Try file-based removal
     try:
         config_dir = Path(hass.config.config_dir)
         storage_dir = config_dir / ".storage"
@@ -331,7 +360,7 @@ async def async_remove_dashboard(hass: HomeAssistant) -> None:
         dashboard_file = storage_dir / f"lovelace.{DASHBOARD_URL}"
         if dashboard_file.exists():
             dashboard_file.unlink()
-            _LOGGER.info("Removed Better ToDo dashboard configuration")
+            _LOGGER.info("Removed Better ToDo dashboard configuration file")
         
         # Remove from dashboards registry
         dashboards_file = storage_dir / "lovelace_dashboards"
@@ -349,7 +378,7 @@ async def async_remove_dashboard(hass: HomeAssistant) -> None:
             if len(dashboards_data["data"]["items"]) < original_count:
                 with open(dashboards_file, "w", encoding="utf-8") as f:
                     json.dump(dashboards_data, f, indent=2)
-                _LOGGER.info("Removed Better ToDo dashboard from registry")
+                _LOGGER.info("Removed Better ToDo dashboard from registry via file storage")
     
     except Exception as err:
-        _LOGGER.debug("Could not remove dashboard: %s", err)
+        _LOGGER.warning("Could not remove dashboard via file storage: %s", err)

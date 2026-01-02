@@ -5,6 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-01-02
+
+### ⚠️ BREAKING CHANGE - Major Architecture Update
+
+**This is a major architectural change that makes Better ToDo fully independent from Home Assistant's core Todo integration.**
+
+### Changed
+- **Entity Architecture**: Complete rewrite of the todo entity system
+  - Changed from inheriting `TodoListEntity` to using base `Entity` class
+  - Tasks are now managed by custom services instead of the Platform.TODO interface
+  - Entities still use `todo.*` domain for backward compatibility
+  - **Result**: Tasks NO LONGER appear in Home Assistant's native "To-do lists" dashboard
+  - Better ToDo dashboard is now the exclusive interface for managing tasks
+
+### Added
+- **New Task Management Services**: Added 4 new services for complete task control
+  - `better_todo.create_task`: Create new tasks with summary, description, and due date
+  - `better_todo.update_task`: Update existing tasks (summary, description, due date, status)
+  - `better_todo.delete_task`: Delete one or more tasks by UID
+  - `better_todo.move_task`: Reorder tasks within the list
+- **Persistent Storage**: Tasks are now saved to Home Assistant storage
+  - Data persists across restarts
+  - Storage location: `.storage/better_todo.{entry_id}.tasks`
+- **Custom TodoItem Dataclass**: Replicated `homeassistant.components.todo.TodoItem` functionality
+  - Independent from core HA todo components
+  - Fully compatible with existing Better ToDo features
+
+### Fixed
+- **Dashboard Creation**: Improved dashboard registration and removal
+  - Dashboard now properly uses Lovelace API first, then falls back to file storage
+  - Symmetric creation and deletion logic
+  - Better error handling and logging
+  - Dashboard is always created on integration installation
+  - Dashboard is always removed on integration uninstallation
+
+### Improved
+- **Service Logging**: Better visibility into dashboard operations
+  - Changed from debug to info/warning levels for important events
+  - Clear messages about which registration method is being used
+- **Code Organization**: Custom entity fully encapsulates task management logic
+- **Data Attributes**: Tasks now exposed in entity attributes for custom card access
+
+### Migration Notes
+- **Automatic**: No user action required for existing installations
+- **Entity IDs**: Remain the same (`todo.list_name`)
+- **Task Data**: Will be migrated to new storage format automatically
+- **Custom Cards**: Continue to work without changes
+- **Automations**: May need to update task operations to use new services
+
+### Why This Change?
+This architectural change addresses the main issue: preventing Better ToDo tasks from appearing in Home Assistant's native "To-do lists" dashboard. Now Better ToDo operates completely independently, giving users a dedicated experience through the Better ToDo dashboard only.
+
 ## [0.4.5] - 2026-01-02
 
 ### Added
