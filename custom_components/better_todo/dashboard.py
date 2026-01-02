@@ -135,6 +135,8 @@ async def _async_reload_frontend_panels(hass: HomeAssistant) -> None:
                 dashboards = lovelace_data.dashboards
                 # Trigger a reload by accessing the dashboards
                 # This causes the system to refresh its internal state
+                # Note: We call list() to iterate through items as a side effect
+                # that triggers the internal dashboard state refresh
                 list(dashboards.async_items_ids())
                 _LOGGER.debug("Refreshed lovelace dashboards state")
     except Exception as err:
@@ -154,14 +156,16 @@ async def _async_reload_frontend_panels(hass: HomeAssistant) -> None:
     
     try:
         # Fire event to notify frontend of the new dashboard
-        # The frontend should pick this up and refresh the sidebar
+        # Note: 'lovelace_updated' is a standard Home Assistant event
+        # that the frontend listens for to refresh dashboard configuration
         hass.bus.async_fire("lovelace_updated", {"url_path": DASHBOARD_URL})
         _LOGGER.debug("Fired lovelace_updated event for dashboard")
     except Exception as err:
         _LOGGER.debug("Could not fire lovelace_updated event: %s", err)
     
     try:
-        # Also fire a generic panels_updated event
+        # Fire a panels_updated event as an additional notification mechanism
+        # This helps ensure the sidebar refreshes to show the new dashboard
         hass.bus.async_fire("panels_updated")
         _LOGGER.debug("Fired panels_updated event")
     except Exception as err:
