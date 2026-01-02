@@ -1,6 +1,8 @@
 """Config flow for Better ToDo integration."""
 from __future__ import annotations
 
+import asyncio
+import logging
 from typing import Any
 
 import voluptuous as vol
@@ -10,15 +12,38 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import config_validation as cv
 
-from .const import DOMAIN
+from .const import (
+    AUTO_LIST_CREATION_DELAY,
+    AUTO_SHOPPING_LIST_NAME,
+    DEFAULT_LIST_NAME,
+    DOMAIN,
+)
 
-CONFIG_SCHEMA = vol.Schema({vol.Required("name", default="Shopping List"): cv.string})
+_LOGGER = logging.getLogger(__name__)
+
+CONFIG_SCHEMA = vol.Schema({vol.Required("name", default=DEFAULT_LIST_NAME): cv.string})
 
 
 class BetterTodoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     """Handle a config flow for Better ToDo."""
 
     VERSION = 1
+
+    async def async_step_auto_shopping_list(
+        self, data: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Handle automatic creation of Shopping List."""
+        if data is None:
+            return self.async_abort(reason="missing_data")
+
+        # Check if already configured
+        await self.async_set_unique_id(data["name"])
+        self._abort_if_unique_id_configured()
+
+        return self.async_create_entry(
+            title=data["name"],
+            data=data,
+        )
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -31,10 +56,49 @@ class BetterTodoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: i
             await self.async_set_unique_id(user_input["name"])
             self._abort_if_unique_id_configured()
 
-            return self.async_create_entry(
+            # Check if this is the first time setting up the integration
+            # Must check BEFORE creating the entry
+            existing_entries = self.hass.config_entries.async_entries(DOMAIN)
+            is_first_setup = len(existing_entries) == 0
+            should_create_shopping_list = (
+                is_first_setup and user_input["name"] != AUTO_SHOPPING_LIST_NAME
+            )
+
+            # Create the primary list with the user-provided name
+            result = self.async_create_entry(
                 title=user_input["name"],
                 data=user_input,
             )
+
+            # If this is the first setup, schedule creation of Shopping List
+            if should_create_shopping_list:
+                async def create_shopping_list(shopping_list_name: str) -> None:
+                    """Create the Shopping List entry after a delay."""
+                    try:
+                        # Small delay to ensure the first entry is fully committed
+                        await asyncio.sleep(AUTO_LIST_CREATION_DELAY)
+                        
+                        # Check if Shopping List already exists
+                        shopping_list_exists = any(
+                            entry.data.get("name") == shopping_list_name
+                            for entry in self.hass.config_entries.async_entries(DOMAIN)
+                        )
+                        if not shopping_list_exists:
+                            await self.hass.config_entries.flow.async_init(
+                                DOMAIN,
+                                context={"source": "auto_shopping_list"},
+                                data={"name": shopping_list_name},
+                            )
+                    except Exception as err:
+                        # Log error but don't fail the main setup
+                        _LOGGER.error(
+                            "Failed to automatically create Shopping List: %s", err
+                        )
+                
+                # Schedule the task to run after this flow completes
+                self.hass.async_create_task(create_shopping_list(AUTO_SHOPPING_LIST_NAME))
+
+            return result
 
         return self.async_show_form(
             step_id="user",

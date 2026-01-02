@@ -21,6 +21,8 @@ A Home Assistant custom integration for advanced ToDo list management.
 - 📝 **Rich Descriptions**: Add detailed descriptions to your tasks
 - 🔄 **Task Reordering**: Organize tasks in your preferred order
 - 🎯 **Multiple Lists**: Create multiple independent ToDo lists
+- 🔁 **Task Recurrence**: Configure recurring tasks with flexible intervals and end conditions
+- 🛒 **Auto-Setup**: First-time setup automatically creates both a default task list and a shopping list
 - 🏠 **Native Home Assistant Integration**: Seamlessly integrates with Home Assistant's ToDo platform
 
 ## Installation
@@ -50,12 +52,13 @@ A Home Assistant custom integration for advanced ToDo list management.
 2. Click **+ Add Integration**
 3. Search for **Better ToDo**
 4. Follow the configuration steps:
-   - Enter a name for your ToDo list
+   - Enter a name for your default ToDo list (defaults to "Tasks")
+   - On **first setup**, a "Shopping List" will be created automatically
 5. Click **Submit**
 
-### Creating Multiple Lists
+### Creating Additional Lists
 
-You can create multiple ToDo lists by adding the integration multiple times with different names.
+You can create more ToDo lists by adding the integration again with different names. The automatic "Shopping List" creation only happens on the first setup.
 
 ## Usage
 
@@ -69,6 +72,41 @@ Once configured, your Better ToDo lists will appear in the ToDo section of Home 
 - **Delete tasks**: Remove completed or unwanted tasks
 - **Reorder tasks**: Drag and drop to organize your tasks
 
+### Task Recurrence
+
+Better ToDo supports recurring tasks through the built-in services. To configure recurrence for a task:
+
+1. Go to **Developer Tools** → **Services**
+2. Select the service `better_todo.set_task_recurrence`
+3. Configure the recurrence settings:
+   - **Entity ID**: Your todo list entity (e.g., `todo.tasks`)
+   - **Task UID**: The unique identifier of the task (visible in entity attributes)
+   - **Enable recurrence**: Turn on/off recurrence
+   - **Recurrence interval**: How often to repeat (e.g., 1, 2, 3)
+   - **Recurrence unit**: Time unit (days, months, years)
+   - **Enable recurrence end**: Set a limit for repetitions
+   - **End type**: End after count or on a specific date
+   - **End count**: Number of repetitions
+   - **End date**: Date to stop repeating
+
+**Example automation to set weekly recurring task:**
+
+```yaml
+service: better_todo.set_task_recurrence
+data:
+  entity_id: todo.tasks
+  task_uid: "abc123-task-uid"
+  recurrence_enabled: true
+  recurrence_interval: 1
+  recurrence_unit: "days"
+  recurrence_end_enabled: false
+```
+
+**To view recurrence data:**
+
+- Use the service `better_todo.get_task_recurrence` to refresh the data
+- Check the entity's `recurrence_data` attribute in **Developer Tools** → **States**
+
 ### Automations
 
 Better ToDo integrates with Home Assistant's automation system. You can trigger automations based on:
@@ -76,6 +114,7 @@ Better ToDo integrates with Home Assistant's automation system. You can trigger 
 - New tasks created
 - Tasks completed
 - Due dates approaching
+- Recurring tasks
 
 ### Lovelace Cards
 

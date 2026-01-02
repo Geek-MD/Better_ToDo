@@ -2,6 +2,13 @@
 
 DOMAIN = "better_todo"
 
+# Default list names
+DEFAULT_LIST_NAME = "Tasks"
+AUTO_SHOPPING_LIST_NAME = "Shopping List"
+
+# Config flow constants
+AUTO_LIST_CREATION_DELAY = 0.5  # Seconds to wait before creating shopping list
+
 # Recurrence constants
 ATTR_RECURRENCE_ENABLED = "recurrence_enabled"
 ATTR_RECURRENCE_INTERVAL = "recurrence_interval"
