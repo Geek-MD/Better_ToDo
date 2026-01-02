@@ -23,5 +23,63 @@
         }
       }
     }
+  },
+  "services": {
+    "set_task_recurrence": {
+      "name": "Configurar repetición de tarea",
+      "description": "Configurar opciones de repetición para una tarea",
+      "fields": {
+        "entity_id": {
+          "name": "ID de entidad",
+          "description": "La entidad de lista de tareas que contiene la tarea"
+        },
+        "task_uid": {
+          "name": "UID de tarea",
+          "description": "El identificador único de la tarea"
+        },
+        "recurrence_enabled": {
+          "name": "Habilitar repetición",
+          "description": "Habilitar o deshabilitar la repetición para esta tarea"
+        },
+        "recurrence_interval": {
+          "name": "Intervalo de repetición",
+          "description": "El valor del intervalo de repetición"
+        },
+        "recurrence_unit": {
+          "name": "Unidad de repetición",
+          "description": "La unidad de tiempo para la repetición"
+        },
+        "recurrence_end_enabled": {
+          "name": "Habilitar término de repetición",
+          "description": "Habilitar o deshabilitar un límite para la repetición"
+        },
+        "recurrence_end_type": {
+          "name": "Tipo de término de repetición",
+          "description": "Cómo limitar la repetición"
+        },
+        "recurrence_end_count": {
+          "name": "Cantidad de repeticiones",
+          "description": "Número de veces que se repetirá la tarea"
+        },
+        "recurrence_end_date": {
+          "name": "Fecha de término de repetición",
+          "description": "Fecha en la que se dejará de repetir la tarea"
+        }
+      }
+    },
+    "get_task_recurrence": {
+      "name": "Obtener repetición de tarea",
+      "description": "Obtener configuración de repetición para una tarea",
+      "fields": {
+        "entity_id": {
+          "name": "ID de entidad",
+          "description": "La entidad de lista de tareas que contiene la tarea"
+        },
+        "task_uid": {
+          "name": "UID de tarea",
+          "description": "El identificador único de la tarea"
+        }
+      }
+    }
   }
 }
