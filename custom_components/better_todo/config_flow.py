@@ -1,6 +1,7 @@
 """Config flow for Better ToDo integration."""
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 import voluptuous as vol
@@ -48,8 +49,12 @@ class BetterTodoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: i
             self._abort_if_unique_id_configured()
 
             # Check if this is the first time setting up the integration
+            # Must check BEFORE creating the entry
             existing_entries = self.hass.config_entries.async_entries(DOMAIN)
             is_first_setup = len(existing_entries) == 0
+            should_create_shopping_list = (
+                is_first_setup and user_input["name"] != "Shopping List"
+            )
 
             # Create the primary list with the user-provided name
             result = self.async_create_entry(
@@ -57,13 +62,13 @@ class BetterTodoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: i
                 data=user_input,
             )
 
-            # If this is the first setup, also create the Shopping List automatically
-            if is_first_setup and user_input["name"] != "Shopping List":
-                shopping_list_name = "Shopping List"
-                # Schedule the creation of the Shopping List entry
-                # We need to do this after the current entry is created
-                async def create_shopping_list() -> None:
-                    """Create the Shopping List entry."""
+            # If this is the first setup, schedule creation of Shopping List
+            if should_create_shopping_list:
+                async def create_shopping_list(shopping_list_name: str) -> None:
+                    """Create the Shopping List entry after a delay."""
+                    # Small delay to ensure the first entry is fully committed
+                    await asyncio.sleep(0.5)
+                    
                     # Check if Shopping List already exists
                     shopping_list_exists = any(
                         entry.data.get("name") == shopping_list_name
@@ -77,7 +82,7 @@ class BetterTodoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: i
                         )
                 
                 # Schedule the task to run after this flow completes
-                self.hass.async_create_task(create_shopping_list())
+                self.hass.async_create_task(create_shopping_list("Shopping List"))
 
             return result
 
