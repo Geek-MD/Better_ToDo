@@ -497,7 +497,7 @@ window.customCards.push({
 });
 
 console.info(
-  '%c BETTER-TODO-DASHBOARD-CARD %c v0.4.5 ',
+  '%c BETTER-TODO-DASHBOARD-CARD %c v0.5.1 ',
   'background-color: #555;color: #fff;font-weight: bold;',
   'background-color: #4caf50;color: #fff;font-weight: bold;'
 );
