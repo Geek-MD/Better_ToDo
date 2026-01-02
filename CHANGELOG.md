@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.4] - 2026-01-02
+
+### Fixed
+- **Dashboard and Entity Visibility**: Changed `integration_type` from `"service"` to `"hub"` in manifest.json
+  - Fixes issue where Better ToDo dashboard was not showing in sidebar
+  - Fixes issue where Better ToDo custom card was not displaying properly
+  - Entities are now properly recognized and displayed by Home Assistant
+  - The integration creates multiple entity types (TODO, NUMBER, SELECT, BUTTON, TEXT) organized by devices, making "hub" the appropriate integration type
+
+### Notes
+- This is a critical fix for dashboard and entity visibility issues
+- No code changes required - only metadata correction in manifest.json
+- All existing functionality remains unchanged
+- Users should see the Better ToDo dashboard appear in the sidebar after updating
+
 ## [0.4.3] - 2026-01-02
 
 ### Added

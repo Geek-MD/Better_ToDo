@@ -5,9 +5,9 @@
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/Geek-MD/Better_ToDo",
-  "integration_type": "service",
+  "integration_type": "hub",
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/Geek-MD/Better_ToDo/issues",
   "requirements": [],
-  "version": "0.4.3"
+  "version": "0.4.4"
 }
