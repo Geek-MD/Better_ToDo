@@ -1,0 +1,13 @@
+{
+  "domain": "better_todo",
+  "name": "Better ToDo",
+  "codeowners": ["@Geek-MD"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/Geek-MD/Better_ToDo",
+  "integration_type": "service",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/Geek-MD/Better_ToDo/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

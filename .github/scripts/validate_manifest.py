@@ -25,7 +25,7 @@ def validate_file(path: str, required_keys: list[str]) -> None:
     print(f"✅ {path} passed validation.")
 
 if __name__ == "__main__":
-    validate_file("custom_components/recurrent_tasks/manifest.json", [
+    validate_file("custom_components/better_todo/manifest.json", [
         "domain", "name", "codeowners", "version"
     ])
     validate_file("hacs.json", [
