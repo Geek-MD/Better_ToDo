@@ -6,6 +6,9 @@
         "description": "Crear una nueva lista de Better ToDo",
         "data": {
           "name": "Nombre de la lista"
+        },
+        "data_description": {
+          "name": "Ingrese un nombre para su lista de tareas (ej., 'Lista de la compra', 'Tareas del trabajo', 'Proyectos del hogar')"
         }
       }
     },

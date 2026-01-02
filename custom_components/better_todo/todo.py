@@ -1,6 +1,8 @@
 """Todo platform for Better ToDo integration."""
 from __future__ import annotations
 
+import uuid
+from dataclasses import replace
 from typing import Any
 
 from homeassistant.components.todo import (
@@ -64,11 +66,19 @@ class BetterTodoEntity(TodoListEntity):
 
     async def async_create_todo_item(self, item: TodoItem) -> None:
         """Create a To-do item."""
+        # Ensure the item has a UID
+        if item.uid is None:
+            item = replace(item, uid=str(uuid.uuid4()))
         self._items.append(item)
         self.async_write_ha_state()
 
     async def async_update_todo_item(self, item: TodoItem) -> None:
         """Update a To-do item."""
+        # Ensure the item has a UID
+        if item.uid is None:
+            # If no UID, we can't update - this shouldn't happen
+            return
+            
         # Find and update the item by uid
         for idx, existing_item in enumerate(self._items):
             if existing_item.uid == item.uid:

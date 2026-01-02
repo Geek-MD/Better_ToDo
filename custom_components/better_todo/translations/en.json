@@ -6,6 +6,9 @@
         "description": "Create a new Better ToDo list",
         "data": {
           "name": "List name"
+        },
+        "data_description": {
+          "name": "Enter a name for your todo list (e.g., 'Shopping List', 'Work Tasks', 'Home Projects')"
         }
       }
     },

@@ -85,7 +85,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def handle_get_task_recurrence(call: ServiceCall) -> None:
         """Handle the get_task_recurrence service call."""
         entity_id = call.data["entity_id"]
-        task_uid = call.data["task_uid"]
+        # task_uid = call.data["task_uid"]  # Not used, data available in extra_state_attributes
 
         # Get the entity
         entity = hass.data["entity_components"]["todo"].get_entity(entity_id)
