@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-01-02
+
+### Fixed
+- **Dashboard Display Issues**: Fixed critical issues preventing Better ToDo dashboard from displaying tasks
+  - Removed `Platform.TODO` from PLATFORMS list to prevent Home Assistant from treating Better ToDo as a native TODO platform
+  - This prevents the native "To-do lists" dashboard from appearing for Better ToDo entities
+  - Added `todo_items` attribute alias in entity state attributes for custom cards compatibility
+  - Custom cards now properly display tasks instead of showing empty
+- **Integration Type**: Changed `integration_type` from "hub" back to "service" in manifest
+  - Allows uninstalling the entire integration at once instead of removing each list separately
+  - Better user experience for managing the integration
+- **Dashboard Removal**: Improved dashboard cleanup logic when uninstalling integration
+  - Dashboard is now properly removed when all lists are deleted
+  - Fixed logic to check remaining entries excluding the one being unloaded
+  - Added logging for dashboard removal operations
+- **Entity Registration**: Todo entities are now manually registered using `EntityComponent`
+  - Proper entity registration without using `Platform.TODO`
+  - Maintains `todo.*` domain for backward compatibility
+  - Entities work correctly with all Better ToDo services
+
+### Technical Details
+- Better ToDo entities no longer use the TODO platform interface
+- Entities are registered directly through the entity component system
+- All custom cards now work correctly with the updated attribute structure
+- Dashboard creation and removal properly handle all edge cases
+
+### Notes
+- **No breaking changes** - existing installations will continue to work
+- **Restart required** after updating to load the new dashboard configuration
+- Users may need to clear browser cache to see updated custom cards
+- The native "To-do lists" dashboard will no longer show Better ToDo tasks
+
 ## [0.5.0] - 2026-01-02
 
 ### ⚠️ BREAKING CHANGE - Major Architecture Update

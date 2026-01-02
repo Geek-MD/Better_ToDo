@@ -23,7 +23,6 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [
-    Platform.TODO,
     Platform.NUMBER,
     Platform.SELECT,
     Platform.BUTTON,
@@ -111,6 +110,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = {"config": entry.data, "entities": {}}
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    
+    # Manually set up the custom todo entity (not using Platform.TODO)
+    # We use the entity component to properly register the entity
+    from homeassistant.helpers.entity_component import EntityComponent
+    from .todo import BetterTodoEntity
+    
+    component = hass.data.get("entity_components", {}).get("todo")
+    if component is None:
+        component = EntityComponent(_LOGGER, "todo", hass)
+        hass.data.setdefault("entity_components", {})["todo"] = component
+    
+    entity = BetterTodoEntity(hass, entry)
+    await entity.async_load_data()
+    await component.async_add_entities([entity])
+    
+    # Store entity reference for service access
+    hass.data[DOMAIN][entry.entry_id]["entities"][entity.entity_id] = entity
 
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
@@ -484,10 +500,18 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
 
-    # Remove dashboard if no more entries
-    if not hass.config_entries.async_entries(DOMAIN):
+    # Check if this is the last entry being removed
+    # We need to check if there are any OTHER entries besides the one being unloaded
+    remaining_entries = [
+        e for e in hass.config_entries.async_entries(DOMAIN)
+        if e.entry_id != entry.entry_id
+    ]
+    
+    # Remove dashboard and services if no more entries will remain
+    if not remaining_entries:
         from .dashboard import async_remove_dashboard
         await async_remove_dashboard(hass)
+        _LOGGER.info("Removed Better ToDo dashboard - no more lists configured")
         
         # Unregister services
         hass.services.async_remove(DOMAIN, SERVICE_SET_TASK_RECURRENCE)
