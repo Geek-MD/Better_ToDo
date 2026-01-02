@@ -30,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Lovelace Resources**: Improved automatic registration of custom cards as Lovelace resources
   - Both `better-todo-card` and `better-todo-dashboard-card` are now properly registered
   - Resources are added to `.storage/lovelace_resources` if API method fails
+- **Manifest Dependencies**: Added `http` component to dependencies in manifest.json
+  - Required for `hass.http.async_register_static_paths()` functionality
+  - Fixes Hassfest validation error
 
 ### Notes
 - **Recommended Usage**: The Better ToDo dashboard now provides a unified two-section interface
