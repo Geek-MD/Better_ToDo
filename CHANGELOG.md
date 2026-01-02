@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.5] - 2026-01-02
+
+### Added
+- **Two-Section Dashboard Card**: New `better-todo-dashboard-card` that mimics the core ToDo integration layout
+  - Left section: Displays all Better ToDo lists with task counts
+  - Right section: Shows tasks from the selected list with category headers
+  - Click on a list in the left panel to view its tasks in the right panel
+  - Automatic task organization with "No due date", "This week", "Forthcoming", and "Completed" categories
+  - Responsive layout with proper styling that matches Home Assistant's design system
+
+### Changed
+- **Dashboard Layout**: Better ToDo dashboard now uses the new two-section card instead of individual cards per list
+  - Single unified view showing all lists and their tasks
+  - More intuitive navigation between different todo lists
+  - Similar user experience to Home Assistant's core todo integration
+- Dashboard configuration simplified to use one main card for all lists
+
+### Fixed
+- **Blocking I/O Error**: Fixed error "Detected that custom integration 'better_todo' calls hass.http.register_static_path which does blocking I/O in the event loop"
+  - Changed from `hass.http.register_static_path()` to `await hass.http.async_register_static_paths([StaticPathConfig(...)])`
+  - Eliminates blocking I/O operations in the event loop
+  - Improves integration performance and Home Assistant startup time
+- **Lovelace Resources**: Improved automatic registration of custom cards as Lovelace resources
+  - Both `better-todo-card` and `better-todo-dashboard-card` are now properly registered
+  - Resources are added to `.storage/lovelace_resources` if API method fails
+- **Manifest Dependencies**: Added `http` component to dependencies in manifest.json
+  - Required for `hass.http.async_register_static_paths()` functionality
+  - Fixes Hassfest validation error
+
+### Notes
+- **Recommended Usage**: The Better ToDo dashboard now provides a unified two-section interface
+- **Individual Card Still Available**: The `better-todo-card` can still be used manually for single-list views
+- Users will need to refresh their browser after updating to load the new dashboard card
+- The new dashboard card provides a better user experience aligned with Home Assistant's core todo integration
+
 ## [0.4.4] - 2026-01-02
 
 ### Fixed
