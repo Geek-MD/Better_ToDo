@@ -24,6 +24,8 @@ A Home Assistant custom integration for advanced ToDo list management.
 - 🔁 **Task Recurrence**: Configure recurring tasks with flexible intervals and end conditions
 - 🛒 **Auto-Setup**: First-time setup automatically creates both a default task list and a shopping list
 - 🏠 **Native Home Assistant Integration**: Seamlessly integrates with Home Assistant's ToDo platform
+- 🎨 **Custom Lovelace Card**: Beautiful card with category headers that match HA's native design
+- 🌍 **Multilingual**: Automatic translations (English/Spanish) based on your HA language setting
 
 ## Installation
 
@@ -72,20 +74,23 @@ Once configured, your Better ToDo lists will appear in the ToDo section of Home 
 - **Delete tasks**: Remove completed or unwanted tasks
 - **Reorder tasks**: Drag and drop to organize your tasks
 
-#### Automatic Task Organization with Visual Category Headers
+#### Automatic Task Organization with Custom Card
 
-Tasks are automatically organized into groups with visible category headers in the UI:
+Better ToDo includes a custom Lovelace card (`better-todo-card`) that displays tasks with visual category headers:
 
 - 📭 **No due date**: Tasks without a due date
 - 📅 **This week**: Tasks due within the current calendar week (respects your locale settings - Monday start for Spanish/European locales, Sunday start for US English)
 - 📆 **Forthcoming**: Tasks due after this week
-- ✅ **Done**: Completed tasks
+- ✅ **Completed**: Completed tasks (uses HA's native section)
 
 **Features:**
-- Category headers appear as visual separators in your todo list
+- Category headers use the same HTML structure as HA's native todo card (`<h2>` within `<div class="header" role="separator">`)
 - Headers are automatically translated based on your Home Assistant language setting
 - Tasks within each group are sorted by due date (earliest first)
-- Replaces the default "Active" and "Completed" grouping with more detailed categories
+- Replaces the default "Active" header with more meaningful categories
+- Perfect styling consistency with Home Assistant's design system
+
+**To use:** Add the custom card to your dashboard (see Lovelace Cards section below)
 
 ### Task Recurrence
 
@@ -151,12 +156,35 @@ Better ToDo integrates with Home Assistant's automation system. You can trigger 
 
 ### Lovelace Cards
 
-Use the native Home Assistant ToDo card to display your lists:
+Better ToDo provides two options for displaying your lists:
+
+#### Better ToDo Custom Card (Recommended - v0.4.1+)
+
+Use the custom Better ToDo card for enhanced category headers without HA's default "Active"/"Completed" sections:
+
+```yaml
+type: custom:better-todo-card
+entity: todo.tasks
+title: My Tasks  # Optional
+```
+
+**Features:**
+- Custom category headers: "📭 No due date", "📅 This week", "📆 Forthcoming"
+- Native "✅ Completed" section for finished tasks
+- Uses Home Assistant's native web components for perfect styling
+- Automatic translations (English/Spanish)
+- Locale-aware week calculations
+
+#### Standard Home Assistant Card
+
+You can also use the native Home Assistant ToDo card:
 
 ```yaml
 type: todo-list
 entity: todo.my_list_name
 ```
+
+**Note:** The standard card will show HA's default "Active" and "Completed" headers, which may overlap with the custom category headers created by Better ToDo's backend grouping.
 
 ## Requirements
 
