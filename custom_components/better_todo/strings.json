@@ -1,0 +1,27 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Better ToDo",
+        "description": "Create a new Better ToDo list",
+        "data": {
+          "name": "List name"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This list name is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configure Better ToDo",
+        "description": "Update the Better ToDo list configuration",
+        "data": {
+          "name": "List name"
+        }
+      }
+    }
+  }
+}

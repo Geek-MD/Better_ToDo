@@ -1,0 +1,27 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurar Better ToDo",
+        "description": "Crear una nueva lista de Better ToDo",
+        "data": {
+          "name": "Nombre de la lista"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Este nombre de lista ya está configurado."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configurar Better ToDo",
+        "description": "Actualizar la configuración de la lista de Better ToDo",
+        "data": {
+          "name": "Nombre de la lista"
+        }
+      }
+    }
+  }
+}

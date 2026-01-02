@@ -19,7 +19,7 @@ jobs:
           python-version: "3.10"
       - run: pip install ruff
       - name: Run Ruff
-        run: ruff check custom_components/recurrent_tasks/
+        run: ruff check custom_components/better_todo/
 
   mypy:
     name: Mypy Type Check
