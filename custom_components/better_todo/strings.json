@@ -79,6 +79,16 @@
           "description": "The todo list entity"
         }
       }
+    },
+    "apply_recurrence_from_ui": {
+      "name": "Apply recurrence from UI",
+      "description": "Apply recurrence settings from the helper entities to the specified task. This service reads the task UID, interval, unit, and end settings from the helper entities.",
+      "fields": {
+        "entity_id": {
+          "name": "Entity ID",
+          "description": "The todo list entity"
+        }
+      }
     }
   }
 }

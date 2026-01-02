@@ -79,6 +79,16 @@
           "description": "La entidad de lista de tareas"
         }
       }
+    },
+    "apply_recurrence_from_ui": {
+      "name": "Aplicar repetición desde UI",
+      "description": "Aplicar configuración de repetición desde las entidades auxiliares a la tarea especificada. Este servicio lee el UID de tarea, intervalo, unidad y configuración de fin desde las entidades auxiliares.",
+      "fields": {
+        "entity_id": {
+          "name": "ID de entidad",
+          "description": "La entidad de lista de tareas"
+        }
+      }
     }
   }
 }
