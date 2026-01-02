@@ -33,9 +33,10 @@ from .const import (
     RECURRENCE_UNIT_DAYS,
 )
 
-# Header prefixes for group identification
-HEADER_PREFIX = "📌 "
-HEADER_SUFFIX = " 📌"
+# Header prefixes for group identification (used for backward compatibility with standard todo-list card)
+# These are removed when using the custom better-todo-card
+HEADER_PREFIX = "--- "
+HEADER_SUFFIX = " ---"
 
 
 async def async_setup_entry(
