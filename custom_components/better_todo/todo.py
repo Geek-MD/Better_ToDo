@@ -1,11 +1,10 @@
 """Todo platform for Better ToDo integration."""
 from __future__ import annotations
 
-from typing import cast
+from typing import Any
 
 from homeassistant.components.todo import (
     TodoItem,
-    TodoItemStatus,
     TodoListEntity,
     TodoListEntityFeature,
 )
@@ -97,7 +96,7 @@ class BetterTodoEntity(TodoListEntity):
         self.async_write_ha_state()
 
     @property
-    def device_info(self) -> dict[str, any]:
+    def device_info(self) -> dict[str, Any]:
         """Return device information about this entity."""
         return {
             "identifiers": {(DOMAIN, self._entry.entry_id)},

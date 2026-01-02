@@ -15,7 +15,7 @@ from .const import DOMAIN
 CONFIG_SCHEMA = vol.Schema({vol.Required("name"): cv.string})
 
 
-class BetterTodoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class BetterTodoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     """Handle a config flow for Better ToDo."""
 
     VERSION = 1
