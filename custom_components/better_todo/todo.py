@@ -27,7 +27,6 @@ from .const import (
     ATTR_RECURRENCE_INTERVAL,
     ATTR_RECURRENCE_UNIT,
     DOMAIN,
-    GROUP_DONE,
     GROUP_FORTHCOMING,
     GROUP_NO_DUE_DATE,
     GROUP_THIS_WEEK,
@@ -87,6 +86,7 @@ class BetterTodoEntity(TodoListEntity):
         """Get the translated label for a group category.
         
         Returns the appropriate label based on the system language.
+        Note: GROUP_DONE is no longer used - completed tasks are handled by HA's native UI.
         """
         if self.hass is None:
             language = "en"
@@ -99,7 +99,6 @@ class BetterTodoEntity(TodoListEntity):
                 GROUP_NO_DUE_DATE: "📭 Sin fecha de vencimiento",
                 GROUP_THIS_WEEK: "📅 Esta semana",
                 GROUP_FORTHCOMING: "📆 Próximamente",
-                GROUP_DONE: "✅ Completadas",
             }
         else:
             # English and other languages default to English
@@ -107,7 +106,6 @@ class BetterTodoEntity(TodoListEntity):
                 GROUP_NO_DUE_DATE: "📭 No due date",
                 GROUP_THIS_WEEK: "📅 This week",
                 GROUP_FORTHCOMING: "📆 Forthcoming",
-                GROUP_DONE: "✅ Done",
             }
         
         return labels.get(group, group)
@@ -125,6 +123,7 @@ class BetterTodoEntity(TodoListEntity):
         """Extract the group from a header item.
         
         Returns the group key if this is a header, None otherwise.
+        Note: GROUP_DONE labels removed - completed tasks use HA's native UI.
         """
         if not self._is_header_item(item):
             return None
@@ -143,14 +142,12 @@ class BetterTodoEntity(TodoListEntity):
                 "📭 Sin fecha de vencimiento": GROUP_NO_DUE_DATE,
                 "📅 Esta semana": GROUP_THIS_WEEK,
                 "📆 Próximamente": GROUP_FORTHCOMING,
-                "✅ Completadas": GROUP_DONE,
             }
         else:
             label_to_group = {
                 "📭 No due date": GROUP_NO_DUE_DATE,
                 "📅 This week": GROUP_THIS_WEEK,
                 "📆 Forthcoming": GROUP_FORTHCOMING,
-                "✅ Done": GROUP_DONE,
             }
         
         return label_to_group.get(label)
@@ -199,12 +196,9 @@ class BetterTodoEntity(TodoListEntity):
     def _get_item_group(self, item: TodoItem) -> str:
         """Get the group category for a todo item.
         
-        Returns one of: GROUP_DONE, GROUP_NO_DUE_DATE, GROUP_THIS_WEEK, GROUP_FORTHCOMING
+        Returns one of: GROUP_NO_DUE_DATE, GROUP_THIS_WEEK, GROUP_FORTHCOMING
+        Note: Completed items are not grouped here - they use HA's native "Completed" section
         """
-        # Check if item is completed
-        if item.status == TodoItemStatus.COMPLETED:
-            return GROUP_DONE
-        
         # Check if item has no due date
         if not item.due:
             return GROUP_NO_DUE_DATE
@@ -253,30 +247,31 @@ class BetterTodoEntity(TodoListEntity):
     def _sort_items(self, items: list[TodoItem]) -> list[TodoItem]:
         """Sort items by group and due date, inserting category headers.
         
-        Order: No due date -> This week -> Forthcoming -> Done
+        Order: No due date -> This week -> Forthcoming
+        Completed items are handled by HA's native "Completed" section.
         Within each group, sort by due date (earliest first).
         Inserts header items between groups for visual separation.
         """
-        # Filter out existing header items and actual task items
-        actual_items = [item for item in items if not self._is_header_item(item)]
+        # Filter out existing header items and only keep active (non-completed) task items
+        actual_items = [item for item in items 
+                       if not self._is_header_item(item) 
+                       and item.status != TodoItemStatus.COMPLETED]
         
         if not actual_items:
             return []
         
-        # Define group order
+        # Define group order (only active task groups)
         group_order = {
             GROUP_NO_DUE_DATE: 0,
             GROUP_THIS_WEEK: 1,
             GROUP_FORTHCOMING: 2,
-            GROUP_DONE: 3,
         }
         
-        # Group items by category
+        # Group items by category (only active tasks)
         grouped: dict[str, list[TodoItem]] = {
             GROUP_NO_DUE_DATE: [],
             GROUP_THIS_WEEK: [],
             GROUP_FORTHCOMING: [],
-            GROUP_DONE: [],
         }
         
         for item in actual_items:

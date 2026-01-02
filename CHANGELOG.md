@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-01-02
+
+### Added
+- **Custom Lovelace Card**: New `better-todo-card` custom card that replaces HA's default todo-list card
+  - Uses the same HTML structure as Home Assistant's native todo card (`<h2>` within `<div class="header" role="separator">`)
+  - Displays custom category headers: "No due date", "This week", and "Forthcoming"
+  - Uses Home Assistant's native web components (ha-card, ha-check-list-item, ha-checkbox)
+  - Automatically registered and available in the card picker
+  - Perfect styling consistency with HA's design system
+- Custom card documentation in `www/README.md`
+
+### Changed
+- **Removed "Done" category from backend**: Completed tasks now only use HA's native "Completed" section
+- Category headers now only show for active tasks: "No due date", "This week", and "Forthcoming"
+- Active task grouping no longer includes completed items (they use HA's native UI)
+- Updated translations to remove "Done"/"Completadas" labels from active categories
+
+### Fixed
+- **Resolved header conflict**: Custom headers no longer appear under HA's default "Active" and "Completed" headers
+- Tasks are now properly categorized without duplicate section headers
+- Custom card bypasses HA's default formatting to show only the desired categories
+
+### Notes
+- **To use the new card**: Add `type: custom:better-todo-card` to your dashboard configuration
+- The standard `todo-list` card still works but will show the old "Active"/"Completed" format
+- Custom card is backward compatible and works with existing Better ToDo lists
+
 ## [0.4.0] - 2026-01-02
 
 ### Added
