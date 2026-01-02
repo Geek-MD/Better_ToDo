@@ -66,31 +66,40 @@ You can create more ToDo lists by adding the integration again with different na
 
 ### Better ToDo Dashboard
 
-After installation, Better ToDo automatically creates a dedicated dashboard named **"Better ToDo"** in your sidebar. This is the recommended way to access your todo lists.
+After installation, Better ToDo automatically creates a dedicated dashboard named **"Better ToDo"** in your sidebar. **This is the ONLY way to access and manage your Better ToDo tasks.**
 
 **The Better ToDo dashboard includes:**
 - All your todo lists with custom category headers
 - Professional, emoji-free appearance
 - Recurrence configuration for each list
 - Automatic organization by: No due date, This week, Forthcoming, Completed
+- Complete task management interface (create, edit, delete, reorder)
 
-**Note about the native "To-do lists" dashboard:**
-Home Assistant automatically creates a "To-do lists" dashboard when TODO entities exist. Your Better ToDo lists will appear there too, but for the best experience with custom category headers, **use the "Better ToDo" dashboard** instead.
-
-To hide the native "To-do lists" dashboard:
-1. Go to **Settings** → **Dashboards**
-2. Find **"To-do lists"**
-3. Click the three dots (⋮) → **Hide from sidebar**
+**Important Note (v0.5.0+):**
+Better ToDo no longer uses Home Assistant's core Todo platform. This means:
+- ✅ Better ToDo tasks are **independent** and managed exclusively through the Better ToDo dashboard
+- ✅ Tasks **do NOT appear** in Home Assistant's native "To-do lists" dashboard
+- ✅ Full control over task management without interference from core HA features
+- ℹ️ All task operations (create, update, delete, move) are handled via Better ToDo services
 
 ### Managing Tasks
 
-Once configured, you can manage your tasks from the Better ToDo dashboard:
+Once configured, you can manage your tasks from the Better ToDo dashboard or via services:
 
-- **Create tasks**: Add new items to your list
+**Via Dashboard:**
+- **Create tasks**: Add new items to your list using the custom card interface
 - **Edit tasks**: Update task details, descriptions, and due dates
 - **Complete tasks**: Mark tasks as done
 - **Delete tasks**: Remove completed or unwanted tasks
-- **Reorder tasks**: Drag and drop to organize your tasks
+- **Reorder tasks**: Drag and drop to organize your tasks (when supported by custom card)
+
+**Via Services (Advanced):**
+- `better_todo.create_task`: Create new tasks programmatically
+- `better_todo.update_task`: Update existing tasks
+- `better_todo.delete_task`: Delete one or more tasks
+- `better_todo.move_task`: Reorder tasks in the list
+
+See the [Services](#services) section below for detailed service documentation.
 
 #### Automatic Task Organization with Custom Card
 
@@ -163,12 +172,86 @@ data:
 - Use the service `better_todo.get_task_recurrence` to refresh the data
 - Check the entity's `recurrence_data` attribute in **Developer Tools** → **States**
 
+### Task Management Services
+
+Better ToDo provides comprehensive services for task management (v0.5.0+):
+
+#### Create Task
+
+Create a new task in a todo list:
+
+```yaml
+service: better_todo.create_task
+data:
+  entity_id: todo.tasks
+  summary: "Buy groceries"
+  description: "Milk, eggs, bread"
+  due: "2026-01-15"
+```
+
+#### Update Task
+
+Update an existing task:
+
+```yaml
+service: better_todo.update_task
+data:
+  entity_id: todo.tasks
+  uid: "abc123-task-uid"
+  summary: "Buy groceries and supplies"
+  status: "completed"
+```
+
+#### Delete Task
+
+Delete one or more tasks:
+
+```yaml
+# Delete single task
+service: better_todo.delete_task
+data:
+  entity_id: todo.tasks
+  uid: "abc123-task-uid"
+
+# Delete multiple tasks
+service: better_todo.delete_task
+data:
+  entity_id: todo.tasks
+  uid: ["uid1", "uid2", "uid3"]
+```
+
+#### Move Task
+
+Reorder tasks in the list:
+
+```yaml
+# Move to beginning
+service: better_todo.move_task
+data:
+  entity_id: todo.tasks
+  uid: "task-to-move-uid"
+
+# Move after specific task
+service: better_todo.move_task
+data:
+  entity_id: todo.tasks
+  uid: "task-to-move-uid"
+  previous_uid: "task-that-comes-before-uid"
+```
+
+**Finding Task UIDs:**
+
+Task UIDs are available in the entity's attributes:
+1. Go to **Developer Tools** → **States**
+2. Find your todo entity (e.g., `todo.tasks`)
+3. Look in the `items` attribute for the `uid` field of each task
+
 ### Automations
 
 Better ToDo integrates with Home Assistant's automation system. You can trigger automations based on:
 
-- New tasks created
-- Tasks completed
+- New tasks created (using state attribute changes)
+- Tasks completed (using service calls)
 - Due dates approaching
 - Recurring tasks
 

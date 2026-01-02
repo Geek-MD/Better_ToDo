@@ -1,20 +1,16 @@
-"""Todo platform for Better ToDo integration."""
+"""Custom todo entity for Better ToDo integration (NOT using Platform.TODO)."""
 from __future__ import annotations
 
 import uuid
-from dataclasses import replace
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timedelta
 from typing import Any
 
-from homeassistant.components.todo import (
-    TodoItem,
-    TodoItemStatus,
-    TodoListEntity,
-    TodoListEntityFeature,
-)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers import storage
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -38,14 +34,32 @@ from .const import (
 HEADER_PREFIX = "--- "
 HEADER_SUFFIX = " ---"
 
+STORAGE_VERSION = 1
+
+# Task status constants (replicating TodoItemStatus)
+STATUS_NEEDS_ACTION = "needs_action"
+STATUS_COMPLETED = "completed"
+
+
+@dataclass
+class TodoItem:
+    """Represent a todo item (replicate homeassistant.components.todo.TodoItem)."""
+
+    summary: str
+    uid: str | None = None
+    status: str = STATUS_NEEDS_ACTION
+    due: str | None = None
+    description: str | None = None
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the Better ToDo todo platform."""
-    entity = BetterTodoEntity(entry)
+    """Set up the Better ToDo custom entity (NOT using Platform.TODO)."""
+    entity = BetterTodoEntity(hass, entry)
+    await entity.async_load_data()
     async_add_entities([entity], True)
     
     # Store entity reference for service access
@@ -53,20 +67,18 @@ async def async_setup_entry(
         hass.data[DOMAIN][entry.entry_id]["entities"][entity.entity_id] = entity
 
 
-class BetterTodoEntity(TodoListEntity):
-    """A To-do List representation of the Better ToDo integration."""
+class BetterTodoEntity(Entity):
+    """A custom To-do List entity that does NOT inherit from TodoListEntity.
+    
+    This entity replicates all TodoListEntity functionality but is NOT recognized
+    by Home Assistant's core Todo integration, so it won't appear in the native
+    "To-do lists" dashboard.
+    """
 
     _attr_has_entity_name = True
-    _attr_supported_features = (
-        TodoListEntityFeature.CREATE_TODO_ITEM
-        | TodoListEntityFeature.UPDATE_TODO_ITEM
-        | TodoListEntityFeature.DELETE_TODO_ITEM
-        | TodoListEntityFeature.MOVE_TODO_ITEM
-        | TodoListEntityFeature.SET_DUE_DATE_ON_ITEM
-        | TodoListEntityFeature.SET_DESCRIPTION_ON_ITEM
-    )
+    _attr_icon = "mdi:format-list-checks"
 
-    def __init__(self, entry: ConfigEntry) -> None:
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize BetterTodoEntity."""
         self._entry = entry
         self._attr_unique_id = entry.entry_id
@@ -74,8 +86,55 @@ class BetterTodoEntity(TodoListEntity):
         self._items: list[TodoItem] = []
         # Store recurrence metadata for each task (keyed by uid)
         self._recurrence_data: dict[str, dict[str, Any]] = {}
-        # Will be set when entity is added to hass
-        self._hass: HomeAssistant | None = None
+        self._hass = hass
+        
+        # Storage for persistent task data
+        self._store = storage.Store(
+            hass,
+            STORAGE_VERSION,
+            f"{DOMAIN}.{entry.entry_id}.tasks"
+        )
+
+    async def async_load_data(self) -> None:
+        """Load task data from storage."""
+        data = await self._store.async_load()
+        if data:
+            # Convert stored dicts back to TodoItem objects
+            items_data = data.get("items", [])
+            self._items = [
+                TodoItem(**item) if isinstance(item, dict) else item
+                for item in items_data
+            ]
+            self._recurrence_data = data.get("recurrence_data", {})
+
+    async def async_save_data(self) -> None:
+        """Save task data to storage."""
+        # Convert TodoItem objects to dicts for JSON serialization
+        items_data = [
+            asdict(item) if hasattr(item, '__dataclass_fields__') else item
+            for item in self._items
+        ]
+        await self._store.async_save({
+            "items": items_data,
+            "recurrence_data": self._recurrence_data,
+        })
+
+    @property
+    def state(self) -> str:
+        """Return the state of the entity (number of active tasks)."""
+        active_count = sum(
+            1 for item in self._items 
+            if item.status != STATUS_COMPLETED
+        )
+        return str(active_count)
+
+    @property
+    def entity_id(self) -> str:
+        """Return entity ID using 'todo' domain."""
+        # Use 'todo' domain to maintain compatibility
+        list_name = self._entry.data.get("name", "tasks")
+        slug = list_name.lower().replace(" ", "_")
+        return f"todo.{slug}"
 
     def _ensure_item_uid(self, item: TodoItem) -> TodoItem:
         """Ensure the TodoItem has a UID, generating one if needed."""
@@ -159,7 +218,7 @@ class BetterTodoEntity(TodoListEntity):
         return TodoItem(
             uid=f"header_{group}",
             summary=f"{HEADER_PREFIX}{label}{HEADER_SUFFIX}",
-            status=TodoItemStatus.NEEDS_ACTION,
+            status=STATUS_NEEDS_ACTION,
         )
 
     def _get_week_start_day(self) -> int:
@@ -256,7 +315,7 @@ class BetterTodoEntity(TodoListEntity):
         # Filter out existing header items and only keep active (non-completed) task items
         actual_items = [item for item in items 
                        if not self._is_header_item(item) 
-                       and item.status != TodoItemStatus.COMPLETED]
+                       and item.status != STATUS_COMPLETED]
         
         if not actual_items:
             return []
@@ -298,15 +357,34 @@ class BetterTodoEntity(TodoListEntity):
         return result
 
     @property
-    def todo_items(self) -> list[TodoItem] | None:
-        """Return the to-do items sorted by group."""
-        return self._sort_items(self._items)
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Return extra state attributes including all task data."""
+        # Get sorted items for display
+        sorted_items = self._sort_items(self._items)
+        
+        # Get completed items
+        completed_items = [
+            item for item in self._items 
+            if not self._is_header_item(item) and item.status == STATUS_COMPLETED
+        ]
+        
+        # Convert TodoItem objects to dicts for attributes
+        sorted_items_dict = [asdict(item) for item in sorted_items]
+        completed_items_dict = [asdict(item) for item in completed_items]
+        
+        return {
+            "items": sorted_items_dict,
+            "completed_items": completed_items_dict,
+            "recurrence_data": self._recurrence_data,
+            "total_tasks": len([i for i in self._items if not self._is_header_item(i)]),
+        }
 
     async def async_create_todo_item(self, item: TodoItem) -> None:
         """Create a To-do item."""
         # Ensure the item has a UID
         item = self._ensure_item_uid(item)
         self._items.append(item)
+        await self.async_save_data()
         self.async_write_ha_state()
 
     async def async_update_todo_item(self, item: TodoItem) -> None:
@@ -321,6 +399,7 @@ class BetterTodoEntity(TodoListEntity):
             if existing_item.uid == item.uid:
                 self._items[idx] = item
                 break
+        await self.async_save_data()
         self.async_write_ha_state()
 
     async def async_delete_todo_items(self, uids: list[str]) -> None:
@@ -329,6 +408,7 @@ class BetterTodoEntity(TodoListEntity):
         # Clean up recurrence data for deleted items
         for uid in uids:
             self._recurrence_data.pop(uid, None)
+        await self.async_save_data()
         self.async_write_ha_state()
 
     async def async_move_todo_item(
@@ -361,6 +441,7 @@ class BetterTodoEntity(TodoListEntity):
             if not inserted:
                 self._items.append(item_to_move)
 
+        await self.async_save_data()
         self.async_write_ha_state()
 
     def set_task_recurrence(
@@ -400,19 +481,13 @@ class BetterTodoEntity(TodoListEntity):
         return self._recurrence_data.get(uid)
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return extra state attributes."""
-        return {
-            "recurrence_data": self._recurrence_data,
-        }
-
-    @property
     def device_info(self) -> dict[str, Any]:
         """Return device information about this entity."""
         return {
             "identifiers": {(DOMAIN, self._entry.entry_id)},
             "name": self._entry.data["name"],
             "manufacturer": "Better ToDo",
-            "model": "Todo List",
-            "sw_version": "0.4.4",
+            "model": "Task List",
+            "sw_version": "0.5.0",
         }
+

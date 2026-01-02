@@ -34,6 +34,46 @@ PLATFORMS: list[Platform] = [
 SERVICE_SET_TASK_RECURRENCE = "set_task_recurrence"
 SERVICE_GET_TASK_RECURRENCE = "get_task_recurrence"
 SERVICE_APPLY_RECURRENCE_FROM_UI = "apply_recurrence_from_ui"
+SERVICE_CREATE_TASK = "create_task"
+SERVICE_UPDATE_TASK = "update_task"
+SERVICE_DELETE_TASK = "delete_task"
+SERVICE_MOVE_TASK = "move_task"
+
+# Service schemas
+CREATE_TASK_SCHEMA = vol.Schema(
+    {
+        vol.Required("entity_id"): cv.entity_id,
+        vol.Required("summary"): cv.string,
+        vol.Optional("description"): cv.string,
+        vol.Optional("due"): cv.string,
+    }
+)
+
+UPDATE_TASK_SCHEMA = vol.Schema(
+    {
+        vol.Required("entity_id"): cv.entity_id,
+        vol.Required("uid"): cv.string,
+        vol.Optional("summary"): cv.string,
+        vol.Optional("description"): cv.string,
+        vol.Optional("due"): cv.string,
+        vol.Optional("status"): vol.In(["needs_action", "completed"]),
+    }
+)
+
+DELETE_TASK_SCHEMA = vol.Schema(
+    {
+        vol.Required("entity_id"): cv.entity_id,
+        vol.Required("uid"): vol.Any(cv.string, [cv.string]),
+    }
+)
+
+MOVE_TASK_SCHEMA = vol.Schema(
+    {
+        vol.Required("entity_id"): cv.entity_id,
+        vol.Required("uid"): cv.string,
+        vol.Optional("previous_uid"): cv.string,
+    }
+)
 
 # Service schemas
 SET_TASK_RECURRENCE_SCHEMA = vol.Schema(
@@ -218,6 +258,143 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 recurrence_end_date=end_date.state,
             )
 
+    async def handle_create_task(call: ServiceCall) -> None:
+        """Handle the create_task service call."""
+        from .todo import TodoItem
+        
+        entity_id = call.data["entity_id"]
+        
+        # Find the entity
+        entity = None
+        for entry_data in hass.data[DOMAIN].values():
+            if isinstance(entry_data, dict) and "entities" in entry_data:
+                entity = entry_data["entities"].get(entity_id)
+                if entity is not None:
+                    break
+        
+        if entity is None:
+            return
+        
+        # Create the task
+        item = TodoItem(
+            summary=call.data["summary"],
+            description=call.data.get("description"),
+            due=call.data.get("due"),
+        )
+        await entity.async_create_todo_item(item)
+
+    async def handle_update_task(call: ServiceCall) -> None:
+        """Handle the update_task service call."""
+        from .todo import TodoItem
+        
+        entity_id = call.data["entity_id"]
+        uid = call.data["uid"]
+        
+        # Find the entity
+        entity = None
+        for entry_data in hass.data[DOMAIN].values():
+            if isinstance(entry_data, dict) and "entities" in entry_data:
+                entity = entry_data["entities"].get(entity_id)
+                if entity is not None:
+                    break
+        
+        if entity is None:
+            return
+        
+        # Find the existing task
+        existing_item = None
+        for item in entity._items:
+            if item.uid == uid:
+                existing_item = item
+                break
+        
+        if existing_item is None:
+            return
+        
+        # Update with new values
+        updated_item = TodoItem(
+            uid=uid,
+            summary=call.data.get("summary", existing_item.summary),
+            description=call.data.get("description", existing_item.description),
+            due=call.data.get("due", existing_item.due),
+            status=call.data.get("status", existing_item.status),
+        )
+        await entity.async_update_todo_item(updated_item)
+
+    async def handle_delete_task(call: ServiceCall) -> None:
+        """Handle the delete_task service call."""
+        entity_id = call.data["entity_id"]
+        uids = call.data["uid"]
+        
+        # Ensure uids is a list
+        if isinstance(uids, str):
+            uids = [uids]
+        
+        # Find the entity
+        entity = None
+        for entry_data in hass.data[DOMAIN].values():
+            if isinstance(entry_data, dict) and "entities" in entry_data:
+                entity = entry_data["entities"].get(entity_id)
+                if entity is not None:
+                    break
+        
+        if entity is None:
+            return
+        
+        await entity.async_delete_todo_items(uids)
+
+    async def handle_move_task(call: ServiceCall) -> None:
+        """Handle the move_task service call."""
+        entity_id = call.data["entity_id"]
+        uid = call.data["uid"]
+        previous_uid = call.data.get("previous_uid")
+        
+        # Find the entity
+        entity = None
+        for entry_data in hass.data[DOMAIN].values():
+            if isinstance(entry_data, dict) and "entities" in entry_data:
+                entity = entry_data["entities"].get(entity_id)
+                if entity is not None:
+                    break
+        
+        if entity is None:
+            return
+        
+        await entity.async_move_todo_item(uid, previous_uid)
+
+    # Register services only once
+    if not hass.services.has_service(DOMAIN, SERVICE_CREATE_TASK):
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_CREATE_TASK,
+            handle_create_task,
+            schema=CREATE_TASK_SCHEMA,
+        )
+
+    if not hass.services.has_service(DOMAIN, SERVICE_UPDATE_TASK):
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_UPDATE_TASK,
+            handle_update_task,
+            schema=UPDATE_TASK_SCHEMA,
+        )
+
+    if not hass.services.has_service(DOMAIN, SERVICE_DELETE_TASK):
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_DELETE_TASK,
+            handle_delete_task,
+            schema=DELETE_TASK_SCHEMA,
+        )
+
+    if not hass.services.has_service(DOMAIN, SERVICE_MOVE_TASK):
+        hass.services.async_register(
+            DOMAIN,
+            SERVICE_MOVE_TASK,
+            handle_move_task,
+            schema=MOVE_TASK_SCHEMA,
+        )
+
     # Register services only once
     if not hass.services.has_service(DOMAIN, SERVICE_SET_TASK_RECURRENCE):
         hass.services.async_register(
@@ -315,5 +492,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.services.async_remove(DOMAIN, SERVICE_SET_TASK_RECURRENCE)
         hass.services.async_remove(DOMAIN, SERVICE_GET_TASK_RECURRENCE)
         hass.services.async_remove(DOMAIN, SERVICE_APPLY_RECURRENCE_FROM_UI)
+        hass.services.async_remove(DOMAIN, SERVICE_CREATE_TASK)
+        hass.services.async_remove(DOMAIN, SERVICE_UPDATE_TASK)
+        hass.services.async_remove(DOMAIN, SERVICE_DELETE_TASK)
+        hass.services.async_remove(DOMAIN, SERVICE_MOVE_TASK)
 
     return unload_ok

@@ -111,3 +111,144 @@ apply_recurrence_from_ui:
         entity:
           domain: todo
           integration: better_todo
+
+create_task:
+  name: Create task
+  description: Create a new task in the todo list
+  fields:
+    entity_id:
+      name: Entity ID
+      description: The todo list entity
+      required: true
+      example: "todo.tasks"
+      selector:
+        entity:
+          domain: todo
+          integration: better_todo
+    summary:
+      name: Summary
+      description: The task summary/title
+      required: true
+      example: "Buy groceries"
+      selector:
+        text:
+    description:
+      name: Description
+      description: Additional task details
+      required: false
+      example: "Milk, eggs, bread"
+      selector:
+        text:
+          multiline: true
+    due:
+      name: Due date
+      description: When the task is due (YYYY-MM-DD format)
+      required: false
+      example: "2026-01-15"
+      selector:
+        date:
+
+update_task:
+  name: Update task
+  description: Update an existing task in the todo list
+  fields:
+    entity_id:
+      name: Entity ID
+      description: The todo list entity
+      required: true
+      example: "todo.tasks"
+      selector:
+        entity:
+          domain: todo
+          integration: better_todo
+    uid:
+      name: Task UID
+      description: The unique identifier of the task to update
+      required: true
+      example: "01HQWXYZ123456789"
+      selector:
+        text:
+    summary:
+      name: Summary
+      description: The task summary/title
+      required: false
+      example: "Buy groceries"
+      selector:
+        text:
+    description:
+      name: Description
+      description: Additional task details
+      required: false
+      example: "Milk, eggs, bread"
+      selector:
+        text:
+          multiline: true
+    due:
+      name: Due date
+      description: When the task is due (YYYY-MM-DD format)
+      required: false
+      example: "2026-01-15"
+      selector:
+        date:
+    status:
+      name: Status
+      description: Task completion status
+      required: false
+      default: "needs_action"
+      selector:
+        select:
+          options:
+            - label: "Needs Action"
+              value: "needs_action"
+            - label: "Completed"
+              value: "completed"
+
+delete_task:
+  name: Delete task
+  description: Delete one or more tasks from the todo list
+  fields:
+    entity_id:
+      name: Entity ID
+      description: The todo list entity
+      required: true
+      example: "todo.tasks"
+      selector:
+        entity:
+          domain: todo
+          integration: better_todo
+    uid:
+      name: Task UID(s)
+      description: The unique identifier(s) of the task(s) to delete (single UID or list of UIDs)
+      required: true
+      example: "01HQWXYZ123456789"
+      selector:
+        text:
+
+move_task:
+  name: Move task
+  description: Move a task to a different position in the todo list
+  fields:
+    entity_id:
+      name: Entity ID
+      description: The todo list entity
+      required: true
+      example: "todo.tasks"
+      selector:
+        entity:
+          domain: todo
+          integration: better_todo
+    uid:
+      name: Task UID
+      description: The unique identifier of the task to move
+      required: true
+      example: "01HQWXYZ123456789"
+      selector:
+        text:
+    previous_uid:
+      name: Previous Task UID
+      description: The UID of the task that should come before this task (omit to move to beginning)
+      required: false
+      example: "01HQWXYZ987654321"
+      selector:
+        text:
+
