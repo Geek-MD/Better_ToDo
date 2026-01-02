@@ -158,7 +158,7 @@ Better ToDo integrates with Home Assistant's automation system. You can trigger 
 
 Better ToDo provides two options for displaying your lists:
 
-#### Better ToDo Custom Card (Recommended - v0.4.1+)
+#### Better ToDo Custom Card (Recommended - v0.4.3+)
 
 Use the custom Better ToDo card for enhanced category headers without HA's default "Active"/"Completed" sections:
 

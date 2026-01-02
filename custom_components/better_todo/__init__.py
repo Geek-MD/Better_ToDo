@@ -76,6 +76,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Register the custom frontend card
     await _async_register_frontend(hass)
+    
+    # Create or update the Better ToDo dashboard with custom cards
+    from .dashboard import async_create_or_update_dashboard
+    await async_create_or_update_dashboard(hass)
 
     # Note: Dashboard creation is handled through device grouping
     # All entities are automatically grouped under their device in the UI
@@ -280,8 +284,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
 
-    # Unregister services if no more entries
+    # Remove dashboard if no more entries
     if not hass.config_entries.async_entries(DOMAIN):
+        from .dashboard import async_remove_dashboard
+        await async_remove_dashboard(hass)
+        
+        # Unregister services
         hass.services.async_remove(DOMAIN, SERVICE_SET_TASK_RECURRENCE)
         hass.services.async_remove(DOMAIN, SERVICE_GET_TASK_RECURRENCE)
         hass.services.async_remove(DOMAIN, SERVICE_APPLY_RECURRENCE_FROM_UI)
