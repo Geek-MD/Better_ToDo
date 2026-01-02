@@ -96,16 +96,16 @@ class BetterTodoEntity(TodoListEntity):
         # Spanish translations
         if language.startswith("es"):
             labels = {
-                GROUP_NO_DUE_DATE: "📭 Sin fecha de vencimiento",
-                GROUP_THIS_WEEK: "📅 Esta semana",
-                GROUP_FORTHCOMING: "📆 Próximamente",
+                GROUP_NO_DUE_DATE: "Sin fecha de vencimiento",
+                GROUP_THIS_WEEK: "Esta semana",
+                GROUP_FORTHCOMING: "Próximamente",
             }
         else:
             # English and other languages default to English
             labels = {
-                GROUP_NO_DUE_DATE: "📭 No due date",
-                GROUP_THIS_WEEK: "📅 This week",
-                GROUP_FORTHCOMING: "📆 Forthcoming",
+                GROUP_NO_DUE_DATE: "No due date",
+                GROUP_THIS_WEEK: "This week",
+                GROUP_FORTHCOMING: "Forthcoming",
             }
         
         return labels.get(group, group)
@@ -139,15 +139,15 @@ class BetterTodoEntity(TodoListEntity):
         
         if language.startswith("es"):
             label_to_group = {
-                "📭 Sin fecha de vencimiento": GROUP_NO_DUE_DATE,
-                "📅 Esta semana": GROUP_THIS_WEEK,
-                "📆 Próximamente": GROUP_FORTHCOMING,
+                "Sin fecha de vencimiento": GROUP_NO_DUE_DATE,
+                "Esta semana": GROUP_THIS_WEEK,
+                "Próximamente": GROUP_FORTHCOMING,
             }
         else:
             label_to_group = {
-                "📭 No due date": GROUP_NO_DUE_DATE,
-                "📅 This week": GROUP_THIS_WEEK,
-                "📆 Forthcoming": GROUP_FORTHCOMING,
+                "No due date": GROUP_NO_DUE_DATE,
+                "This week": GROUP_THIS_WEEK,
+                "Forthcoming": GROUP_FORTHCOMING,
             }
         
         return label_to_group.get(label)

@@ -26,10 +26,10 @@ The Better ToDo Card provides:
 
 ### Categories
 
-1. **📭 No due date / Sin fecha de vencimiento**: Tasks without a due date
-2. **📅 This week / Esta semana**: Tasks due within the current week
-3. **📆 Forthcoming / Próximamente**: Tasks due after this week
-4. **✅ Completed / Completadas**: Completed tasks (uses HA's native section)
+1. **No due date / Sin fecha de vencimiento**: Tasks without a due date
+2. **This week / Esta semana**: Tasks due within the current week
+3. **Forthcoming / Próximamente**: Tasks due after this week
+4. **Completed / Completadas**: Completed tasks (uses HA's native section)
 
 ### Differences from Standard Todo Card
 

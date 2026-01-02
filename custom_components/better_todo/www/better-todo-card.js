@@ -125,16 +125,16 @@ class BetterTodoCard extends HTMLElement {
     
     const labels = {
       en: {
-        no_due_date: '📭 No due date',
-        this_week: '📅 This week',
-        forthcoming: '📆 Forthcoming',
-        completed: '✅ Completed'
+        no_due_date: 'No due date',
+        this_week: 'This week',
+        forthcoming: 'Forthcoming',
+        completed: 'Completed'
       },
       es: {
-        no_due_date: '📭 Sin fecha de vencimiento',
-        this_week: '📅 Esta semana',
-        forthcoming: '📆 Próximamente',
-        completed: '✅ Completadas'
+        no_due_date: 'Sin fecha de vencimiento',
+        this_week: 'Esta semana',
+        forthcoming: 'Próximamente',
+        completed: 'Completadas'
       }
     };
     

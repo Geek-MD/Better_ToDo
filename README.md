@@ -78,10 +78,10 @@ Once configured, your Better ToDo lists will appear in the ToDo section of Home 
 
 Better ToDo includes a custom Lovelace card (`better-todo-card`) that displays tasks with visual category headers:
 
-- 📭 **No due date**: Tasks without a due date
-- 📅 **This week**: Tasks due within the current calendar week (respects your locale settings - Monday start for Spanish/European locales, Sunday start for US English)
-- 📆 **Forthcoming**: Tasks due after this week
-- ✅ **Completed**: Completed tasks (uses HA's native section)
+- **No due date**: Tasks without a due date
+- **This week**: Tasks due within the current calendar week (respects your locale settings - Monday start for Spanish/European locales, Sunday start for US English)
+- **Forthcoming**: Tasks due after this week
+- **Completed**: Completed tasks (uses HA's native section)
 
 **Features:**
 - Category headers use the same HTML structure as HA's native todo card (`<h2>` within `<div class="header" role="separator">`)
@@ -169,8 +169,8 @@ title: My Tasks  # Optional
 ```
 
 **Features:**
-- Custom category headers: "📭 No due date", "📅 This week", "📆 Forthcoming"
-- Native "✅ Completed" section for finished tasks
+- Custom category headers: "No due date", "This week", "Forthcoming"
+- Native "Completed" section for finished tasks
 - Uses Home Assistant's native web components for perfect styling
 - Automatic translations (English/Spanish)
 - Locale-aware week calculations

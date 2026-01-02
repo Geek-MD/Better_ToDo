@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **Removed "Done" category from backend**: Completed tasks now only use HA's native "Completed" section
+- **Removed emoticons from category headers**: Category headers now display with professional text-only labels
 - Category headers now only show for active tasks: "No due date", "This week", and "Forthcoming"
 - Active task grouping no longer includes completed items (they use HA's native UI)
 - Updated translations to remove "Done"/"Completadas" labels from active categories
