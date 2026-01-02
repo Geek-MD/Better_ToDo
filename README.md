@@ -1,6 +1,6 @@
 # Better ToDo
 
-A Home Assistant custom integration for advanced ToDo list management with support for recurrent tasks.
+A Home Assistant custom integration for advanced ToDo list management.
 
 ## Features
 
@@ -19,9 +19,10 @@ A Home Assistant custom integration for advanced ToDo list management with suppo
 2. Click on "Integrations"
 3. Click the three dots in the top right corner
 4. Select "Custom repositories"
-5. Add `https://github.com/Geek-MD/Better_ToDo` as an integration
-6. Click "Download"
-7. Restart Home Assistant
+5. Add `https://github.com/Geek-MD/Better_ToDo` and select "Integration" as the category
+6. Click "Add"
+7. Find "Better ToDo" in the integration list and click "Download"
+8. Restart Home Assistant
 
 ### Manual Installation
 
