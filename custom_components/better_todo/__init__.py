@@ -301,12 +301,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if entity is None:
             return
         
-        # Find the existing task
-        existing_item = None
-        for item in entity._items:
-            if item.uid == uid:
-                existing_item = item
-                break
+        # Find the existing task using public method
+        existing_item = entity.get_item_by_uid(uid)
         
         if existing_item is None:
             return

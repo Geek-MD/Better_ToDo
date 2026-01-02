@@ -144,7 +144,7 @@ create_task:
       name: Due date
       description: When the task is due (YYYY-MM-DD format)
       required: false
-      example: "2026-01-15"
+      example: "YYYY-MM-DD"
       selector:
         date:
 
@@ -187,7 +187,7 @@ update_task:
       name: Due date
       description: When the task is due (YYYY-MM-DD format)
       required: false
-      example: "2026-01-15"
+      example: "YYYY-MM-DD"
       selector:
         date:
     status:

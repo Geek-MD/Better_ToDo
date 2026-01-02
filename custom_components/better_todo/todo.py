@@ -1,6 +1,7 @@
 """Custom todo entity for Better ToDo integration (NOT using Platform.TODO)."""
 from __future__ import annotations
 
+import logging
 import uuid
 from dataclasses import asdict, dataclass, replace
 from datetime import datetime, timedelta
@@ -28,6 +29,8 @@ from .const import (
     GROUP_THIS_WEEK,
     RECURRENCE_UNIT_DAYS,
 )
+
+_LOGGER = logging.getLogger(__name__)
 
 # Header prefixes for group identification (used for backward compatibility with standard todo-list card)
 # These are removed when using the custom better-todo-card
@@ -99,21 +102,37 @@ class BetterTodoEntity(Entity):
         """Load task data from storage."""
         data = await self._store.async_load()
         if data:
-            # Convert stored dicts back to TodoItem objects
+            # Convert stored dicts back to TodoItem objects with error handling
             items_data = data.get("items", [])
-            self._items = [
-                TodoItem(**item) if isinstance(item, dict) else item
-                for item in items_data
-            ]
+            self._items = []
+            for item in items_data:
+                try:
+                    if isinstance(item, dict):
+                        # Validate required fields
+                        if "summary" not in item:
+                            _LOGGER.warning("Skipping item without summary: %s", item)
+                            continue
+                        self._items.append(TodoItem(**item))
+                    else:
+                        self._items.append(item)
+                except (TypeError, ValueError) as err:
+                    _LOGGER.error("Failed to load task item: %s - %s", item, err)
             self._recurrence_data = data.get("recurrence_data", {})
 
     async def async_save_data(self) -> None:
         """Save task data to storage."""
+        import dataclasses
+        
         # Convert TodoItem objects to dicts for JSON serialization
-        items_data = [
-            asdict(item) if hasattr(item, '__dataclass_fields__') else item
-            for item in self._items
-        ]
+        items_data = []
+        for item in self._items:
+            if dataclasses.is_dataclass(item):
+                items_data.append(asdict(item))
+            elif isinstance(item, dict):
+                items_data.append(item)
+            else:
+                _LOGGER.warning("Unknown item type during save: %s", type(item))
+        
         await self._store.async_save({
             "items": items_data,
             "recurrence_data": self._recurrence_data,
@@ -443,6 +462,16 @@ class BetterTodoEntity(Entity):
 
         await self.async_save_data()
         self.async_write_ha_state()
+
+    def get_item_by_uid(self, uid: str) -> TodoItem | None:
+        """Get a task item by its UID.
+        
+        Public method for accessing items without exposing internal list.
+        """
+        for item in self._items:
+            if item.uid == uid:
+                return item
+        return None
 
     def set_task_recurrence(
         self,
