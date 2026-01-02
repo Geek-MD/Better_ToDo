@@ -3,12 +3,12 @@
     "step": {
       "user": {
         "title": "Configurar Better ToDo",
-        "description": "Crear una nueva lista de Better ToDo",
+        "description": "Crear una nueva lista de Better ToDo. En la primera configuración, se creará automáticamente una 'Lista de la Compra' adicional.",
         "data": {
           "name": "Nombre de la lista"
         },
         "data_description": {
-          "name": "Ingrese un nombre para su lista de tareas (ej., 'Lista de la compra', 'Tareas del trabajo', 'Proyectos del hogar')"
+          "name": "Ingrese un nombre para su lista de tareas (por defecto: 'Tareas')"
         }
       }
     },

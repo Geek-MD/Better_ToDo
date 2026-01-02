@@ -3,12 +3,12 @@
     "step": {
       "user": {
         "title": "Set up Better ToDo",
-        "description": "Create a new Better ToDo list",
+        "description": "Create a new Better ToDo list. On first setup, a 'Shopping List' will be created automatically.",
         "data": {
           "name": "List name"
         },
         "data_description": {
-          "name": "Enter a name for your todo list (e.g., 'Shopping List', 'Work Tasks', 'Home Projects')"
+          "name": "Enter a name for your todo list (default: 'Tasks')"
         }
       }
     },
