@@ -79,6 +79,7 @@ class BetterTodoEntity(Entity):
     """
 
     _attr_has_entity_name = True
+    _attr_name = None  # Will use the device name
     _attr_icon = "mdi:format-list-checks"
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -121,12 +122,12 @@ class BetterTodoEntity(Entity):
 
     async def async_save_data(self) -> None:
         """Save task data to storage."""
-        import dataclasses
+        from dataclasses import is_dataclass
         
         # Convert TodoItem objects to dicts for JSON serialization
         items_data = []
         for item in self._items:
-            if dataclasses.is_dataclass(item):
+            if is_dataclass(item):
                 items_data.append(asdict(item))
             elif isinstance(item, dict):
                 items_data.append(item)

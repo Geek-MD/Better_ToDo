@@ -273,6 +273,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     break
         
         if entity is None:
+            _LOGGER.error("Entity %s not found for create_task service", entity_id)
             return
         
         # Create the task
@@ -299,12 +300,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     break
         
         if entity is None:
+            _LOGGER.error("Entity %s not found for update_task service", entity_id)
             return
         
         # Find the existing task using public method
         existing_item = entity.get_item_by_uid(uid)
         
         if existing_item is None:
+            _LOGGER.error("Task with UID %s not found in entity %s", uid, entity_id)
             return
         
         # Update with new values
@@ -335,6 +338,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     break
         
         if entity is None:
+            _LOGGER.error("Entity %s not found for delete_task service", entity_id)
             return
         
         await entity.async_delete_todo_items(uids)
@@ -354,6 +358,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     break
         
         if entity is None:
+            _LOGGER.error("Entity %s not found for move_task service", entity_id)
             return
         
         await entity.async_move_todo_item(uid, previous_uid)
