@@ -2,6 +2,10 @@
 
 DOMAIN = "better_todo"
 
+# Default list names
+DEFAULT_LIST_NAME = "Tasks"
+AUTO_SHOPPING_LIST_NAME = "Shopping List"
+
 # Recurrence constants
 ATTR_RECURRENCE_ENABLED = "recurrence_enabled"
 ATTR_RECURRENCE_INTERVAL = "recurrence_interval"
