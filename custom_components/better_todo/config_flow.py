@@ -63,6 +63,22 @@ class BetterTodoOptionsFlow(config_entries.OptionsFlow):
     ) -> FlowResult:
         """Manage the options."""
         if user_input is not None:
+            # Check if the new name conflicts with other entries
+            new_name = user_input["name"]
+            for entry in self.hass.config_entries.async_entries(DOMAIN):
+                if entry.entry_id != self.config_entry.entry_id and entry.data.get("name") == new_name:
+                    return self.async_show_form(
+                        step_id="init",
+                        data_schema=vol.Schema(
+                            {
+                                vol.Required(
+                                    "name", default=self.config_entry.data.get("name", "")
+                                ): cv.string,
+                            }
+                        ),
+                        errors={"name": "already_configured"},
+                    )
+            
             # Update the config entry with new data
             self.hass.config_entries.async_update_entry(
                 self.config_entry,

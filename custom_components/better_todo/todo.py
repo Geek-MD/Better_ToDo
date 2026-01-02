@@ -88,10 +88,15 @@ class BetterTodoEntity(TodoListEntity):
             self._items.insert(0, item_to_move)
         else:
             # Find previous item and insert after it
+            inserted = False
             for idx, item in enumerate(self._items):
                 if item.uid == previous_uid:
                     self._items.insert(idx + 1, item_to_move)
+                    inserted = True
                     break
+            # If previous_uid not found, append at the end
+            if not inserted:
+                self._items.append(item_to_move)
 
         self.async_write_ha_state()
 
