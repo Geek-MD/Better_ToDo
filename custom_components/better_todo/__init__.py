@@ -256,7 +256,7 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
         if card_path.exists():
             # Register the resource with Home Assistant
             hass.http.register_static_path(
-                f"/better_todo/better-todo-card.js",
+                "/better_todo/better-todo-card.js",
                 str(card_path),
                 cache_headers=False
             )
