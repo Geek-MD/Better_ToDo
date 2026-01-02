@@ -16,6 +16,10 @@ _LOGGER = logging.getLogger(__name__)
 STORAGE_KEY = "lovelace.better_todo"
 STORAGE_VERSION = 1
 
+# Lovelace resource URLs
+CARD_RESOURCE_URL = "/better_todo/better-todo-card.js"
+DASHBOARD_CARD_RESOURCE_URL = "/better_todo/better-todo-dashboard-card.js"
+
 
 async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
     """Ensure Lovelace resources are registered for custom cards."""
@@ -31,11 +35,11 @@ async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
                 # Define resources to add
                 resource_configs = [
                     {
-                        "url": "/better_todo/better-todo-card.js",
+                        "url": CARD_RESOURCE_URL,
                         "type": "module",
                     },
                     {
-                        "url": "/better_todo/better-todo-dashboard-card.js",
+                        "url": DASHBOARD_CARD_RESOURCE_URL,
                         "type": "module",
                     },
                 ]
@@ -82,8 +86,8 @@ async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
         
         # Define resources to add
         resources_to_add: list[str] = [
-            "/better_todo/better-todo-card.js",
-            "/better_todo/better-todo-dashboard-card.js",
+            CARD_RESOURCE_URL,
+            DASHBOARD_CARD_RESOURCE_URL,
         ]
         
         # Check and add resources

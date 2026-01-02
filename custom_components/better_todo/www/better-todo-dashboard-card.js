@@ -36,6 +36,11 @@ class BetterTodoDashboardCard extends HTMLElement {
 
   /**
    * Get all Better ToDo entities
+   * Note: This filters for all todo.* entities. While not strictly limited to
+   * Better ToDo entities, this card is designed to be used exclusively in the
+   * Better ToDo dashboard where only Better ToDo entities are expected to be present.
+   * For a more strict check, we would need access to entity registry data which
+   * is not available from the frontend state object.
    * @returns {Array} - Array of todo entity IDs
    */
   _getTodoEntities() {
@@ -57,10 +62,27 @@ class BetterTodoDashboardCard extends HTMLElement {
 
   /**
    * Get the start of the week based on locale
+   * Uses Intl.Locale when available for better locale detection
    * @returns {number} 0 for Monday, 6 for Sunday
    */
   _getWeekStartDay() {
     const language = this._hass.language || 'en';
+    
+    // Try to use Intl.Locale for better locale handling
+    try {
+      if (typeof Intl !== 'undefined' && Intl.Locale) {
+        const locale = new Intl.Locale(language);
+        // Check if weekInfo is available (newer browsers)
+        if (locale.weekInfo && locale.weekInfo.firstDay !== undefined) {
+          // weekInfo.firstDay: 1=Monday, 7=Sunday
+          return locale.weekInfo.firstDay === 7 ? 6 : 0;
+        }
+      }
+    } catch (e) {
+      // Fall back to hardcoded logic if Intl.Locale is not available
+    }
+    
+    // Fallback: US English traditionally starts on Sunday
     const sundayFirstLocales = ['en-US', 'en_US'];
     return sundayFirstLocales.includes(language) ? 6 : 0;
   }
