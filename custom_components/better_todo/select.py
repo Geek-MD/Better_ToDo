@@ -46,7 +46,7 @@ class RecurrenceUnitSelect(SelectEntity):
             "name": self._entry.data["name"],
             "manufacturer": "Better ToDo",
             "model": "Todo List",
-            "sw_version": "0.3.0",
+            "sw_version": "0.4.0",
         }
 
     async def async_select_option(self, option: str) -> None:
@@ -77,7 +77,7 @@ class RecurrenceEndTypeSelect(SelectEntity):
             "name": self._entry.data["name"],
             "manufacturer": "Better ToDo",
             "model": "Todo List",
-            "sw_version": "0.3.0",
+            "sw_version": "0.4.0",
         }
 
     async def async_select_option(self, option: str) -> None:

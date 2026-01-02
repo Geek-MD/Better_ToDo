@@ -49,7 +49,7 @@ class RecurrenceIntervalNumber(NumberEntity):
             "name": self._entry.data["name"],
             "manufacturer": "Better ToDo",
             "model": "Todo List",
-            "sw_version": "0.3.0",
+            "sw_version": "0.4.0",
         }
 
     async def async_set_native_value(self, value: float) -> None:
@@ -83,7 +83,7 @@ class RecurrenceEndCountNumber(NumberEntity):
             "name": self._entry.data["name"],
             "manufacturer": "Better ToDo",
             "model": "Todo List",
-            "sw_version": "0.3.0",
+            "sw_version": "0.4.0",
         }
 
     async def async_set_native_value(self, value: float) -> None:

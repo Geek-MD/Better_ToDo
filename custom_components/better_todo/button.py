@@ -41,7 +41,7 @@ class ApplyRecurrenceButton(ButtonEntity):
             "name": self._entry.data["name"],
             "manufacturer": "Better ToDo",
             "model": "Todo List",
-            "sw_version": "0.3.1",
+            "sw_version": "0.4.0",
         }
 
     async def async_press(self) -> None:

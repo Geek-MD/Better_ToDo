@@ -47,7 +47,7 @@ class TaskUIDText(TextEntity):
             "name": self._entry.data["name"],
             "manufacturer": "Better ToDo",
             "model": "Todo List",
-            "sw_version": "0.3.1",
+            "sw_version": "0.4.0",
         }
 
     async def async_set_value(self, value: str) -> None:
@@ -79,7 +79,7 @@ class RecurrenceEndDateText(TextEntity):
             "name": self._entry.data["name"],
             "manufacturer": "Better ToDo",
             "model": "Todo List",
-            "sw_version": "0.3.1",
+            "sw_version": "0.4.0",
         }
 
     async def async_set_value(self, value: str) -> None:
