@@ -11,15 +11,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic creation of "Shopping List" on first integration setup
 - New config flow step `async_step_auto_shopping_list` for automatic list creation
 - Enhanced configuration descriptions in English and Spanish translations
+- Constants for default list names to improve maintainability
 
 ### Changed
-- **BREAKING**: Default list name changed from "Shopping List" to "Tasks"/"Tareas"
+- Default list name changed from "Shopping List" to "Tasks"/"Tareas"
 - Updated configuration flow to detect first-time setup and automatically create a second list
 - Improved user prompts with clearer default value indication
 - Updated translations to reflect new default behavior
 
 ### Fixed
 - Integration now properly creates both default task list and shopping list on initial setup
+- Added proper error handling and logging for automatic list creation
+
+### Notes
+- **No breaking changes for existing installations** - this only affects new setups
+- Existing lists will continue to work without any changes
 
 ## [0.2.0] - Previous Release
 
@@ -64,9 +70,11 @@ This release improves the first-time setup experience by automatically creating 
 - 🎯 Changed default list name to "Tasks" for better clarity
 - 🛒 Automatic creation of "Shopping List" on first setup
 - 🌍 Updated translations (English and Spanish)
+- 🔧 Improved error handling and logging
 
-**Breaking Changes:**
-- The default list name has changed from "Shopping List" to "Tasks". Existing installations are not affected.
+**Changes:**
+- The default list name has changed from "Shopping List" to "Tasks" for new installations
+- Existing installations are not affected and will continue to work normally
 
 **Installation:**
 1. Update via HACS or download the latest release

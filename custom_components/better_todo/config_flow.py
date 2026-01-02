@@ -12,7 +12,12 @@ from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import config_validation as cv
 
-from .const import AUTO_SHOPPING_LIST_NAME, DEFAULT_LIST_NAME, DOMAIN
+from .const import (
+    AUTO_LIST_CREATION_DELAY,
+    AUTO_SHOPPING_LIST_NAME,
+    DEFAULT_LIST_NAME,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -71,7 +76,7 @@ class BetterTodoConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  # type: i
                     """Create the Shopping List entry after a delay."""
                     try:
                         # Small delay to ensure the first entry is fully committed
-                        await asyncio.sleep(0.5)
+                        await asyncio.sleep(AUTO_LIST_CREATION_DELAY)
                         
                         # Check if Shopping List already exists
                         shopping_list_exists = any(
