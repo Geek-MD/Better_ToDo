@@ -165,35 +165,46 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
         # Load existing dashboards if file exists
         if dashboards_file.exists():
             with open(dashboards_file, "r", encoding="utf-8") as f:
-                dashboards_data = json.load(f)
+                loaded_data = json.load(f)
+                # Type assertion for mypy
+                if isinstance(loaded_data, dict):
+                    dashboards_data = loaded_data
         
         # Check if our dashboard is already registered
         dashboard_registered = False
-        for item in dashboards_data["data"]["items"]:
-            if item.get("url_path") == DASHBOARD_URL:
-                dashboard_registered = True
-                # Update existing entry
-                item.update({
-                    "require_admin": False,
-                    "show_in_sidebar": True,
-                    "icon": DASHBOARD_ICON,
-                    "title": DASHBOARD_TITLE,
-                    "url_path": DASHBOARD_URL,
-                })
-                break
+        data_dict = dashboards_data.get("data")
+        if isinstance(data_dict, dict):
+            items = data_dict.get("items")
+            if isinstance(items, list):
+                for item in items:
+                    if isinstance(item, dict) and item.get("url_path") == DASHBOARD_URL:
+                        dashboard_registered = True
+                        # Update existing entry
+                        item.update({
+                            "require_admin": False,
+                            "show_in_sidebar": True,
+                            "icon": DASHBOARD_ICON,
+                            "title": DASHBOARD_TITLE,
+                            "url_path": DASHBOARD_URL,
+                        })
+                        break
         
         # Add new dashboard if not registered
         if not dashboard_registered:
             import secrets
             dashboard_id = secrets.token_hex(16)
-            dashboards_data["data"]["items"].append({
-                "id": dashboard_id,
-                "require_admin": False,
-                "show_in_sidebar": True,
-                "icon": DASHBOARD_ICON,
-                "title": DASHBOARD_TITLE,
-                "url_path": DASHBOARD_URL,
-            })
+            data_dict = dashboards_data.get("data")
+            if isinstance(data_dict, dict):
+                items = data_dict.get("items")
+                if isinstance(items, list):
+                    items.append({
+                        "id": dashboard_id,
+                        "require_admin": False,
+                        "show_in_sidebar": True,
+                        "icon": DASHBOARD_ICON,
+                        "title": DASHBOARD_TITLE,
+                        "url_path": DASHBOARD_URL,
+                    })
         
         # Save dashboards registry
         with open(dashboards_file, "w", encoding="utf-8") as f:

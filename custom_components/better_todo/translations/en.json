@@ -27,24 +27,6 @@
       }
     }
   },
-  "entity": {
-    "sensor": {
-      "group_names": {
-        "no_due_date": {
-          "name": "No due date"
-        },
-        "this_week": {
-          "name": "This week"
-        },
-        "forthcoming": {
-          "name": "Forthcoming"
-        },
-        "done": {
-          "name": "Done"
-        }
-      }
-    }
-  },
   "services": {
     "set_task_recurrence": {
       "name": "Set task recurrence",
