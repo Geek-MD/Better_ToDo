@@ -1,28 +1,24 @@
 /**
- * Better ToDo Card
- * Custom Lovelace card for Better ToDo integration
+ * Better ToDo Dashboard Card
+ * Custom Lovelace card for Better ToDo dashboard with 2-section layout
  * 
- * Uses the same HTML structure as Home Assistant's native todo-list card
- * but with custom category headers:
- * - No due date
- * - This week
- * - Forthcoming
- * - Completed
+ * Layout:
+ * - Left section: List of all Better ToDo lists
+ * - Right section: Tasks from the selected list with category headers
  */
 
-class BetterTodoCard extends HTMLElement {
+class BetterTodoDashboardCard extends HTMLElement {
   constructor() {
     super();
     this._hass = null;
     this._config = null;
+    this._selectedEntity = null;
     this._cardElement = null;
   }
 
   setConfig(config) {
-    if (!config.entity) {
-      throw new Error('Please define an entity');
-    }
-    this._config = config;
+    // Config can optionally specify which entities to include
+    this._config = config || {};
     this._createCard();
   }
 
@@ -32,11 +28,31 @@ class BetterTodoCard extends HTMLElement {
   }
 
   _createCard() {
-    // Create the card structure using HA's native components
     if (!this._cardElement) {
       this._cardElement = document.createElement('ha-card');
       this.appendChild(this._cardElement);
     }
+  }
+
+  /**
+   * Get all Better ToDo entities
+   * @returns {Array} - Array of todo entity IDs
+   */
+  _getTodoEntities() {
+    if (!this._hass) return [];
+    
+    const entities = [];
+    Object.keys(this._hass.states).forEach(entityId => {
+      if (entityId.startsWith('todo.')) {
+        const state = this._hass.states[entityId];
+        // Check if this is a Better ToDo entity by looking at integration attribute
+        if (state.attributes && state.attributes.supported_features !== undefined) {
+          entities.push(entityId);
+        }
+      }
+    });
+    
+    return entities.sort();
   }
 
   /**
@@ -61,7 +77,6 @@ class BetterTodoCard extends HTMLElement {
     let daysToStart, daysToEnd;
     
     if (weekStart === 0) { // Week starts on Monday
-      // Convert Sunday=0 to Monday=0 system
       const dayOfWeek = currentWeekday === 0 ? 6 : currentWeekday - 1;
       daysToStart = dayOfWeek;
       daysToEnd = 6 - dayOfWeek;
@@ -87,17 +102,14 @@ class BetterTodoCard extends HTMLElement {
    * @returns {string} - Group name
    */
   _getItemGroup(item) {
-    // Completed items
     if (item.status === 'completed') {
       return 'completed';
     }
     
-    // No due date
     if (!item.due) {
       return 'no_due_date';
     }
     
-    // Parse due date
     try {
       const dueDate = new Date(item.due);
       const now = new Date();
@@ -193,6 +205,21 @@ class BetterTodoCard extends HTMLElement {
   }
 
   /**
+   * Handle list selection
+   * @param {Event} e - Click event
+   */
+  _handleListClick(e) {
+    const listItem = e.currentTarget;
+    const entityId = listItem.dataset.entity;
+    
+    // Update selected entity
+    this._selectedEntity = entityId;
+    
+    // Update the card
+    this._updateCard();
+  }
+
+  /**
    * Handle checkbox change
    * @param {Event} e - Change event
    */
@@ -201,7 +228,7 @@ class BetterTodoCard extends HTMLElement {
     const uid = checkbox.dataset.uid;
     const completed = checkbox.checked;
     
-    const entity = this._config.entity;
+    const entity = this._selectedEntity;
     
     try {
       await this._hass.callService('todo', 'update_item', {
@@ -211,7 +238,6 @@ class BetterTodoCard extends HTMLElement {
       });
     } catch (err) {
       console.error('Error updating todo item:', err);
-      // Revert checkbox state on error
       checkbox.checked = !completed;
     }
   }
@@ -220,50 +246,164 @@ class BetterTodoCard extends HTMLElement {
    * Update the card content
    */
   _updateCard() {
-    if (!this._hass || !this._config || !this._cardElement) {
+    if (!this._hass || !this._cardElement) {
       return;
     }
 
-    const entity = this._config.entity;
-    const state = this._hass.states[entity];
+    const entities = this._getTodoEntities();
     
-    if (!state) {
+    if (entities.length === 0) {
       this._cardElement.innerHTML = `
         <div class="card-content">
-          <p>Entity not found: ${entity}</p>
+          <p>No Better ToDo lists found</p>
         </div>
       `;
       return;
     }
 
-    const items = state.attributes.todo_items || [];
-    const title = this._config.title || state.attributes.friendly_name || 'Better ToDo';
+    // Auto-select first entity if none selected
+    if (!this._selectedEntity || !this._hass.states[this._selectedEntity]) {
+      this._selectedEntity = entities[0];
+    }
+
+    // Build the two-section layout
+    const listsHtml = this._renderListsPanel(entities);
+    const tasksHtml = this._renderTasksPanel();
     
-    // Group items
-    const groups = this._groupItems(items);
-    
-    // Build card HTML using HA's structure
-    const cardHeader = `
-      <div class="card-header">
-        <div class="name">${title}</div>
+    this._cardElement.innerHTML = `
+      <style>
+        .dashboard-container {
+          display: flex;
+          height: 100%;
+          min-height: 400px;
+        }
+        .lists-panel {
+          width: 250px;
+          border-right: 1px solid var(--divider-color);
+          overflow-y: auto;
+          padding: 16px 0;
+        }
+        .list-item {
+          padding: 12px 16px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          transition: background-color 0.2s;
+        }
+        .list-item:hover {
+          background-color: var(--secondary-background-color);
+        }
+        .list-item.selected {
+          background-color: var(--primary-color);
+          color: var(--text-primary-color);
+        }
+        .list-item-icon {
+          margin-right: 12px;
+          --mdc-icon-size: 24px;
+        }
+        .list-item-name {
+          flex: 1;
+          font-weight: 500;
+        }
+        .list-item-count {
+          font-size: 0.9em;
+          opacity: 0.7;
+        }
+        .tasks-panel {
+          flex: 1;
+          overflow-y: auto;
+          padding: 16px;
+        }
+        .tasks-panel .header {
+          margin: 16px 0 8px 0;
+          padding-bottom: 8px;
+          border-bottom: 1px solid var(--divider-color);
+        }
+        .tasks-panel .header h2 {
+          margin: 0;
+          font-size: 1.1em;
+          font-weight: 500;
+          color: var(--primary-text-color);
+        }
+        .tasks-panel ha-check-list-item {
+          margin: 4px 0;
+        }
+        .secondary {
+          font-size: 0.9em;
+          color: var(--secondary-text-color);
+        }
+      </style>
+      <div class="dashboard-container">
+        <div class="lists-panel">
+          ${listsHtml}
+        </div>
+        <div class="tasks-panel">
+          ${tasksHtml}
+        </div>
       </div>
     `;
     
-    const cardContent = `
-      <div class="card-content">
-        ${this._renderGroup('no_due_date', groups.no_due_date)}
-        ${this._renderGroup('this_week', groups.this_week)}
-        ${this._renderGroup('forthcoming', groups.forthcoming)}
-        ${this._renderGroup('completed', groups.completed)}
-      </div>
-    `;
-    
-    this._cardElement.innerHTML = cardHeader + cardContent;
+    // Add event listeners for list items
+    this._cardElement.querySelectorAll('.list-item').forEach(item => {
+      item.addEventListener('click', (e) => this._handleListClick(e));
+    });
     
     // Add event listeners for checkboxes
     this._cardElement.querySelectorAll('ha-checkbox').forEach(checkbox => {
       checkbox.addEventListener('change', (e) => this._handleCheckboxChange(e));
     });
+  }
+
+  /**
+   * Render the lists panel
+   * @param {Array} entities - Todo entity IDs
+   * @returns {string} - HTML string
+   */
+  _renderListsPanel(entities) {
+    return entities.map(entityId => {
+      const state = this._hass.states[entityId];
+      const name = state.attributes.friendly_name || entityId;
+      const items = state.attributes.todo_items || [];
+      const activeCount = items.filter(item => item.status !== 'completed').length;
+      const isSelected = entityId === this._selectedEntity;
+      
+      return `
+        <div class="list-item ${isSelected ? 'selected' : ''}" data-entity="${entityId}">
+          <ha-icon class="list-item-icon" icon="mdi:format-list-checks"></ha-icon>
+          <div class="list-item-name">${name}</div>
+          <div class="list-item-count">${activeCount}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  /**
+   * Render the tasks panel
+   * @returns {string} - HTML string
+   */
+  _renderTasksPanel() {
+    if (!this._selectedEntity) {
+      return '<p>Select a list</p>';
+    }
+    
+    const state = this._hass.states[this._selectedEntity];
+    if (!state) {
+      return '<p>List not found</p>';
+    }
+    
+    const items = state.attributes.todo_items || [];
+    const title = state.attributes.friendly_name || 'Tasks';
+    
+    // Group items
+    const groups = this._groupItems(items);
+    
+    return `
+      <h1 style="margin-top: 0;">${title}</h1>
+      ${this._renderGroup('no_due_date', groups.no_due_date)}
+      ${this._renderGroup('this_week', groups.this_week)}
+      ${this._renderGroup('forthcoming', groups.forthcoming)}
+      ${this._renderGroup('completed', groups.completed)}
+    `;
   }
 
   /**
@@ -289,7 +429,7 @@ class BetterTodoCard extends HTMLElement {
   }
 
   /**
-   * Render a todo item using HA's structure
+   * Render a todo item
    * @param {Object} item - Todo item
    * @returns {string} - HTML string
    */
@@ -314,35 +454,28 @@ class BetterTodoCard extends HTMLElement {
   }
 
   getCardSize() {
-    return 3;
+    return 6;
   }
 
   static getStubConfig() {
-    return {
-      entity: 'todo.tasks'
-    };
-  }
-
-  static getConfigElement() {
-    // Return card editor element if needed
-    return document.createElement('better-todo-card-editor');
+    return {};
   }
 }
 
-customElements.define('better-todo-card', BetterTodoCard);
+customElements.define('better-todo-dashboard-card', BetterTodoDashboardCard);
 
 // Register the card with the card picker
 window.customCards = window.customCards || [];
 window.customCards.push({
-  type: 'better-todo-card',
-  name: 'Better ToDo Card',
-  description: 'A custom card for Better ToDo with category headers',
+  type: 'better-todo-dashboard-card',
+  name: 'Better ToDo Dashboard Card',
+  description: 'Two-section dashboard card with lists and tasks',
   preview: true,
   documentationURL: 'https://github.com/Geek-MD/Better_ToDo'
 });
 
 console.info(
-  '%c BETTER-TODO-CARD %c v0.4.5 ',
+  '%c BETTER-TODO-DASHBOARD-CARD %c v0.4.5 ',
   'background-color: #555;color: #fff;font-weight: bold;',
   'background-color: #4caf50;color: #fff;font-weight: bold;'
 );

@@ -251,23 +251,45 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
     try:
         # Register the custom card JavaScript
         from pathlib import Path
+        from homeassistant.components.http import StaticPathConfig
         
         # Get the path to the www directory
         integration_dir = Path(__file__).parent
         www_dir = integration_dir / "www"
         card_path = www_dir / "better-todo-card.js"
+        dashboard_card_path = www_dir / "better-todo-dashboard-card.js"
+        
+        # Collect paths to register
+        paths_to_register = []
         
         if card_path.exists():
-            # Register the resource with Home Assistant
-            hass.http.register_static_path(
-                "/better_todo/better-todo-card.js",
-                str(card_path),
-                cache_headers=False
+            paths_to_register.append(
+                StaticPathConfig(
+                    "/better_todo/better-todo-card.js",
+                    str(card_path),
+                    False
+                )
             )
-            
-            _LOGGER.info("Registered Better ToDo custom card at /better_todo/better-todo-card.js")
+            _LOGGER.info("Prepared Better ToDo custom card for registration at /better_todo/better-todo-card.js")
         else:
             _LOGGER.warning("Custom card file not found at %s", card_path)
+        
+        if dashboard_card_path.exists():
+            paths_to_register.append(
+                StaticPathConfig(
+                    "/better_todo/better-todo-dashboard-card.js",
+                    str(dashboard_card_path),
+                    False
+                )
+            )
+            _LOGGER.info("Prepared Better ToDo dashboard card for registration at /better_todo/better-todo-dashboard-card.js")
+        else:
+            _LOGGER.warning("Dashboard card file not found at %s", dashboard_card_path)
+        
+        # Register all paths at once
+        if paths_to_register:
+            await hass.http.async_register_static_paths(paths_to_register)
+            _LOGGER.info("Registered %d Better ToDo static paths", len(paths_to_register))
     except Exception as err:
         _LOGGER.error("Error registering frontend resources: %s", err)
 

@@ -17,30 +17,128 @@ STORAGE_KEY = "lovelace.better_todo"
 STORAGE_VERSION = 1
 
 
+async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
+    """Ensure Lovelace resources are registered for custom cards."""
+    try:
+        # Try to register resources using the Lovelace resources API
+        if "lovelace" in hass.data:
+            lovelace_data = hass.data["lovelace"]
+            
+            # Check if resources collection exists
+            if hasattr(lovelace_data, "resources"):
+                resources = lovelace_data.resources
+                
+                # Define resources to add
+                resource_configs = [
+                    {
+                        "url": "/better_todo/better-todo-card.js",
+                        "type": "module",
+                    },
+                    {
+                        "url": "/better_todo/better-todo-dashboard-card.js",
+                        "type": "module",
+                    },
+                ]
+                
+                # Check and add each resource if not already present
+                for resource_data in resource_configs:
+                    resource_exists = False
+                    for resource_id in resources.async_items_ids():
+                        resource = await resources.async_get_item(resource_id)
+                        if resource.get("url") == resource_data["url"]:
+                            resource_exists = True
+                            break
+                    
+                    if not resource_exists:
+                        await resources.async_create_item(resource_data)
+                        _LOGGER.info("Added Lovelace resource: %s", resource_data["url"])
+                
+                return
+    except Exception as err:
+        _LOGGER.debug("Could not register Lovelace resources via API: %s", err)
+    
+    # Fallback: Try direct file creation in .storage
+    try:
+        config_dir = Path(hass.config.config_dir)
+        storage_dir = config_dir / ".storage"
+        storage_dir.mkdir(exist_ok=True)
+        
+        # Load or create lovelace_resources file
+        resources_file = storage_dir / "lovelace_resources"
+        resources_data = {
+            "version": 1,
+            "minor_version": 1,
+            "key": "lovelace_resources",
+            "data": {
+                "items": []
+            },
+        }
+        
+        if resources_file.exists():
+            with open(resources_file, "r", encoding="utf-8") as f:
+                loaded_data = json.load(f)
+                if isinstance(loaded_data, dict):
+                    resources_data = loaded_data
+        
+        # Define resources to add
+        resources_to_add: list[str] = [
+            "/better_todo/better-todo-card.js",
+            "/better_todo/better-todo-dashboard-card.js",
+        ]
+        
+        # Check and add resources
+        data_dict = resources_data.get("data")
+        if isinstance(data_dict, dict):
+            items = data_dict.get("items")
+            if isinstance(items, list):
+                for resource_url in resources_to_add:
+                    resource_exists = any(
+                        isinstance(item, dict) and item.get("url") == resource_url
+                        for item in items
+                    )
+                    
+                    if not resource_exists:
+                        import secrets
+                        resource_id = secrets.token_hex(16)
+                        items.append({
+                            "id": resource_id,
+                            "url": resource_url,
+                            "type": "module",
+                        })
+                        _LOGGER.info("Added Lovelace resource to storage: %s", resource_url)
+        
+        # Save resources file
+        with open(resources_file, "w", encoding="utf-8") as f:
+            json.dump(resources_data, f, indent=2)
+    
+    except Exception as err:
+        _LOGGER.debug("Could not register Lovelace resources via file storage: %s", err)
+
+
 async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     """Create or update the Better ToDo dashboard.
     
-    Creates a dashboard that shows all Better ToDo lists and their
-    recurrence configuration entities grouped together.
+    Creates a dashboard with a two-section layout:
+    - Left section: Shows all Better ToDo lists
+    - Right section: Shows tasks from the selected list with category headers
     """
     # Get all Better ToDo entries
     entries = hass.config_entries.async_entries(DOMAIN)
     if not entries:
         return
     
-    # Build cards for all lists
+    # Build cards for the dashboard
     cards: list[dict[str, Any]] = []
     
+    # Add the main two-section dashboard card
+    cards.append({
+        "type": "custom:better-todo-dashboard-card",
+    })
+    
+    # Add recurrence configuration cards for each list
     for entry in entries:
         list_name = entry.data["name"]
         list_slug = list_name.lower().replace(" ", "_")
-        
-        # Add Better ToDo custom card
-        cards.append({
-            "type": "custom:better-todo-card",
-            "entity": f"todo.{list_slug}",
-            "title": list_name,
-        })
         
         # Add recurrence configuration card
         cards.append({
@@ -90,6 +188,9 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
             }
         ]
     }
+    
+    # Ensure Lovelace resources are configured
+    await _async_ensure_lovelace_resources(hass)
     
     # Try to register the dashboard
     try:
