@@ -35,9 +35,9 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
         list_name = entry.data["name"]
         list_slug = list_name.lower().replace(" ", "_")
         
-        # Add todo list card
+        # Add Better ToDo custom card
         cards.append({
-            "type": "todo-list",
+            "type": "custom:better-todo-card",
             "entity": f"todo.{list_slug}",
             "title": list_name,
         })

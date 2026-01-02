@@ -1,6 +1,7 @@
 """The Better ToDo integration."""
 from __future__ import annotations
 
+import logging
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
@@ -18,6 +19,8 @@ from .const import (
     ATTR_RECURRENCE_UNIT,
     DOMAIN,
 )
+
+_LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [
     Platform.TODO,
@@ -70,6 +73,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     entry.async_on_unload(entry.add_update_listener(async_update_options))
+
+    # Register the custom frontend card
+    await _async_register_frontend(hass)
+    
+    # Create or update the Better ToDo dashboard with custom cards
+    from .dashboard import async_create_or_update_dashboard
+    await async_create_or_update_dashboard(hass)
 
     # Note: Dashboard creation is handled through device grouping
     # All entities are automatically grouped under their device in the UI
@@ -236,6 +246,32 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
+async def _async_register_frontend(hass: HomeAssistant) -> None:
+    """Register the frontend resources for the custom card."""
+    try:
+        # Register the custom card JavaScript
+        from pathlib import Path
+        
+        # Get the path to the www directory
+        integration_dir = Path(__file__).parent
+        www_dir = integration_dir / "www"
+        card_path = www_dir / "better-todo-card.js"
+        
+        if card_path.exists():
+            # Register the resource with Home Assistant
+            hass.http.register_static_path(
+                "/better_todo/better-todo-card.js",
+                str(card_path),
+                cache_headers=False
+            )
+            
+            _LOGGER.info("Registered Better ToDo custom card at /better_todo/better-todo-card.js")
+        else:
+            _LOGGER.warning("Custom card file not found at %s", card_path)
+    except Exception as err:
+        _LOGGER.error("Error registering frontend resources: %s", err)
+
+
 async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Update options."""
     await hass.config_entries.async_reload(entry.entry_id)
@@ -248,8 +284,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
 
-    # Unregister services if no more entries
+    # Remove dashboard if no more entries
     if not hass.config_entries.async_entries(DOMAIN):
+        from .dashboard import async_remove_dashboard
+        await async_remove_dashboard(hass)
+        
+        # Unregister services
         hass.services.async_remove(DOMAIN, SERVICE_SET_TASK_RECURRENCE)
         hass.services.async_remove(DOMAIN, SERVICE_GET_TASK_RECURRENCE)
         hass.services.async_remove(DOMAIN, SERVICE_APPLY_RECURRENCE_FROM_UI)
