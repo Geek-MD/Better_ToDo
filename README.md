@@ -72,16 +72,20 @@ Once configured, your Better ToDo lists will appear in the ToDo section of Home 
 - **Delete tasks**: Remove completed or unwanted tasks
 - **Reorder tasks**: Drag and drop to organize your tasks
 
-#### Automatic Task Organization
+#### Automatic Task Organization with Visual Category Headers
 
-Tasks are automatically organized into groups for better visibility:
+Tasks are automatically organized into groups with visible category headers in the UI:
 
 - 📭 **No due date**: Tasks without a due date
 - 📅 **This week**: Tasks due within the current calendar week (respects your locale settings - Monday start for Spanish/European locales, Sunday start for US English)
 - 📆 **Forthcoming**: Tasks due after this week
 - ✅ **Done**: Completed tasks
 
-Tasks within each group are sorted by due date (earliest first).
+**Features:**
+- Category headers appear as visual separators in your todo list
+- Headers are automatically translated based on your Home Assistant language setting
+- Tasks within each group are sorted by due date (earliest first)
+- Replaces the default "Active" and "Completed" grouping with more detailed categories
 
 ### Task Recurrence
 

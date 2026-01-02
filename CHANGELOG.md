@@ -20,18 +20,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `button.{list_name}_apply_recurrence_settings`: Apply configured settings
 - New service `better_todo.apply_recurrence_from_ui`: Reads helper entity values and applies recurrence to specified task
 - Users can now configure recurrence visually without using Developer Tools
-- **Automatic Task Grouping**: Tasks are now automatically organized into groups:
-  - "No due date" / "Sin fecha de vencimiento": Tasks without a due date
-  - "This week" / "Esta semana": Tasks due within the current calendar week (respects locale: Monday start for Spanish, Sunday start for US English)
-  - "Forthcoming" / "Próximamente": Tasks due after this week
-  - "Done" / "Completadas": Completed tasks
+- **Automatic Task Grouping with Visual Category Headers**: Tasks are now automatically organized into groups with visible category headers:
+  - "📭 No due date" / "📭 Sin fecha de vencimiento": Tasks without a due date
+  - "📅 This week" / "📅 Esta semana": Tasks due within the current calendar week (respects locale: Monday start for Spanish, Sunday start for US English)
+  - "📆 Forthcoming" / "📆 Próximamente": Tasks due after this week
+  - "✅ Done" / "✅ Completadas": Completed tasks
+  - Category headers are displayed as visual separators in the todo list UI
+  - Headers are automatically translated based on Home Assistant's language setting
 - Dashboard support infrastructure for creating custom "Better ToDo" dashboard (experimental)
 
 ### Changed
 - Integration now creates 6 additional helper entities + 1 button per todo list for recurrence management
 - Recurrence configuration workflow is now UI-first instead of service-first
 - Tasks are automatically sorted by group and due date for better organization
-- Added translations for task group names in English and Spanish
+- Task categories now display as visual headers in the todo list (replacing default "Active"/"Completed" labels)
+- Category headers are automatically translated based on system language (English/Spanish supported)
 - "This week" calculation now respects system locale (Monday start for most locales including Spanish, Sunday start for US English)
 
 ### Notes
