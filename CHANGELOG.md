@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-01-03
+
+### Added
+- **Custom Task Dialog**: New integrated dialog for creating and editing tasks with all configuration options
+  - Task status checkbox (pending/completed)
+  - Task name/summary input field
+  - Task description textarea
+  - Task due date picker
+  - **Recurrence configuration section** with:
+    - Enable/disable checkbox for recurrence
+    - Interval number input (1-365)
+    - Unit dropdown: días/days, semanas/weeks, meses/months, años/years
+  - **Stop recurrence section** with:
+    - Enable/disable checkbox for stop condition
+    - Two mutually exclusive options:
+      - Iteration count input (after X repetitions)
+      - End date picker (until specific date)
+  - Automatic translations (Spanish/English) for all dialog labels
+  - Smart form interactions (radio buttons auto-select when inputs are focused)
+  - Proper enable/disable states for conditional sections
+- **Weeks Support**: Added "weeks" as a new recurrence unit option
+  - Available in all services and UI dialogs
+  - Fully integrated with existing recurrence system
+- **Task Creation Button**: Added "+" button in card header to create new tasks
+- **Task Editing**: Click on any task to edit it with the dialog
+  - All task properties can be modified
+  - Recurrence settings are loaded and can be updated
+  - Works in both better-todo-card and better-todo-dashboard-card
+
+### Changed
+- **Simplified Workflow**: Task creation and editing now happens through a single unified dialog
+  - No need to use separate helper entities for recurrence configuration
+  - All task properties and recurrence settings configured in one place
+  - Immediate feedback when saving tasks
+- **User Experience**: Click-to-edit interaction for all tasks
+  - More intuitive task management
+  - Faster workflow for editing task details
+  - Visual cursor indication on hover
+
+### Technical Details
+- Dialog uses Home Assistant's native `ha-dialog` component
+- Integrates with `better_todo.create_task`, `better_todo.update_task`, and `better_todo.set_task_recurrence` services
+- Maintains backward compatibility with existing helper entities
+- JavaScript dialog implementation in both card variants
+- Form validation ensures required fields are filled
+- Recurrence data automatically synced when creating new tasks
+
+### Notes
+- **Helper entities still work**: The existing number, select, text, and button entities for recurrence configuration remain functional
+- **No breaking changes**: Existing installations will continue to work normally
+- **Browser refresh recommended**: Clear browser cache to load the new dialog functionality
+- This release follows the requirement: "cada tarea queda configurada completamente cuando es creada o cuando es editada, y no se necesitan las entidades ayudantes"
+
 ## [0.5.4] - 2026-01-03
 
 ### Fixed

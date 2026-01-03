@@ -22,6 +22,7 @@ A Home Assistant custom integration for advanced ToDo list management.
 - 🔄 **Task Reordering**: Organize tasks in your preferred order
 - 🎯 **Multiple Lists**: Create multiple independent ToDo lists
 - 🔁 **Task Recurrence**: Configure recurring tasks with flexible intervals and end conditions
+- ✨ **Integrated Task Dialog**: Create and edit tasks with a single dialog that includes all settings (name, description, due date, recurrence, and stop conditions)
 - 🛒 **Auto-Setup**: First-time setup automatically creates both a default task list and a shopping list
 - 🏠 **Native Home Assistant Integration**: Seamlessly integrates with Home Assistant's ToDo platform
 - 🎨 **Custom Lovelace Card**: Beautiful card with category headers that match HA's native design
@@ -87,12 +88,25 @@ Better ToDo no longer uses Home Assistant's core Todo platform. This means:
 
 Once configured, you can manage your tasks from the Better ToDo dashboard or via services:
 
-**Via Dashboard:**
-- **Create tasks**: Add new items to your list using the custom card interface
-- **Edit tasks**: Update task details, descriptions, and due dates
-- **Complete tasks**: Mark tasks as done
-- **Delete tasks**: Remove completed or unwanted tasks
-- **Reorder tasks**: Drag and drop to organize your tasks (when supported by custom card)
+**Via Dashboard (Recommended):**
+
+The Better ToDo custom cards now include an integrated dialog for creating and editing tasks:
+
+- **Create tasks**: Click the "+" button in the card header to open the task creation dialog
+  - Fill in task name (required), description, and due date
+  - Configure recurrence settings directly in the dialog:
+    - Enable/disable recurrence
+    - Set interval (e.g., every 2 days, 1 week, 3 months)
+    - Choose to stop after X repetitions or on a specific date
+  - All settings are saved when you click "Save"
+  
+- **Edit tasks**: Click on any task to open the edit dialog
+  - Modify any task property: name, description, due date, status
+  - Update recurrence settings
+  - Changes are saved immediately
+  
+- **Complete tasks**: Check the checkbox next to a task to mark it as done
+- **Task organization**: Tasks are automatically grouped into categories (No due date, This week, Forthcoming, Completed)
 
 **Via Services (Advanced):**
 - `better_todo.create_task`: Create new tasks programmatically
@@ -122,23 +136,42 @@ Better ToDo includes a custom Lovelace card (`better-todo-card`) that displays t
 
 ### Task Recurrence
 
-Better ToDo offers two ways to configure recurring tasks:
+Better ToDo offers three ways to configure recurring tasks:
 
-#### Option 1: Using Helper Entities (Recommended)
+#### Option 1: Using the Task Dialog (Recommended - New in v0.6.0)
 
-Each todo list comes with helper entities for easy recurrence configuration:
+The easiest way to configure recurrence is directly in the task creation/edit dialog:
+
+1. Click the "+" button to create a new task, or click on an existing task to edit it
+2. Fill in the task details (name, description, due date)
+3. In the **Recurrence** section:
+   - Check "Enable recurrence" to activate recurrence
+   - Set "Every" to the interval value (e.g., 1, 2, 3)
+   - Choose the unit: days, weeks, months, or years
+4. In the **Stop recurrence** section (optional):
+   - Check "Enable recurrence limit" to set an end condition
+   - Choose either:
+     - "After X repetitions" - task repeats a specific number of times
+     - "Until [date]" - task repeats until a specific date
+5. Click "Save" to create/update the task with recurrence settings
+
+**All recurrence settings are configured in one place when creating or editing a task!**
+
+#### Option 2: Using Helper Entities
+
+Each todo list comes with helper entities for recurrence configuration:
 
 1. Find the recurrence helper entities for your list in **Settings** → **Devices & Services** → **Better ToDo** → Your List Device
 2. Set the values:
    - **Task UID**: Enter the UID of the task (find it in entity attributes)
    - **Recurrence interval**: How often to repeat (1-365)
-   - **Recurrence unit**: Time unit (days/months/years)
+   - **Recurrence unit**: Time unit (days/weeks/months/years)
    - **Recurrence end type**: Choose never, count, or date
    - **Recurrence end count**: Number of repetitions (if using count)
    - **Recurrence end date**: End date (if using date)
 3. Press the **Apply recurrence settings** button
 
-#### Option 2: Using Services (Advanced)
+#### Option 3: Using Services (Advanced)
 
 For automation or advanced use, configure recurrence via services:
 
@@ -149,7 +182,7 @@ For automation or advanced use, configure recurrence via services:
    - **Task UID**: The unique identifier of the task (visible in entity attributes)
    - **Enable recurrence**: Turn on/off recurrence
    - **Recurrence interval**: How often to repeat (e.g., 1, 2, 3)
-   - **Recurrence unit**: Time unit (days, months, years)
+   - **Recurrence unit**: Time unit (days, weeks, months, years)
    - **Enable recurrence end**: Set a limit for repetitions
    - **End type**: End after count or on a specific date
    - **End count**: Number of repetitions
