@@ -153,7 +153,7 @@ class BetterTodoEntity(Entity):
     def entity_id(self) -> str:
         """Return entity ID using 'todo' domain."""
         # Return stored entity_id if available, otherwise generate from name
-        if hasattr(self, "_entity_id") and self._entity_id:
+        if self._entity_id:
             return self._entity_id
         # Use 'todo' domain to maintain compatibility
         list_name = self._entry.data.get("name", "tasks")
@@ -528,6 +528,6 @@ class BetterTodoEntity(Entity):
             "name": self._entry.data["name"],
             "manufacturer": "Better ToDo",
             "model": "Task List",
-            "sw_version": "0.5.1",
+            "sw_version": "0.5.4",
         }
 

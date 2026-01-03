@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.4] - 2026-01-03
+
+### Fixed
+- **entity_id Property Setter**: Fixed `AttributeError: property 'entity_id' of 'BetterTodoEntity' object has no setter`
+  - Added setter for `entity_id` property to allow Home Assistant to set the entity ID
+  - Added `_entity_id` instance variable to store the entity ID
+  - Property now returns stored value if available, otherwise generates from list name
+- **Blocking I/O Operations**: Fixed blocking file operations that were blocking the event loop
+  - Added async helper functions `_async_read_file()` and `_async_write_file()` in `dashboard.py`
+  - Replaced all synchronous `open()` calls with async operations using `hass.async_add_executor_job()`
+  - Fixed 5 blocking I/O operations:
+    - Reading lovelace_resources file
+    - Writing lovelace_resources file
+    - Writing lovelace dashboard configuration file
+    - Reading lovelace_dashboards registry file
+    - Writing lovelace_dashboards registry file
+  - Fixed file unlink operation to use async executor with lambda wrapper
+- **Frontend Component Access**: Fixed `'HomeAssistant' object has no attribute 'components'` error
+  - Changed from `hass.components.frontend` to importing frontend component directly
+  - Updated `async_register_built_in_panel()` to pass `hass` as first argument
+  - Updated `async_remove_panel()` to pass `hass` as first argument
+  - Removed unnecessary check for frontend component availability
+
+### Technical Details
+- All file I/O operations now properly run in executor threads to prevent blocking the event loop
+- Entity ID property follows Home Assistant's entity management pattern
+- Frontend panel registration uses the correct API signatures
+
+### Notes
+- These fixes resolve all errors reported in Home Assistant logs
+- No breaking changes - existing installations will work without modifications
+- Integration now follows Home Assistant's best practices for async operations
+
 ## [0.5.3] - 2026-01-03
 
 ### Added

@@ -437,7 +437,7 @@ async def async_remove_dashboard(hass: HomeAssistant) -> None:
         # Remove dashboard configuration file
         dashboard_file = storage_dir / f"lovelace.{DASHBOARD_URL}"
         if dashboard_file.exists():
-            await hass.async_add_executor_job(dashboard_file.unlink)
+            await hass.async_add_executor_job(lambda: dashboard_file.unlink())
             _LOGGER.info("Removed Better ToDo dashboard configuration file")
         
         # Remove from dashboards registry
