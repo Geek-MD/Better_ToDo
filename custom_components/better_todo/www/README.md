@@ -10,7 +10,7 @@ The main dashboard card with a two-section layout:
 - **Left section**: Shows all your Better ToDo lists
 - **Right section**: Shows tasks from the selected list with category headers
 
-This card is automatically used in the Better ToDo dashboard.
+This card can be manually added to the Better ToDo dashboard or any other dashboard.
 
 ```yaml
 type: custom:better-todo-dashboard-card
@@ -29,6 +29,93 @@ title: My Tasks  # Optional
 ## Usage
 
 The custom cards are automatically registered when you install Better ToDo. 
+
+### How to Add Cards to the Better ToDo Dashboard
+
+The Better ToDo dashboard is created empty by default. To add cards:
+
+1. Navigate to the "Better ToDo" dashboard in your sidebar
+2. Click the three dots menu (⋮) in the top right corner
+3. Select "Edit Dashboard"
+4. Click "+ ADD CARD" to add cards via UI
+
+**Or use YAML configuration:**
+
+1. Click the three dots menu (⋮) → "Edit Dashboard"
+2. Click the three dots again → "Raw configuration editor"
+3. Add your card configuration (see examples below)
+4. Click "Save"
+
+### Example: Complete Dashboard Configuration
+
+```yaml
+views:
+  - title: Tasks
+    path: tasks
+    icon: mdi:format-list-checks
+    cards:
+      # Main dashboard card with all lists
+      - type: custom:better-todo-dashboard-card
+      
+      # Recurrence configuration for Tasks list
+      - type: entities
+        title: Tasks - Recurrence Settings
+        state_color: true
+        entities:
+          - entity: text.tasks_task_uid
+            name: Task UID
+          - entity: number.tasks_recurrence_interval
+            name: Interval
+          - entity: select.tasks_recurrence_unit
+            name: Unit
+          - entity: select.tasks_recurrence_end_type
+            name: End Type
+          - entity: number.tasks_recurrence_end_count
+            name: End Count
+          - entity: text.tasks_recurrence_end_date
+            name: End Date
+          - entity: button.tasks_apply_recurrence_settings
+            name: Apply Settings
+      
+      # Add individual list cards if preferred
+      - type: custom:better-todo-card
+        entity: todo.shopping_list
+        title: Shopping List
+```
+
+### Example: Adding an Iframe Card
+
+You can add external content using an iframe card:
+
+```yaml
+type: iframe
+url: https://example.com/your-page
+aspect_ratio: 75%
+title: External Content
+```
+
+### Example: Multiple List Cards
+
+Show each list separately with individual cards:
+
+```yaml
+views:
+  - title: Tasks
+    path: tasks
+    icon: mdi:format-list-checks
+    cards:
+      - type: custom:better-todo-card
+        entity: todo.tasks
+        title: Personal Tasks
+      
+      - type: custom:better-todo-card
+        entity: todo.shopping_list
+        title: Shopping List
+      
+      - type: custom:better-todo-card
+        entity: todo.work_tasks
+        title: Work Tasks
+```
 
 ### Better ToDo Dashboard Card Features
 

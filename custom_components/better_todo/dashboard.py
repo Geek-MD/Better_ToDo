@@ -195,66 +195,20 @@ async def _async_reload_frontend_panels(hass: HomeAssistant) -> None:
 async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     """Create or update the Better ToDo dashboard.
     
-    Creates a dashboard with a two-section layout:
-    - Left section: Shows all Better ToDo lists
-    - Right section: Shows tasks from the selected list with category headers
+    Creates an empty dashboard that users can manually customize with their own cards.
+    Users can add custom cards, iframes, or any other Lovelace card configuration.
+    See README.md for examples on how to manually configure the dashboard.
     """
     # Get all Better ToDo entries
     entries = hass.config_entries.async_entries(DOMAIN)
     if not entries:
         return
     
-    # Build cards for the dashboard
+    # Create an empty dashboard with no cards
+    # Users can manually add cards through the UI or by editing the dashboard YAML
     cards: list[dict[str, Any]] = []
     
-    # Add the main two-section dashboard card
-    cards.append({
-        "type": "custom:better-todo-dashboard-card",
-    })
-    
-    # Add recurrence configuration cards for each list
-    for entry in entries:
-        list_name = entry.data["name"]
-        list_slug = list_name.lower().replace(" ", "_")
-        
-        # Add recurrence configuration card
-        cards.append({
-            "type": "entities",
-            "title": f"{list_name} - Recurrence Settings",
-            "state_color": True,
-            "entities": [
-                {
-                    "entity": f"text.{list_slug}_task_uid",
-                    "name": "Task UID",
-                },
-                {
-                    "entity": f"number.{list_slug}_recurrence_interval",
-                    "name": "Interval",
-                },
-                {
-                    "entity": f"select.{list_slug}_recurrence_unit",
-                    "name": "Unit",
-                },
-                {
-                    "entity": f"select.{list_slug}_recurrence_end_type",
-                    "name": "End Type",
-                },
-                {
-                    "entity": f"number.{list_slug}_recurrence_end_count",
-                    "name": "End Count",
-                },
-                {
-                    "entity": f"text.{list_slug}_recurrence_end_date",
-                    "name": "End Date",
-                },
-                {
-                    "entity": f"button.{list_slug}_apply_recurrence_settings",
-                    "name": "Apply Settings",
-                },
-            ],
-        })
-    
-    # Dashboard configuration
+    # Dashboard configuration - empty by default
     config: dict[str, Any] = {
         "views": [
             {
