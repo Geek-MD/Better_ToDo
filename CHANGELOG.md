@@ -22,21 +22,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Reading lovelace_dashboards registry file
     - Writing lovelace_dashboards registry file
   - Fixed file unlink operation to use async executor with inner function wrapper
-- **Frontend Component Access**: Fixed `'HomeAssistant' object has no attribute 'components'` error
-  - Changed from `hass.components.frontend` to importing frontend component directly
-  - Updated `async_register_built_in_panel()` to pass `hass` as first argument
-  - Updated `async_remove_panel()` to pass `hass` as first argument
-  - Removed unnecessary check for frontend component availability
+- **Sidebar Integration Approach**: Corrected sidebar integration implementation
+  - Removed incorrect panel registration using `async_register_built_in_panel`
+  - Dashboard now appears in sidebar through proper Lovelace dashboard registration with `show_in_sidebar: True`
+  - Simplified code by removing unnecessary `_async_register_panel()` and `_async_remove_panel()` functions
+  - This is the correct approach: create a Lovelace dashboard, not a frontend panel
 
 ### Technical Details
 - All file I/O operations now properly run in executor threads to prevent blocking the event loop
 - Entity ID property follows Home Assistant's entity management pattern
-- Frontend panel registration uses the correct API signatures
+- Sidebar integration uses standard Lovelace dashboard registration instead of custom panel API
 
 ### Notes
 - These fixes resolve all errors reported in Home Assistant logs
 - No breaking changes - existing installations will work without modifications
-- Integration now follows Home Assistant's best practices for async operations
+- Integration now follows Home Assistant's best practices for async operations and dashboard creation
 
 ## [0.5.3] - 2026-01-03
 

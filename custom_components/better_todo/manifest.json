@@ -3,7 +3,7 @@
   "name": "Better ToDo",
   "codeowners": ["@Geek-MD"],
   "config_flow": true,
-  "dependencies": ["http", "frontend"],
+  "dependencies": ["http"],
   "documentation": "https://github.com/Geek-MD/Better_ToDo",
   "integration_type": "service",
   "iot_class": "calculated",
