@@ -455,13 +455,6 @@ class BetterTodoCard extends HTMLElement {
       endTypeDateRadio.checked = true;
     });
     
-    // Configure dialog buttons
-    dialog.addEventListener('closed', (e) => {
-      if (e.detail.action === 'save') {
-        this._saveTask(item, content);
-      }
-    });
-    
     // Set dialog properties
     dialog.setAttribute('open', '');
     dialog.setAttribute('scrimClickAction', '');
@@ -471,7 +464,7 @@ class BetterTodoCard extends HTMLElement {
     const actionsDiv = document.createElement('div');
     actionsDiv.slot = 'primaryAction';
     actionsDiv.innerHTML = `
-      <mwc-button @click="${() => dialog.close('save')}">
+      <mwc-button>
         ${isSpanish ? 'Guardar' : 'Save'}
       </mwc-button>
     `;
@@ -480,7 +473,7 @@ class BetterTodoCard extends HTMLElement {
     const secondaryActionsDiv = document.createElement('div');
     secondaryActionsDiv.slot = 'secondaryAction';
     secondaryActionsDiv.innerHTML = `
-      <mwc-button @click="${() => dialog.close()}">
+      <mwc-button>
         ${isSpanish ? 'Cancelar' : 'Cancel'}
       </mwc-button>
     `;
@@ -588,16 +581,21 @@ class BetterTodoCard extends HTMLElement {
         });
         
         // If recurrence is enabled, we need to get the UID of the newly created task
-        // We'll do this by checking the latest task in the entity state
+        // Note: This is a limitation since the create_task service doesn't return the UID.
+        // We wait for state update and find the task by matching summary.
+        // This could fail if multiple tasks have the same summary or if task creation
+        // takes longer than expected. A future improvement would be for the backend
+        // service to return the created task UID.
         if (recurrenceEnabled) {
-          // Wait a bit for the task to be created
+          // Wait for the task to be created and state to update
           await new Promise(resolve => setTimeout(resolve, 500));
           
           // Get the latest state
           const state = this._hass.states[this._config.entity];
           const items = state?.attributes?.todo_items || [];
           
-          // Find the newly created task (last one with matching summary)
+          // Find the newly created task (first one with matching summary that's not a header)
+          // Note: This assumes task summaries are reasonably unique
           const newTask = items.find(i => i.summary === summary && !i.uid.startsWith('header_'));
           
           if (newTask) {
