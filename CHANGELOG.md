@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] - 2026-01-03
+
+### Added
+- **Sidebar Panel Registration**: Implemented proper frontend panel registration for Better ToDo dashboard
+  - Uses `hass.components.frontend.async_register_built_in_panel` API similar to HACS, Terminal, and FileEditor
+  - Creates a dedicated sidebar panel with custom icon (`mdi:checkbox-marked-circle-outline`) and title
+  - Panel appears in sidebar immediately after integration setup
+  - No admin requirement - accessible to all users
+  - Proper cleanup: panel is removed when last integration entry is unloaded
+
+### Changed
+- **Dependencies**: Added "frontend" to manifest.json dependencies
+  - Required for using Home Assistant's frontend panel registration API
+  - Ensures proper integration with Home Assistant's frontend component
+
+### Technical Details
+- Panel type: Lovelace component with storage mode
+- URL path: `/better-todo`
+- Panel registration follows the same pattern as major integrations (HACS, Zigbee2MQTT, Terminal, FileEditor)
+- Implements both `_async_register_panel` and `_async_remove_panel` functions
+- Checks for existing panel registration to avoid duplicates
+- Comprehensive module documentation explaining sidebar panel integration
+
+### Notes
+- This change ensures Better ToDo has a persistent, always-visible sidebar entry
+- Compatible with existing dashboard implementation
+- Existing installations will see the panel registered on next integration reload
+- No manual configuration changes required
+
 ## [0.5.2] - 2026-01-02
 
 ### Fixed
