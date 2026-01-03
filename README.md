@@ -66,14 +66,15 @@ You can create more ToDo lists by adding the integration again with different na
 
 ### Better ToDo Dashboard
 
-After installation, Better ToDo automatically creates a dedicated dashboard named **"Better ToDo"** in your sidebar. **This is the ONLY way to access and manage your Better ToDo tasks.**
+After installation, Better ToDo automatically creates a dedicated dashboard named **"Better ToDo"** in your sidebar. The dashboard is **empty by default**, allowing you to customize it with your preferred cards and layout.
 
-**The Better ToDo dashboard includes:**
-- All your todo lists with custom category headers
-- Professional, emoji-free appearance
-- Recurrence configuration for each list
-- Automatic organization by: No due date, This week, Forthcoming, Completed
-- Complete task management interface (create, edit, delete, reorder)
+**To customize the dashboard:**
+1. Navigate to the "Better ToDo" dashboard in your sidebar
+2. Click the three dots menu (⋮) in the top right corner
+3. Select "Edit Dashboard"
+4. Add cards manually using the UI or YAML configuration
+
+See the [Manual Dashboard Configuration](#manual-dashboard-configuration) section below for detailed examples.
 
 **Important Note (v0.5.0+):**
 Better ToDo no longer uses Home Assistant's core Todo platform. This means:
@@ -257,34 +258,40 @@ Better ToDo integrates with Home Assistant's automation system. You can trigger 
 
 ### Lovelace Cards and Dashboards
 
-Better ToDo automatically creates a dedicated **"Better ToDo" dashboard** when you install the integration. This dashboard appears in your sidebar and includes:
-- All your Better ToDo lists with custom cards
+Better ToDo automatically creates a dedicated **"Better ToDo" dashboard** when you install the integration. This dashboard appears in your sidebar and is **empty by default**, allowing you to customize it with your preferred layout.
+
+#### Manual Dashboard Configuration
+
+The Better ToDo dashboard is created empty to give you full control over its content. You can add any cards you want, including:
+- Better ToDo custom cards
+- Native Home Assistant cards
+- Iframe cards for external content
+- Any other Lovelace card
+
+**To edit the dashboard:**
+1. Click on "Better ToDo" in your Home Assistant sidebar
+2. Click the three dots menu (⋮) in the top right corner
+3. Select "Edit Dashboard"
+4. Click "+ ADD CARD" to add cards via UI, or click the three dots again and select "Raw configuration editor" to edit YAML directly
+
+#### Better ToDo Dashboard Card (Two-Section Layout)
+
+The main dashboard card displays all your lists on the left and tasks on the right:
+
+```yaml
+type: custom:better-todo-dashboard-card
+```
+
+**Features:**
+- Two-section layout: Lists on the left, tasks on the right
+- Click a list to view its tasks
+- Task count per list
 - Category headers: "No due date", "This week", "Forthcoming", "Completed"
-- Recurrence configuration cards for each list
+- Automatic translations (English/Spanish)
 
-**Recommended:** Use the "Better ToDo" dashboard for the best experience.
+#### Better ToDo Card (Single List)
 
-#### Better ToDo Dashboard (Automatically Created - v0.4.3+)
-
-The integration automatically creates a dashboard named "Better ToDo" in your sidebar with all your lists using custom cards.
-
-**To access:**
-1. Look for "Better ToDo" in your Home Assistant sidebar
-2. All your todo lists will be displayed with professional category headers
-3. No emoticons - clean, professional appearance
-
-#### About the Native "To-do lists" Dashboard
-
-**Note:** Home Assistant automatically creates a native "To-do lists" dashboard when TODO entities exist. Better ToDo entities will appear there too, but **we recommend using the "Better ToDo" dashboard** instead for the enhanced experience with custom category headers.
-
-If you want to hide the native "To-do lists" dashboard:
-1. Go to Settings → Dashboards
-2. Find "To-do lists" dashboard
-3. Click the three dots menu → Hide from sidebar
-
-#### Manual Card Configuration
-
-You can also manually add the custom Better ToDo card to any dashboard:
+Display a single todo list with custom category headers:
 
 ```yaml
 type: custom:better-todo-card
@@ -295,20 +302,118 @@ title: My Tasks  # Optional
 **Features:**
 - Custom category headers: "No due date", "This week", "Forthcoming"
 - Native "Completed" section for finished tasks
-- Uses Home Assistant's native web components for perfect styling
 - Automatic translations (English/Spanish)
 - Locale-aware week calculations
 
-#### Standard Home Assistant Card
+#### Recurrence Configuration Card
 
-You can also use the native Home Assistant ToDo card (not recommended):
+Add a recurrence configuration card for a specific list:
+
+```yaml
+type: entities
+title: Tasks - Recurrence Settings
+state_color: true
+entities:
+  - entity: text.tasks_task_uid
+    name: Task UID
+  - entity: number.tasks_recurrence_interval
+    name: Interval
+  - entity: select.tasks_recurrence_unit
+    name: Unit
+  - entity: select.tasks_recurrence_end_type
+    name: End Type
+  - entity: number.tasks_recurrence_end_count
+    name: End Count
+  - entity: text.tasks_recurrence_end_date
+    name: End Date
+  - entity: button.tasks_apply_recurrence_settings
+    name: Apply Settings
+```
+
+**Note:** Replace `tasks` with your list's slug (lowercase with underscores instead of spaces). For example, if your list is named "Shopping List", use `shopping_list`.
+
+#### Iframe Card Example
+
+Add external content using an iframe card:
+
+```yaml
+type: iframe
+url: https://example.com/your-page
+aspect_ratio: 75%
+title: External Content
+```
+
+#### Standard Home Assistant Todo Card
+
+Use the native Home Assistant todo card (shows "Active" and "Completed" sections):
 
 ```yaml
 type: todo-list
-entity: todo.my_list_name
+entity: todo.tasks
 ```
 
-**Note:** The standard card will show HA's default "Active" and "Completed" headers without the custom category organization.
+**Note:** The standard card doesn't include the custom category headers.
+
+#### Complete Example Dashboard Configuration
+
+Here's a complete example showing how to configure the Better ToDo dashboard with multiple cards:
+
+```yaml
+views:
+  - title: Tasks
+    path: tasks
+    icon: mdi:format-list-checks
+    cards:
+      # Main dashboard card with all lists
+      - type: custom:better-todo-dashboard-card
+      
+      # Recurrence configuration for Tasks list
+      - type: entities
+        title: Tasks - Recurrence Settings
+        state_color: true
+        entities:
+          - entity: text.tasks_task_uid
+            name: Task UID
+          - entity: number.tasks_recurrence_interval
+            name: Interval
+          - entity: select.tasks_recurrence_unit
+            name: Unit
+          - entity: select.tasks_recurrence_end_type
+            name: End Type
+          - entity: number.tasks_recurrence_end_count
+            name: End Count
+          - entity: text.tasks_recurrence_end_date
+            name: End Date
+          - entity: button.tasks_apply_recurrence_settings
+            name: Apply Settings
+      
+      # Add an iframe card for external content
+      - type: iframe
+        url: https://example.com
+        aspect_ratio: 75%
+        title: Additional Content
+      
+      # Add individual list cards
+      - type: custom:better-todo-card
+        entity: todo.shopping_list
+        title: Shopping List
+```
+
+To use this configuration:
+1. Go to the Better ToDo dashboard
+2. Click the three dots menu (⋮) → "Edit Dashboard"
+3. Click the three dots again → "Raw configuration editor"
+4. Paste the configuration above
+5. Click "Save"
+
+#### About the Native "To-do lists" Dashboard
+
+**Note:** Home Assistant automatically creates a native "To-do lists" dashboard when TODO entities exist. Better ToDo entities will appear there too, but **we recommend using the "Better ToDo" dashboard** instead for the enhanced experience with custom category headers.
+
+If you want to hide the native "To-do lists" dashboard:
+1. Go to Settings → Dashboards
+2. Find "To-do lists" dashboard
+3. Click the three dots menu → Hide from sidebar
 
 ## Requirements
 
