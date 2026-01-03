@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Writing lovelace dashboard configuration file
     - Reading lovelace_dashboards registry file
     - Writing lovelace_dashboards registry file
-  - Fixed file unlink operation to use async executor with lambda wrapper
+  - Fixed file unlink operation to use async executor with inner function wrapper
 - **Frontend Component Access**: Fixed `'HomeAssistant' object has no attribute 'components'` error
   - Changed from `hass.components.frontend` to importing frontend component directly
   - Updated `async_register_built_in_panel()` to pass `hass` as first argument
