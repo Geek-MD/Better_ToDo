@@ -28,7 +28,6 @@ from .const import (
     GROUP_NO_DUE_DATE,
     GROUP_THIS_WEEK,
     RECURRENCE_UNIT_DAYS,
-    RECURRENCE_UNIT_WEEKS,
 )
 
 _LOGGER = logging.getLogger(__name__)
