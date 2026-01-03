@@ -45,6 +45,8 @@ set_task_recurrence:
           options:
             - label: "Days"
               value: "days"
+            - label: "Weeks"
+              value: "weeks"
             - label: "Months"
               value: "months"
             - label: "Years"

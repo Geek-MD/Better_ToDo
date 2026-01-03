@@ -101,7 +101,7 @@ SET_TASK_RECURRENCE_SCHEMA = vol.Schema(
         vol.Required(ATTR_RECURRENCE_ENABLED): cv.boolean,
         vol.Optional(ATTR_RECURRENCE_INTERVAL, default=1): cv.positive_int,
         vol.Optional(ATTR_RECURRENCE_UNIT, default="days"): vol.In(
-            ["days", "months", "years"]
+            ["days", "weeks", "months", "years"]
         ),
         vol.Optional(ATTR_RECURRENCE_END_ENABLED, default=False): cv.boolean,
         vol.Optional(ATTR_RECURRENCE_END_TYPE): vol.In(["count", "date"]),
