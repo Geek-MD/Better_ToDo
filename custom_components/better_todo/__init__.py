@@ -136,6 +136,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Create or update the Better ToDo dashboard with custom cards
     from .dashboard import async_create_or_update_dashboard
     await async_create_or_update_dashboard(hass)
+    
+    # Register the sidebar panel (only once for all entries)
+    await _async_register_panel(hass)
 
     # Note: Dashboard creation is handled through device grouping
     # All entities are automatically grouped under their device in the UI
@@ -488,6 +491,47 @@ async def _async_register_frontend(hass: HomeAssistant) -> None:
         _LOGGER.error("Error registering frontend resources: %s", err)
 
 
+async def _async_register_panel(hass: HomeAssistant) -> None:
+    """Register the Better ToDo panel in the sidebar.
+    
+    This creates a sidebar panel similar to HACS, Terminal, and FileEditor
+    that points to the Better ToDo Lovelace dashboard.
+    """
+    from .const import DASHBOARD_URL, DASHBOARD_TITLE, DASHBOARD_ICON
+    
+    # Check if panel is already registered
+    if DASHBOARD_URL in hass.data.get("frontend_panels", {}):
+        _LOGGER.debug("Better ToDo panel already registered")
+        return
+    
+    try:
+        # Register a Lovelace panel that appears in the sidebar
+        # This is similar to how HACS and other integrations create sidebar panels
+        await hass.components.frontend.async_register_built_in_panel(
+            component_name="lovelace",
+            sidebar_title=DASHBOARD_TITLE,
+            sidebar_icon=DASHBOARD_ICON,
+            frontend_url_path=DASHBOARD_URL,
+            require_admin=False,
+            config={"mode": "storage"},
+        )
+        _LOGGER.info("Registered Better ToDo panel in sidebar at /%s", DASHBOARD_URL)
+    except Exception as err:
+        _LOGGER.error("Error registering Better ToDo panel: %s", err)
+
+
+async def _async_remove_panel(hass: HomeAssistant) -> None:
+    """Remove the Better ToDo panel from the sidebar."""
+    from .const import DASHBOARD_URL
+    
+    try:
+        # Remove the panel using the frontend component
+        await hass.components.frontend.async_remove_panel(DASHBOARD_URL)
+        _LOGGER.info("Removed Better ToDo panel from sidebar")
+    except Exception as err:
+        _LOGGER.debug("Could not remove Better ToDo panel: %s", err)
+
+
 async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Update options."""
     await hass.config_entries.async_reload(entry.entry_id)
@@ -512,6 +556,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         from .dashboard import async_remove_dashboard
         await async_remove_dashboard(hass)
         _LOGGER.info("Removed Better ToDo dashboard - no more lists configured")
+        
+        # Remove the panel from the sidebar
+        await _async_remove_panel(hass)
         
         # Unregister services
         hass.services.async_remove(DOMAIN, SERVICE_SET_TASK_RECURRENCE)
