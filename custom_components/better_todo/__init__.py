@@ -520,16 +520,16 @@ async def _async_register_panel(hass: HomeAssistant) -> None:
     """
     from .const import DASHBOARD_URL, DASHBOARD_TITLE, DASHBOARD_ICON
     
-    # Check if frontend component is available
-    if "frontend" not in hass.config.components:
-        _LOGGER.warning("Frontend component not available, cannot register panel")
-        return
-    
     try:
         # Register a Lovelace panel that appears in the sidebar
         # This is similar to how HACS and other integrations create sidebar panels
         # The frontend component handles duplicate registration internally
-        await hass.components.frontend.async_register_built_in_panel(
+        
+        # Import the frontend component and use it directly
+        from homeassistant.components import frontend
+        
+        await frontend.async_register_built_in_panel(
+            hass,
             component_name="lovelace",
             sidebar_title=DASHBOARD_TITLE,
             sidebar_icon=DASHBOARD_ICON,
@@ -548,7 +548,9 @@ async def _async_remove_panel(hass: HomeAssistant) -> None:
     
     try:
         # Remove the panel using the frontend component
-        await hass.components.frontend.async_remove_panel(DASHBOARD_URL)
+        from homeassistant.components import frontend
+        
+        await frontend.async_remove_panel(hass, DASHBOARD_URL)
         _LOGGER.info("Removed Better ToDo panel from sidebar")
     except Exception as err:
         _LOGGER.warning("Could not remove Better ToDo panel: %s", err)

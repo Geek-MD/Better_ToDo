@@ -91,6 +91,7 @@ class BetterTodoEntity(Entity):
         # Store recurrence metadata for each task (keyed by uid)
         self._recurrence_data: dict[str, dict[str, Any]] = {}
         self._hass = hass
+        self._entity_id: str | None = None
         
         # Storage for persistent task data
         self._store = storage.Store(
@@ -151,10 +152,18 @@ class BetterTodoEntity(Entity):
     @property
     def entity_id(self) -> str:
         """Return entity ID using 'todo' domain."""
+        # Return stored entity_id if available, otherwise generate from name
+        if hasattr(self, "_entity_id") and self._entity_id:
+            return self._entity_id
         # Use 'todo' domain to maintain compatibility
         list_name = self._entry.data.get("name", "tasks")
         slug = list_name.lower().replace(" ", "_")
         return f"todo.{slug}"
+    
+    @entity_id.setter
+    def entity_id(self, value: str) -> None:
+        """Set the entity ID."""
+        self._entity_id = value
 
     def _ensure_item_uid(self, item: TodoItem) -> TodoItem:
         """Ensure the TodoItem has a UID, generating one if needed."""

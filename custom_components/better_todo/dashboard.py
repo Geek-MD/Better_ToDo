@@ -21,6 +21,24 @@ CARD_RESOURCE_URL = "/better_todo/better-todo-card.js"
 DASHBOARD_CARD_RESOURCE_URL = "/better_todo/better-todo-dashboard-card.js"
 
 
+async def _async_read_file(hass: HomeAssistant, file_path: Path) -> str:
+    """Read a file asynchronously."""
+    def _read():
+        with open(file_path, "r", encoding="utf-8") as f:
+            return f.read()
+    
+    return await hass.async_add_executor_job(_read)
+
+
+async def _async_write_file(hass: HomeAssistant, file_path: Path, content: str) -> None:
+    """Write a file asynchronously."""
+    def _write():
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(content)
+    
+    await hass.async_add_executor_job(_write)
+
+
 async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
     """Ensure Lovelace resources are registered for custom cards."""
     try:
@@ -79,10 +97,10 @@ async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
         }
         
         if resources_file.exists():
-            with open(resources_file, "r", encoding="utf-8") as f:
-                loaded_data = json.load(f)
-                if isinstance(loaded_data, dict):
-                    resources_data = loaded_data
+            content = await _async_read_file(hass, resources_file)
+            loaded_data = json.loads(content)
+            if isinstance(loaded_data, dict):
+                resources_data = loaded_data
         
         # Define resources to add
         resources_to_add: list[str] = [
@@ -112,8 +130,7 @@ async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
                         _LOGGER.info("Added Lovelace resource to storage: %s", resource_url)
         
         # Save resources file
-        with open(resources_file, "w", encoding="utf-8") as f:
-            json.dump(resources_data, f, indent=2)
+        await _async_write_file(hass, resources_file, json.dumps(resources_data, indent=2))
     
     except Exception as err:
         _LOGGER.debug("Could not register Lovelace resources via file storage: %s", err)
@@ -312,8 +329,7 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
             "data": config,
         }
         
-        with open(dashboard_file, "w", encoding="utf-8") as f:
-            json.dump(dashboard_metadata, f, indent=2)
+        await _async_write_file(hass, dashboard_file, json.dumps(dashboard_metadata, indent=2))
         
         # Create/update the lovelace_dashboards file to register the dashboard
         dashboards_file = storage_dir / "lovelace_dashboards"
@@ -328,11 +344,11 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
         
         # Load existing dashboards if file exists
         if dashboards_file.exists():
-            with open(dashboards_file, "r", encoding="utf-8") as f:
-                loaded_data = json.load(f)
-                # Type assertion for mypy
-                if isinstance(loaded_data, dict):
-                    dashboards_data = loaded_data
+            content = await _async_read_file(hass, dashboards_file)
+            loaded_data = json.loads(content)
+            # Type assertion for mypy
+            if isinstance(loaded_data, dict):
+                dashboards_data = loaded_data
         
         # Check if our dashboard is already registered
         dashboard_registered = False
@@ -373,8 +389,7 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
                     })
         
         # Save dashboards registry
-        with open(dashboards_file, "w", encoding="utf-8") as f:
-            json.dump(dashboards_data, f, indent=2)
+        await _async_write_file(hass, dashboards_file, json.dumps(dashboards_data, indent=2))
         
         _LOGGER.info("Created/updated Better ToDo dashboard via file storage at /%s", DASHBOARD_URL)
         
@@ -422,14 +437,14 @@ async def async_remove_dashboard(hass: HomeAssistant) -> None:
         # Remove dashboard configuration file
         dashboard_file = storage_dir / f"lovelace.{DASHBOARD_URL}"
         if dashboard_file.exists():
-            dashboard_file.unlink()
+            await hass.async_add_executor_job(dashboard_file.unlink)
             _LOGGER.info("Removed Better ToDo dashboard configuration file")
         
         # Remove from dashboards registry
         dashboards_file = storage_dir / "lovelace_dashboards"
         if dashboards_file.exists():
-            with open(dashboards_file, "r", encoding="utf-8") as f:
-                dashboards_data = json.load(f)
+            content = await _async_read_file(hass, dashboards_file)
+            dashboards_data = json.loads(content)
             
             # Filter out our dashboard
             original_count = len(dashboards_data["data"]["items"])
@@ -439,8 +454,7 @@ async def async_remove_dashboard(hass: HomeAssistant) -> None:
             ]
             
             if len(dashboards_data["data"]["items"]) < original_count:
-                with open(dashboards_file, "w", encoding="utf-8") as f:
-                    json.dump(dashboards_data, f, indent=2)
+                await _async_write_file(hass, dashboards_file, json.dumps(dashboards_data, indent=2))
                 _LOGGER.info("Removed Better ToDo dashboard from registry via file storage")
     
     except Exception as err:
