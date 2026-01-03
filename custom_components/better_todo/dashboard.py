@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import storage
@@ -23,16 +23,16 @@ DASHBOARD_CARD_RESOURCE_URL = "/better_todo/better-todo-dashboard-card.js"
 
 async def _async_read_file(hass: HomeAssistant, file_path: Path) -> str:
     """Read a file asynchronously."""
-    def _read():
+    def _read() -> str:
         with open(file_path, "r", encoding="utf-8") as f:
             return f.read()
     
-    return await hass.async_add_executor_job(_read)
+    return cast(str, await hass.async_add_executor_job(_read))
 
 
 async def _async_write_file(hass: HomeAssistant, file_path: Path, content: str) -> None:
     """Write a file asynchronously."""
-    def _write():
+    def _write() -> None:
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(content)
     
@@ -443,7 +443,7 @@ async def async_remove_dashboard(hass: HomeAssistant) -> None:
         # Remove dashboard configuration file
         dashboard_file = storage_dir / f"lovelace.{DASHBOARD_URL}"
         if dashboard_file.exists():
-            def _unlink():
+            def _unlink() -> None:
                 dashboard_file.unlink()
             await hass.async_add_executor_job(_unlink)
             _LOGGER.info("Removed Better ToDo dashboard configuration file")
