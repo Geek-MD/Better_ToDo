@@ -217,6 +217,417 @@ class BetterTodoCard extends HTMLElement {
   }
 
   /**
+   * Handle item click to edit
+   * @param {Event} e - Click event
+   */
+  _handleItemClick(e) {
+    const listItem = e.currentTarget;
+    const uid = listItem.dataset.uid;
+    
+    if (!uid) return;
+    
+    // Find the item
+    const state = this._hass.states[this._config.entity];
+    if (!state) return;
+    
+    const items = state.attributes.todo_items || [];
+    const item = items.find(i => i.uid === uid);
+    
+    if (item) {
+      this._openTaskDialog(item);
+    }
+  }
+
+  /**
+   * Handle add task button click
+   */
+  _handleAddTask() {
+    this._openTaskDialog(null);
+  }
+
+  /**
+   * Open task creation/edit dialog
+   * @param {Object|null} item - Item to edit, or null for new item
+   */
+  _openTaskDialog(item) {
+    const isEdit = item !== null;
+    const language = this._hass.language || 'en';
+    const isSpanish = language.startsWith('es');
+    
+    // Get recurrence data for the item if editing
+    let recurrenceData = null;
+    if (isEdit) {
+      const state = this._hass.states[this._config.entity];
+      recurrenceData = state?.attributes?.recurrence_data?.[item.uid];
+    }
+    
+    // Create dialog
+    const dialog = document.createElement('ha-dialog');
+    dialog.heading = isSpanish 
+      ? (isEdit ? 'Editar tarea' : 'Nueva tarea')
+      : (isEdit ? 'Edit Task' : 'New Task');
+    
+    const content = document.createElement('div');
+    content.style.padding = '16px';
+    
+    // Build form HTML
+    content.innerHTML = `
+      <style>
+        .form-row {
+          margin-bottom: 16px;
+        }
+        .form-row label {
+          display: block;
+          margin-bottom: 4px;
+          font-weight: 500;
+        }
+        .form-row input[type="text"],
+        .form-row input[type="date"],
+        .form-row input[type="number"],
+        .form-row textarea,
+        .form-row select {
+          width: 100%;
+          padding: 8px;
+          border: 1px solid var(--divider-color);
+          border-radius: 4px;
+          background-color: var(--card-background-color);
+          color: var(--primary-text-color);
+          font-family: inherit;
+          font-size: 14px;
+        }
+        .form-row textarea {
+          min-height: 80px;
+          resize: vertical;
+        }
+        .checkbox-row {
+          display: flex;
+          align-items: center;
+          margin-bottom: 16px;
+        }
+        .checkbox-row input[type="checkbox"] {
+          margin-right: 8px;
+        }
+        .section-title {
+          font-weight: 600;
+          margin-top: 20px;
+          margin-bottom: 12px;
+          padding-bottom: 8px;
+          border-bottom: 1px solid var(--divider-color);
+        }
+        .inline-fields {
+          display: flex;
+          gap: 12px;
+        }
+        .inline-fields .form-row {
+          flex: 1;
+        }
+        .radio-group {
+          margin-left: 24px;
+          padding: 8px;
+          background-color: var(--secondary-background-color);
+          border-radius: 4px;
+        }
+        .radio-option {
+          display: flex;
+          align-items: center;
+          margin-bottom: 8px;
+        }
+        .radio-option input[type="radio"] {
+          margin-right: 8px;
+        }
+        .radio-option label {
+          margin: 0 8px 0 0;
+          min-width: 80px;
+        }
+        .disabled {
+          opacity: 0.5;
+          pointer-events: none;
+        }
+      </style>
+      
+      <div class="checkbox-row">
+        <input type="checkbox" id="task-status" ${isEdit && item.status === 'completed' ? 'checked' : ''}>
+        <label for="task-status">${isSpanish ? 'Tarea completada' : 'Task completed'}</label>
+      </div>
+      
+      <div class="form-row">
+        <label for="task-summary">${isSpanish ? 'Nombre de la tarea' : 'Task name'} *</label>
+        <input type="text" id="task-summary" value="${isEdit ? item.summary : ''}" required>
+      </div>
+      
+      <div class="form-row">
+        <label for="task-description">${isSpanish ? 'Descripción' : 'Description'}</label>
+        <textarea id="task-description">${isEdit && item.description ? item.description : ''}</textarea>
+      </div>
+      
+      <div class="form-row">
+        <label for="task-due">${isSpanish ? 'Fecha de vencimiento' : 'Due date'}</label>
+        <input type="date" id="task-due" value="${isEdit && item.due ? item.due : ''}">
+      </div>
+      
+      <div class="section-title">${isSpanish ? 'Repetición' : 'Recurrence'}</div>
+      
+      <div class="checkbox-row">
+        <input type="checkbox" id="recurrence-enabled" ${recurrenceData?.recurrence_enabled ? 'checked' : ''}>
+        <label for="recurrence-enabled">${isSpanish ? 'Activar repetición' : 'Enable recurrence'}</label>
+      </div>
+      
+      <div id="recurrence-settings" class="${recurrenceData?.recurrence_enabled ? '' : 'disabled'}">
+        <div class="inline-fields">
+          <div class="form-row">
+            <label for="recurrence-interval">${isSpanish ? 'Cada' : 'Every'}</label>
+            <input type="number" id="recurrence-interval" min="1" max="365" value="${recurrenceData?.recurrence_interval || 1}">
+          </div>
+          <div class="form-row">
+            <label for="recurrence-unit">${isSpanish ? 'Unidad' : 'Unit'}</label>
+            <select id="recurrence-unit">
+              <option value="days" ${recurrenceData?.recurrence_unit === 'days' || !recurrenceData ? 'selected' : ''}>${isSpanish ? 'días' : 'days'}</option>
+              <option value="weeks" ${recurrenceData?.recurrence_unit === 'weeks' ? 'selected' : ''}>${isSpanish ? 'semanas' : 'weeks'}</option>
+              <option value="months" ${recurrenceData?.recurrence_unit === 'months' ? 'selected' : ''}>${isSpanish ? 'meses' : 'months'}</option>
+              <option value="years" ${recurrenceData?.recurrence_unit === 'years' ? 'selected' : ''}>${isSpanish ? 'años' : 'years'}</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      
+      <div class="section-title">${isSpanish ? 'Detener repetición' : 'Stop recurrence'}</div>
+      
+      <div class="checkbox-row">
+        <input type="checkbox" id="recurrence-end-enabled" ${recurrenceData?.recurrence_end_enabled ? 'checked' : ''}>
+        <label for="recurrence-end-enabled">${isSpanish ? 'Activar límite de repetición' : 'Enable recurrence limit'}</label>
+      </div>
+      
+      <div id="recurrence-end-settings" class="${recurrenceData?.recurrence_end_enabled ? '' : 'disabled'}">
+        <div class="radio-group">
+          <div class="radio-option">
+            <input type="radio" id="end-type-count" name="end-type" value="count" 
+              ${!recurrenceData?.recurrence_end_type || recurrenceData?.recurrence_end_type === 'count' ? 'checked' : ''}>
+            <label for="end-type-count">${isSpanish ? 'Después de' : 'After'}</label>
+            <input type="number" id="recurrence-end-count" min="1" max="999" value="${recurrenceData?.recurrence_end_count || 1}" 
+              style="width: 100px; margin-right: 8px;">
+            <span>${isSpanish ? 'repeticiones' : 'repetitions'}</span>
+          </div>
+          <div class="radio-option">
+            <input type="radio" id="end-type-date" name="end-type" value="date"
+              ${recurrenceData?.recurrence_end_type === 'date' ? 'checked' : ''}>
+            <label for="end-type-date">${isSpanish ? 'Hasta' : 'Until'}</label>
+            <input type="date" id="recurrence-end-date" value="${recurrenceData?.recurrence_end_date || ''}" style="flex: 1;">
+          </div>
+        </div>
+      </div>
+    `;
+    
+    dialog.appendChild(content);
+    
+    // Add event listeners for checkbox toggles
+    const recurrenceEnabledCheckbox = content.querySelector('#recurrence-enabled');
+    const recurrenceSettings = content.querySelector('#recurrence-settings');
+    const recurrenceEndEnabledCheckbox = content.querySelector('#recurrence-end-enabled');
+    const recurrenceEndSettings = content.querySelector('#recurrence-end-settings');
+    
+    recurrenceEnabledCheckbox.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        recurrenceSettings.classList.remove('disabled');
+      } else {
+        recurrenceSettings.classList.add('disabled');
+      }
+    });
+    
+    recurrenceEndEnabledCheckbox.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        recurrenceEndSettings.classList.remove('disabled');
+      } else {
+        recurrenceEndSettings.classList.add('disabled');
+      }
+    });
+    
+    // Add event listeners for radio buttons to select when their inputs are focused
+    const endCountInput = content.querySelector('#recurrence-end-count');
+    const endDateInput = content.querySelector('#recurrence-end-date');
+    const endTypeCountRadio = content.querySelector('#end-type-count');
+    const endTypeDateRadio = content.querySelector('#end-type-date');
+    
+    endCountInput.addEventListener('focus', () => {
+      endTypeCountRadio.checked = true;
+    });
+    
+    endDateInput.addEventListener('focus', () => {
+      endTypeDateRadio.checked = true;
+    });
+    
+    // Set dialog properties
+    dialog.setAttribute('open', '');
+    dialog.setAttribute('scrimClickAction', '');
+    dialog.setAttribute('escapeKeyAction', '');
+    
+    // Add action buttons
+    const actionsDiv = document.createElement('div');
+    actionsDiv.slot = 'primaryAction';
+    actionsDiv.innerHTML = `
+      <mwc-button>
+        ${isSpanish ? 'Guardar' : 'Save'}
+      </mwc-button>
+    `;
+    dialog.appendChild(actionsDiv);
+    
+    const secondaryActionsDiv = document.createElement('div');
+    secondaryActionsDiv.slot = 'secondaryAction';
+    secondaryActionsDiv.innerHTML = `
+      <mwc-button>
+        ${isSpanish ? 'Cancelar' : 'Cancel'}
+      </mwc-button>
+    `;
+    dialog.appendChild(secondaryActionsDiv);
+    
+    // Append to body and show
+    document.body.appendChild(dialog);
+    
+    // Setup button click handlers (since @click in innerHTML doesn't work)
+    const saveButton = dialog.querySelector('[slot="primaryAction"] mwc-button');
+    const cancelButton = dialog.querySelector('[slot="secondaryAction"] mwc-button');
+    
+    saveButton.addEventListener('click', () => {
+      this._saveTask(item, content);
+      dialog.close();
+    });
+    
+    cancelButton.addEventListener('click', () => {
+      dialog.close();
+    });
+    
+    // Remove dialog from DOM when closed
+    dialog.addEventListener('closed', () => {
+      document.body.removeChild(dialog);
+    });
+  }
+
+  /**
+   * Save task from dialog
+   * @param {Object|null} item - Original item if editing, null if creating
+   * @param {HTMLElement} content - Dialog content element
+   */
+  async _saveTask(item, content) {
+    const isEdit = item !== null;
+    
+    // Get form values
+    const status = content.querySelector('#task-status').checked ? 'completed' : 'needs_action';
+    const summary = content.querySelector('#task-summary').value.trim();
+    const description = content.querySelector('#task-description').value.trim();
+    const due = content.querySelector('#task-due').value;
+    
+    // Validate required fields
+    if (!summary) {
+      alert(this._hass.language?.startsWith('es') ? 'El nombre de la tarea es obligatorio' : 'Task name is required');
+      return;
+    }
+    
+    // Get recurrence values
+    const recurrenceEnabled = content.querySelector('#recurrence-enabled').checked;
+    const recurrenceInterval = parseInt(content.querySelector('#recurrence-interval').value) || 1;
+    const recurrenceUnit = content.querySelector('#recurrence-unit').value;
+    const recurrenceEndEnabled = content.querySelector('#recurrence-end-enabled').checked;
+    const endType = content.querySelector('input[name="end-type"]:checked').value;
+    const endCount = parseInt(content.querySelector('#recurrence-end-count').value) || 1;
+    const endDate = content.querySelector('#recurrence-end-date').value;
+    
+    try {
+      if (isEdit) {
+        // Update existing task
+        await this._hass.callService('better_todo', 'update_task', {
+          entity_id: this._config.entity,
+          uid: item.uid,
+          summary: summary,
+          description: description || null,
+          due: due || null,
+          status: status,
+        });
+        
+        // Set recurrence if enabled
+        if (recurrenceEnabled) {
+          const recurrenceData = {
+            entity_id: this._config.entity,
+            task_uid: item.uid,
+            recurrence_enabled: true,
+            recurrence_interval: recurrenceInterval,
+            recurrence_unit: recurrenceUnit,
+            recurrence_end_enabled: recurrenceEndEnabled,
+          };
+          
+          if (recurrenceEndEnabled) {
+            recurrenceData.recurrence_end_type = endType;
+            if (endType === 'count') {
+              recurrenceData.recurrence_end_count = endCount;
+            } else {
+              recurrenceData.recurrence_end_date = endDate;
+            }
+          }
+          
+          await this._hass.callService('better_todo', 'set_task_recurrence', recurrenceData);
+        } else {
+          // Disable recurrence
+          await this._hass.callService('better_todo', 'set_task_recurrence', {
+            entity_id: this._config.entity,
+            task_uid: item.uid,
+            recurrence_enabled: false,
+          });
+        }
+      } else {
+        // Create new task
+        await this._hass.callService('better_todo', 'create_task', {
+          entity_id: this._config.entity,
+          summary: summary,
+          description: description || undefined,
+          due: due || undefined,
+        });
+        
+        // If recurrence is enabled, we need to get the UID of the newly created task
+        // Note: This is a limitation since the create_task service doesn't return the UID.
+        // We wait for state update and find the task by matching summary.
+        // This could fail if multiple tasks have the same summary or if task creation
+        // takes longer than expected. A future improvement would be for the backend
+        // service to return the created task UID.
+        if (recurrenceEnabled) {
+          // Wait for the task to be created and state to update
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Get the latest state
+          const state = this._hass.states[this._config.entity];
+          const items = state?.attributes?.todo_items || [];
+          
+          // Find the newly created task (first one with matching summary that's not a header)
+          // Note: This assumes task summaries are reasonably unique
+          const newTask = items.find(i => i.summary === summary && !i.uid.startsWith('header_'));
+          
+          if (newTask) {
+            const recurrenceData = {
+              entity_id: this._config.entity,
+              task_uid: newTask.uid,
+              recurrence_enabled: true,
+              recurrence_interval: recurrenceInterval,
+              recurrence_unit: recurrenceUnit,
+              recurrence_end_enabled: recurrenceEndEnabled,
+            };
+            
+            if (recurrenceEndEnabled) {
+              recurrenceData.recurrence_end_type = endType;
+              if (endType === 'count') {
+                recurrenceData.recurrence_end_count = endCount;
+              } else {
+                recurrenceData.recurrence_end_date = endDate;
+              }
+            }
+            
+            await this._hass.callService('better_todo', 'set_task_recurrence', recurrenceData);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error saving task:', err);
+      alert(this._hass.language?.startsWith('es') ? 'Error al guardar la tarea' : 'Error saving task');
+    }
+  }
+
+  /**
    * Update the card content
    */
   _updateCard() {
@@ -246,6 +657,9 @@ class BetterTodoCard extends HTMLElement {
     const cardHeader = `
       <div class="card-header">
         <div class="name">${title}</div>
+        <ha-icon-button class="add-task-button" style="margin-left: auto;">
+          <ha-icon icon="mdi:plus"></ha-icon>
+        </ha-icon-button>
       </div>
     `;
     
@@ -260,9 +674,29 @@ class BetterTodoCard extends HTMLElement {
     
     this._cardElement.innerHTML = cardHeader + cardContent;
     
+    // Add event listener for add task button
+    const addButton = this._cardElement.querySelector('.add-task-button');
+    if (addButton) {
+      addButton.addEventListener('click', () => this._handleAddTask());
+    }
+    
     // Add event listeners for checkboxes
     this._cardElement.querySelectorAll('ha-checkbox').forEach(checkbox => {
       checkbox.addEventListener('change', (e) => this._handleCheckboxChange(e));
+    });
+    
+    // Add event listeners for item clicks (for editing)
+    this._cardElement.querySelectorAll('ha-check-list-item').forEach(item => {
+      const uid = item.dataset.uid;
+      if (uid) {
+        item.style.cursor = 'pointer';
+        item.addEventListener('click', (e) => {
+          // Don't trigger edit if clicking on checkbox
+          if (e.target.tagName !== 'HA-CHECKBOX' && !e.target.closest('ha-checkbox')) {
+            this._handleItemClick(e);
+          }
+        });
+      }
     });
   }
 
@@ -299,7 +733,7 @@ class BetterTodoCard extends HTMLElement {
     const dueHtml = dueDate ? `<div class="secondary">${dueDate}</div>` : '';
     
     return `
-      <ha-check-list-item>
+      <ha-check-list-item data-uid="${item.uid}">
         <ha-checkbox 
           slot="start"
           ${checked}
@@ -342,7 +776,7 @@ window.customCards.push({
 });
 
 console.info(
-  '%c BETTER-TODO-CARD %c v0.5.1 ',
+  '%c BETTER-TODO-CARD %c v0.6.0 ',
   'background-color: #555;color: #fff;font-weight: bold;',
   'background-color: #4caf50;color: #fff;font-weight: bold;'
 );

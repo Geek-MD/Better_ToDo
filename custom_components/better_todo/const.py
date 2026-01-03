@@ -21,6 +21,7 @@ ATTR_RECURRENCE_CURRENT_COUNT = "recurrence_current_count"
 
 # Recurrence units
 RECURRENCE_UNIT_DAYS = "days"
+RECURRENCE_UNIT_WEEKS = "weeks"
 RECURRENCE_UNIT_MONTHS = "months"
 RECURRENCE_UNIT_YEARS = "years"
 
