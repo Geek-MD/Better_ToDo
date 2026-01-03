@@ -1,4 +1,25 @@
-"""The Better ToDo integration."""
+"""The Better ToDo integration.
+
+This integration provides advanced ToDo list management for Home Assistant
+with support for recurring tasks, custom dashboards, and sidebar panel integration.
+
+Sidebar Panel Integration:
+--------------------------
+Better ToDo registers a sidebar panel (similar to HACS, Terminal, FileEditor) that
+appears in the Home Assistant sidebar. This is achieved through:
+
+1. Frontend Panel Registration: Using `hass.components.frontend.async_register_built_in_panel`
+   to create a Lovelace panel that appears in the sidebar with a custom icon and title.
+
+2. Dashboard Storage: Creating a Lovelace dashboard in storage mode that contains
+   custom cards for task management and recurrence configuration.
+
+3. Resource Registration: Registering custom JavaScript cards that provide the UI
+   for the dashboard.
+
+The panel integration ensures that Better ToDo has a dedicated, always-visible entry
+in the sidebar, making it easily accessible like other major integrations.
+"""
 from __future__ import annotations
 
 import logging
