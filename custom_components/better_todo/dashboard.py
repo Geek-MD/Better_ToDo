@@ -97,10 +97,13 @@ async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
         }
         
         if resources_file.exists():
-            content = await _async_read_file(hass, resources_file)
-            loaded_data = json.loads(content)
-            if isinstance(loaded_data, dict):
-                resources_data = loaded_data
+            try:
+                content = await _async_read_file(hass, resources_file)
+                loaded_data = json.loads(content)
+                if isinstance(loaded_data, dict):
+                    resources_data = loaded_data
+            except (json.JSONDecodeError, ValueError) as err:
+                _LOGGER.warning("Could not parse lovelace_resources file: %s", err)
         
         # Define resources to add
         resources_to_add: list[str] = [
@@ -344,11 +347,14 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
         
         # Load existing dashboards if file exists
         if dashboards_file.exists():
-            content = await _async_read_file(hass, dashboards_file)
-            loaded_data = json.loads(content)
-            # Type assertion for mypy
-            if isinstance(loaded_data, dict):
-                dashboards_data = loaded_data
+            try:
+                content = await _async_read_file(hass, dashboards_file)
+                loaded_data = json.loads(content)
+                # Type assertion for mypy
+                if isinstance(loaded_data, dict):
+                    dashboards_data = loaded_data
+            except (json.JSONDecodeError, ValueError) as err:
+                _LOGGER.warning("Could not parse lovelace_dashboards file: %s", err)
         
         # Check if our dashboard is already registered
         dashboard_registered = False
@@ -445,19 +451,22 @@ async def async_remove_dashboard(hass: HomeAssistant) -> None:
         # Remove from dashboards registry
         dashboards_file = storage_dir / "lovelace_dashboards"
         if dashboards_file.exists():
-            content = await _async_read_file(hass, dashboards_file)
-            dashboards_data = json.loads(content)
-            
-            # Filter out our dashboard
-            original_count = len(dashboards_data["data"]["items"])
-            dashboards_data["data"]["items"] = [
-                item for item in dashboards_data["data"]["items"]
-                if item.get("url_path") != DASHBOARD_URL
-            ]
-            
-            if len(dashboards_data["data"]["items"]) < original_count:
-                await _async_write_file(hass, dashboards_file, json.dumps(dashboards_data, indent=2))
-                _LOGGER.info("Removed Better ToDo dashboard from registry via file storage")
+            try:
+                content = await _async_read_file(hass, dashboards_file)
+                dashboards_data = json.loads(content)
+                
+                # Filter out our dashboard
+                original_count = len(dashboards_data["data"]["items"])
+                dashboards_data["data"]["items"] = [
+                    item for item in dashboards_data["data"]["items"]
+                    if item.get("url_path") != DASHBOARD_URL
+                ]
+                
+                if len(dashboards_data["data"]["items"]) < original_count:
+                    await _async_write_file(hass, dashboards_file, json.dumps(dashboards_data, indent=2))
+                    _LOGGER.info("Removed Better ToDo dashboard from registry via file storage")
+            except (json.JSONDecodeError, ValueError, KeyError) as err:
+                _LOGGER.warning("Could not parse or update lovelace_dashboards file: %s", err)
     
     except Exception as err:
         _LOGGER.warning("Could not remove dashboard via file storage: %s", err)
