@@ -330,7 +330,7 @@ entities:
     name: Apply Settings
 ```
 
-**Note:** Replace `tasks` with your list's slug (lowercase with underscores instead of spaces).
+**Note:** Replace `tasks` with your list's slug (lowercase with underscores instead of spaces). For example, if your list is named "Shopping List", use `shopping_list`.
 
 #### Iframe Card Example
 

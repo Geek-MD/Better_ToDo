@@ -206,6 +206,7 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     
     # Create an empty dashboard with no cards
     # Users can manually add cards through the UI or by editing the dashboard YAML
+    # The empty list is kept for consistency with the configuration structure
     cards: list[dict[str, Any]] = []
     
     # Dashboard configuration - empty by default
