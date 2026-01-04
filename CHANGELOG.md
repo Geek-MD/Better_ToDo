@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.8] - 2026-01-04
+
+### Changed
+- **JavaScript Module Registration**: Implemented view_assist pattern for reliable resource registration
+  - Created new `javascript.py` module following [view_assist_integration](https://github.com/dinki/view_assist_integration) pattern
+  - JavaScript resources now registered with proper version management and automatic updates
+  - Module registration waits for Lovelace resources to be loaded before registering cards
+  - Improved reliability of custom card loading across different Home Assistant configurations
+  - Removed old static path registration in favor of dynamic module registration
+
+### Changed
+- **Dashboard Structure**: Dashboard now uses native Home Assistant todo-list cards by default
+  - Dashboard automatically populated with native `todo-list` cards for each Better ToDo list
+  - Full compatibility with Home Assistant core To-do List integration structure
+  - Custom cards (better-todo-card, better-todo-dashboard-card) remain available as optional enhancements
+  - No manual configuration required - dashboard works out of the box
+  - Better alignment with Home Assistant's native UI patterns
+
+### Added
+- **Constants**: Added `URL_BASE` and `JSMODULES` constants to `const.py` for module management
+  - JSMODULES includes module metadata (name, filename, version) for tracking
+  - Version-aware resource registration ensures updates are applied when needed
+
+### Technical Details
+- Following the pattern from [view_assist_integration](https://github.com/dinki/view_assist_integration)
+- JavaScript modules registered via `JSModuleRegistration` class with proper lifecycle management
+- Resources checked and updated based on version changes
+- Native `todo-list` cards provide standard Home Assistant interface
+- Custom cards registered but not required for basic functionality
+- All changes pass ruff and mypy validation
+
+### Notes
+- Users will see native todo-list cards by default after update
+- Custom cards remain available and can be manually configured if desired
+- No breaking changes - existing custom card configurations will continue to work
+- Reload browser after update to load new JavaScript modules
+
 ## [0.6.7] - 2026-01-04
 
 ### Fixed

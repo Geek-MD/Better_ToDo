@@ -46,11 +46,11 @@ JSMODULES = [
     {
         "name": "Better ToDo Card",
         "filename": "better-todo-card.js",
-        "version": "0.6.7",
+        "version": "0.6.8",
     },
     {
         "name": "Better ToDo Dashboard Card",
         "filename": "better-todo-dashboard-card.js",
-        "version": "0.6.7",
+        "version": "0.6.8",
     },
 ]
