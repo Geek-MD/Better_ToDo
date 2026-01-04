@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.8] - 2026-01-04
+
+### Changed
+- **JavaScript Module Registration**: Implemented view_assist pattern for reliable resource registration
+  - Created new `javascript.py` module following [view_assist_integration](https://github.com/dinki/view_assist_integration) pattern
+  - JavaScript resources now registered with proper version management and automatic updates
+  - Module registration waits for Lovelace resources to be loaded before registering cards
+  - Improved reliability of custom card loading across different Home Assistant configurations
+  - Removed old static path registration in favor of dynamic module registration
+
+### Changed
+- **Dashboard Structure**: Dashboard uses `better-todo-dashboard-card` that replicates and enhances core To-do List structure
+  - Dashboard automatically created with `better-todo-dashboard-card` custom card
+  - Two-section layout structure (inspired by core): Lists on left, tasks on right
+  - Enhanced with custom category headers (No due date, This week, Forthcoming, Completed)
+  - Replicates core integration's visual layout with improved task organization
+  - All Better ToDo lists automatically displayed with task counts
+  - Click any list to view its tasks in the right panel
+
+### Added
+- **Constants**: Added `URL_BASE` and `JSMODULES` constants to `const.py` for module management
+  - JSMODULES includes module metadata (name, filename, version) for tracking
+  - Version-aware resource registration ensures updates are applied when needed
+
+### Technical Details
+- Following the pattern from [view_assist_integration](https://github.com/dinki/view_assist_integration)
+- JavaScript modules registered via `JSModuleRegistration` class with proper lifecycle management
+- Resources checked and updated based on version changes
+- `better-todo-dashboard-card` replicates core To-do List layout with enhanced task categorization
+- Custom cards automatically registered via view_assist pattern
+- All changes pass ruff and mypy validation
+
+### Notes
+- Users will see `better-todo-dashboard-card` by default after update (layout inspired by core integration)
+- Custom card provides core-like structure with enhanced task organization features
+- No breaking changes - existing configurations will continue to work
+- Reload browser after update to load new JavaScript modules
+
 ## [0.6.7] - 2026-01-04
 
 ### Fixed
