@@ -18,7 +18,7 @@ from .const import DOMAIN, JSMODULES, URL_BASE
 
 _LOGGER = logging.getLogger(__name__)
 
-JS_URL = f"/{URL_BASE}/js"
+JS_URL = f"/{URL_BASE}"
 
 
 class JSModuleRegistration:
@@ -141,7 +141,7 @@ class JSModuleRegistration:
         if not self.lovelace:
             return
             
-        if self.hass.data["lovelace"].mode == "storage":
+        if self.lovelace.mode == "storage":
             for module in JSMODULES:
                 module_url = f"{url}/{module.get('filename')}"
                 resources = [
