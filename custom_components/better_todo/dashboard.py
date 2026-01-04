@@ -122,15 +122,28 @@ async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
                 # Check and add each resource if not already present
                 for resource_data in resource_configs:
                     resource_exists = False
-                    for resource_id in resources.async_items_ids():
-                        resource = await resources.async_get_item(resource_id)
-                        if resource.get("url") == resource_data["url"]:
-                            resource_exists = True
-                            break
+                    
+                    # Handle both dict and collection object types
+                    if isinstance(resources, dict):
+                        # resources is a dict - iterate over values
+                        for resource in resources.values():
+                            if isinstance(resource, dict) and resource.get("url") == resource_data["url"]:
+                                resource_exists = True
+                                break
+                    else:
+                        # resources is a collection object with async methods
+                        for resource_id in resources.async_items_ids():
+                            resource = await resources.async_get_item(resource_id)
+                            if resource.get("url") == resource_data["url"]:
+                                resource_exists = True
+                                break
                     
                     if not resource_exists:
-                        await resources.async_create_item(resource_data)
-                        _LOGGER.info("Added Lovelace resource: %s", resource_data["url"])
+                        if isinstance(resources, dict):
+                            _LOGGER.debug("Cannot add resource via dict API - skipping resource addition, will use file storage fallback")
+                        else:
+                            await resources.async_create_item(resource_data)
+                            _LOGGER.info("Added Lovelace resource: %s", resource_data["url"])
                 
                 return
     except Exception as err:
@@ -211,10 +224,12 @@ async def _async_reload_frontend_panels(hass: HomeAssistant) -> None:
             if hasattr(lovelace_data, "dashboards"):
                 dashboards = lovelace_data.dashboards
                 # Trigger a reload by accessing the dashboards
-                # This causes the system to refresh its internal state
-                # Note: We call list() to iterate through items as a side effect
-                # that triggers the internal dashboard state refresh
-                list(dashboards.async_items_ids())
+                if isinstance(dashboards, dict):
+                    # dashboards is a dict - no refresh mechanism needed
+                    _LOGGER.debug("Dashboards is a dict, skipping refresh")
+                else:
+                    # dashboards is a collection object - iterate to trigger refresh
+                    list(dashboards.async_items_ids())
                 _LOGGER.debug("Refreshed lovelace dashboards state")
     except Exception as err:
         _LOGGER.debug("Could not refresh lovelace dashboards: %s", err)
@@ -294,12 +309,23 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
         lovelace_data = hass.data["lovelace"]
         if hasattr(lovelace_data, "dashboards"):
             dashboards = lovelace_data.dashboards
-            for dashboard_id in dashboards.async_items_ids():
-                dashboard = await dashboards.async_get_item(dashboard_id)
-                if dashboard.get("url_path") == DASHBOARD_URL:
-                    dashboard_exists = True
-                    _LOGGER.info("Better ToDo dashboard already exists")
-                    break
+            
+            # Handle both dict and collection object types
+            if isinstance(dashboards, dict):
+                # dashboards is a dict - iterate over values
+                for dashboard in dashboards.values():
+                    if isinstance(dashboard, dict) and dashboard.get("url_path") == DASHBOARD_URL:
+                        dashboard_exists = True
+                        _LOGGER.info("Better ToDo dashboard already exists")
+                        break
+            else:
+                # dashboards is a collection object with async methods
+                for dashboard_id in dashboards.async_items_ids():
+                    dashboard = await dashboards.async_get_item(dashboard_id)
+                    if dashboard.get("url_path") == DASHBOARD_URL:
+                        dashboard_exists = True
+                        _LOGGER.info("Better ToDo dashboard already exists")
+                        break
     
     # Create dashboard if it doesn't exist using websocket API
     websocket_success = False
@@ -440,20 +466,34 @@ async def async_remove_dashboard(hass: HomeAssistant) -> None:
                 dashboards = lovelace_data.dashboards
                 
                 # Find and remove our dashboard
-                for dashboard_id in dashboards.async_items_ids():
-                    dashboard = await dashboards.async_get_item(dashboard_id)
-                    if dashboard.get("url_path") == DASHBOARD_URL:
-                        await dashboards.async_delete_item(dashboard_id)
-                        _LOGGER.info("Removed Better ToDo dashboard via API")
-                        
-                        # Also remove the dashboard configuration from storage
-                        try:
-                            store = storage.Store(hass, STORAGE_VERSION, STORAGE_KEY)
-                            await store.async_remove()
-                        except Exception as err:
-                            _LOGGER.debug("Could not remove dashboard storage: %s", err)
-                        
-                        return
+                # Handle both dict and collection object types
+                if isinstance(dashboards, dict):
+                    # dashboards is a dict - find dashboard by url_path
+                    dashboard_id_to_remove = None
+                    for dash_id, dashboard in dashboards.items():
+                        if isinstance(dashboard, dict) and dashboard.get("url_path") == DASHBOARD_URL:
+                            dashboard_id_to_remove = dash_id
+                            break
+                    
+                    if dashboard_id_to_remove:
+                        _LOGGER.debug("Found dashboard %s to remove but cannot remove via dict API - falling back to file-based removal", dashboard_id_to_remove)
+                        # Fall through to file-based removal
+                else:
+                    # dashboards is a collection object with async methods
+                    for dashboard_id in dashboards.async_items_ids():
+                        dashboard = await dashboards.async_get_item(dashboard_id)
+                        if dashboard.get("url_path") == DASHBOARD_URL:
+                            await dashboards.async_delete_item(dashboard_id)
+                            _LOGGER.info("Removed Better ToDo dashboard via API")
+                            
+                            # Also remove the dashboard configuration from storage
+                            try:
+                                store = storage.Store(hass, STORAGE_VERSION, STORAGE_KEY)
+                                await store.async_remove()
+                            except Exception as err:
+                                _LOGGER.debug("Could not remove dashboard storage: %s", err)
+                            
+                            return
     except Exception as err:
         _LOGGER.debug("Could not use dashboard collection API for removal: %s", err)
     
