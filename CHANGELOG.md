@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.3] - 2026-01-04
+
+### Fixed
+- **Dashboard API Compatibility**: Fixed `AttributeError: 'dict' object has no attribute 'async_items_ids'`
+  - Updated dashboard.py to handle both dictionary and collection object types for `lovelace_data.dashboards`
+  - Added proper type checking with `isinstance(dashboards, dict)` before accessing methods
+  - Fixes error "Error setting up entry Tasks for better_todo" and "Error setting up entry Shopping List for better_todo"
+  - Maintains compatibility with different Home Assistant versions that may return different data structures
+
+### Technical Details
+- Dashboard and resource access now gracefully handles both dict and collection object APIs
+- All four occurrences of `async_items_ids()` calls now check the object type first
+- Falls back to file-based dashboard management when dict API is detected
+- No functional changes - only compatibility improvements
+
+### Notes
+- This is a patch release that improves compatibility with Home Assistant's lovelace API
+- No breaking changes - existing installations will continue to work normally
+
 ## [0.6.2] - 2026-01-04
 
 ### Changed
