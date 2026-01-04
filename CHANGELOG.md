@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.5] - 2026-01-04
+
+### Fixed
+- **Dashboard Panel Configuration Error**: Fixed "Configuration error" warning displayed in dashboard panel
+  - Changed websocket failure message from WARNING to DEBUG level to avoid alarming users
+  - Reorganized dashboard creation logic to ensure proper file creation order
+  - Dashboard registry (lovelace_dashboards) is now created before dashboard config file
+  - Dashboard configuration is only saved when dashboard is successfully created
+  - Improved error handling with proper ERROR level logging for actual failures
+  - Fallback method now properly tracks success/failure state
+
+### Changed
+- **Improved Logging**: Better log level usage for dashboard creation process
+  - DEBUG: Websocket API not available (expected in some HA configurations)
+  - INFO: Successful operations
+  - ERROR: Actual failures that need attention
+  - Reduces noise in logs while maintaining visibility of real issues
+
+### Technical Details
+- Dashboard creation now uses three-state tracking: `dashboard_exists`, `websocket_success`, `fallback_success`
+- Configuration save is conditional on successful dashboard creation via any method
+- File storage fallback creates registry entry before config file to prevent orphaned configs
+- All changes maintain backward compatibility with existing installations
+
+### Notes
+- This fix resolves the "Configuration error" message that appeared when websocket API was not available
+- The fallback method now works reliably without generating warnings
+- No manual intervention required - the fix applies automatically on next integration reload
+
 ## [0.6.4] - 2026-01-04
 
 ### Fixed

@@ -329,6 +329,8 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     
     # Create dashboard if it doesn't exist using websocket API
     websocket_success = False
+    fallback_success = False
+    
     if not dashboard_exists:
         _LOGGER.info("Creating Better ToDo dashboard using websocket API")
         mock_connection = MockWSConnection(hass)
@@ -351,16 +353,7 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
         if websocket_success:
             _LOGGER.info("Successfully created Better ToDo dashboard at /%s", DASHBOARD_URL)
         else:
-            _LOGGER.warning("Failed to create dashboard via websocket API, trying fallback method")
-    
-    # Save the dashboard configuration
-    # Home Assistant's lovelace expects the data to have a "config" key
-    try:
-        store = storage.Store(hass, STORAGE_VERSION, STORAGE_KEY)
-        await store.async_save({"config": config})
-        _LOGGER.info("Dashboard configuration saved successfully")
-    except Exception as err:
-        _LOGGER.warning("Could not save dashboard configuration: %s", err)
+            _LOGGER.debug("Websocket API not available, will use fallback method")
     
     # If websocket approach didn't work, try file storage fallback
     if not dashboard_exists and not websocket_success:
@@ -372,19 +365,7 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
             storage_dir = config_dir / ".storage"
             storage_dir.mkdir(exist_ok=True)
             
-            # Create the lovelace dashboard metadata file
-            # Home Assistant's lovelace expects the data to have a "config" key
-            dashboard_file = storage_dir / f"lovelace.{DASHBOARD_URL}"
-            dashboard_metadata = {
-                "version": 1,
-                "minor_version": 1,
-                "key": f"lovelace.{DASHBOARD_URL}",
-                "data": {"config": config},
-            }
-            
-            await _async_write_file(hass, dashboard_file, json.dumps(dashboard_metadata, indent=2))
-            
-            # Create/update the lovelace_dashboards file to register the dashboard
+            # Create/update the lovelace_dashboards file to register the dashboard FIRST
             dashboards_file = storage_dir / "lovelace_dashboards"
             dashboards_data = {
                 "version": 1,
@@ -447,10 +428,33 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
             # Save dashboards registry
             await _async_write_file(hass, dashboards_file, json.dumps(dashboards_data, indent=2))
             
+            # Now create the lovelace dashboard metadata file
+            # Home Assistant's lovelace expects the data to have a "config" key
+            dashboard_file = storage_dir / f"lovelace.{DASHBOARD_URL}"
+            dashboard_metadata = {
+                "version": 1,
+                "minor_version": 1,
+                "key": f"lovelace.{DASHBOARD_URL}",
+                "data": {"config": config},
+            }
+            
+            await _async_write_file(hass, dashboard_file, json.dumps(dashboard_metadata, indent=2))
+            
             _LOGGER.info("Created/updated Better ToDo dashboard via file storage at /%s", DASHBOARD_URL)
+            fallback_success = True
         
         except Exception as err:
-            _LOGGER.warning("Could not create dashboard via file storage: %s", err)
+            _LOGGER.error("Could not create dashboard via file storage: %s", err)
+    
+    # Save the dashboard configuration only if dashboard was successfully created
+    # Home Assistant's lovelace expects the data to have a "config" key
+    if dashboard_exists or websocket_success or fallback_success:
+        try:
+            store = storage.Store(hass, STORAGE_VERSION, STORAGE_KEY)
+            await store.async_save({"config": config})
+            _LOGGER.info("Dashboard configuration saved successfully")
+        except Exception as err:
+            _LOGGER.error("Could not save dashboard configuration: %s", err)
     
     # Reload frontend panels to show the new dashboard without restart
     await _async_reload_frontend_panels(hass)
