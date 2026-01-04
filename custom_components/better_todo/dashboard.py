@@ -111,11 +111,11 @@ async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
                 resource_configs = [
                     {
                         "url": CARD_RESOURCE_URL,
-                        "type": "module",
+                        "type": "js",
                     },
                     {
                         "url": DASHBOARD_CARD_RESOURCE_URL,
-                        "type": "module",
+                        "type": "js",
                     },
                 ]
                 
@@ -198,7 +198,7 @@ async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
                         items.append({
                             "id": resource_id,
                             "url": resource_url,
-                            "type": "module",
+                            "type": "js",
                         })
                         _LOGGER.info("Added Lovelace resource to storage: %s", resource_url)
         
