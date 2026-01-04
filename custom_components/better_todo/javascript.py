@@ -18,7 +18,7 @@ from .const import DOMAIN, JSMODULES, URL_BASE
 
 _LOGGER = logging.getLogger(__name__)
 
-JS_URL = f"/{URL_BASE}"
+JS_URL = f"/{URL_BASE}/js"
 
 
 class JSModuleRegistration:
@@ -45,6 +45,7 @@ class JSModuleRegistration:
     async def _async_register_path(self) -> None:
         """Register resource path if not already registered."""
         try:
+            # Use www folder for JavaScript files (standard Home Assistant pattern)
             path = Path(self.hass.config.path(f"custom_components/{DOMAIN}/www"))
             await self.hass.http.async_register_static_paths(
                 [StaticPathConfig(JS_URL, path, False)]
@@ -107,6 +108,8 @@ class JSModuleRegistration:
                                 "url": url + "?v=" + version,
                             },
                         )
+                        # Remove old gzipped files
+                        await self.async_remove_gzip_files()
                     else:
                         _LOGGER.debug(
                             "%s already registered as version %s",
@@ -151,3 +154,29 @@ class JSModuleRegistration:
                 ]
                 for resource in resources:
                     await self.lovelace.resources.async_delete_item(resource.get("id"))
+
+    async def async_remove_gzip_files(self) -> None:
+        """Remove cached gzip files."""
+        await self.hass.async_add_executor_job(self.remove_gzip_files)
+
+    def remove_gzip_files(self) -> None:
+        """Remove cached gzip files."""
+        path = self.hass.config.path(f"custom_components/{DOMAIN}/www")
+
+        try:
+            gzip_files = [
+                file.name for file in Path(path).iterdir() if file.name.endswith(".gz")
+            ]
+
+            for file in gzip_files:
+                try:
+                    file_path = Path(f"{path}/{file}")
+                    original_path = Path(f"{path}/{file.replace('.gz', '')}")
+                    
+                    if file_path.stat().st_mtime < original_path.stat().st_mtime:
+                        _LOGGER.debug("Removing older gzip file - %s", file)
+                        file_path.unlink()
+                except OSError:
+                    pass
+        except Exception as err:
+            _LOGGER.debug("Could not clean gzip files: %s", err)
