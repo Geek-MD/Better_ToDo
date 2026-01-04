@@ -162,25 +162,40 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     if not entries:
         return
     
-    # Create an empty dashboard - cards will be injected by better-todo-panel.js
-    # This approach is more reliable as it uses direct DOM manipulation
-    # similar to the View Assist integration pattern
+    # Replicate the EXACT structure of the core To-do list integration:
+    # Create individual native todo-list cards for each Better ToDo entity
+    # This matches the native Home Assistant To-do lists dashboard structure
     cards: list[dict[str, Any]] = []
     
-    # Dashboard configuration - empty view that will be populated by JavaScript
+    for entry in entries:
+        # Get the entity_id for this entry
+        list_name = entry.data.get("name", "tasks")
+        slug = list_name.lower().replace(" ", "_")
+        entity_id = f"todo.{slug}"
+        
+        # Create a native todo-list card for this entity
+        cards.append({
+            "type": "todo-list",
+            "entity": entity_id,
+        })
+    
+    # Dashboard configuration matching core To-do list structure
     config: dict[str, Any] = {
         "views": [
             {
                 "title": "Tasks",
                 "path": "tasks",
                 "icon": "mdi:format-list-checks",
-                "cards": cards,  # Empty - JavaScript will inject native cards
+                "cards": cards,  # Individual todo-list cards like native integration
             }
         ]
     }
     
-    # JavaScript module (better-todo-panel.js) handles card injection
-    # It will automatically create native todo-list cards for each Better ToDo entity
+    # This replicates the EXACT structure of Home Assistant's core To-do list integration:
+    # - Each list gets its own native todo-list card
+    # - Cards are displayed in a simple vertical/grid layout
+    # - Users can interact with each list independently
+    # - Native Home Assistant todo-list card functionality for all operations
     
     # Check if dashboard already exists
     dashboard_exists = False

@@ -782,6 +782,12 @@ class BetterTodoDashboardCard extends HTMLElement {
       item.addEventListener('click', (e) => this._handleListClick(e));
     });
     
+    // Add event listener for add new list button
+    const addListButton = this._cardElement.querySelector('.add-list-button');
+    if (addListButton) {
+      addListButton.addEventListener('click', () => this._handleAddNewList());
+    }
+    
     // Add event listeners for checkboxes
     this._cardElement.querySelectorAll('ha-checkbox').forEach(checkbox => {
       checkbox.addEventListener('change', (e) => this._handleCheckboxChange(e));
@@ -809,12 +815,24 @@ class BetterTodoDashboardCard extends HTMLElement {
   }
 
   /**
+   * Handle add new list button click
+   */
+  _handleAddNewList() {
+    // Navigate to Better ToDo integrations page to add a new list
+    const integrationsUrl = '/config/integrations/integration/better_todo';
+    window.location.href = integrationsUrl;
+  }
+
+  /**
    * Render the lists panel
    * @param {Array} entities - Todo entity IDs
    * @returns {string} - HTML string
    */
   _renderListsPanel(entities) {
-    return entities.map(entityId => {
+    const language = this._hass.language || 'en';
+    const isSpanish = language.startsWith('es');
+    
+    const listsHtml = entities.map(entityId => {
       const state = this._hass.states[entityId];
       const name = state.attributes.friendly_name || entityId;
       const items = state.attributes.todo_items || [];
@@ -829,6 +847,18 @@ class BetterTodoDashboardCard extends HTMLElement {
         </div>
       `;
     }).join('');
+    
+    // Add button to create new list
+    const addListButton = `
+      <div style="padding: 8px 16px; border-top: 1px solid var(--divider-color);">
+        <ha-button class="add-list-button" style="width: 100%;">
+          <ha-icon icon="mdi:plus" slot="icon"></ha-icon>
+          ${isSpanish ? 'Nueva lista' : 'New list'}
+        </ha-button>
+      </div>
+    `;
+    
+    return listsHtml + addListButton;
   }
 
   /**

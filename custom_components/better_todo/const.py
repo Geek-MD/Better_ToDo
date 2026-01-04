@@ -44,9 +44,9 @@ GROUP_FORTHCOMING = "forthcoming"
 URL_BASE = "better_todo"
 JSMODULES = [
     {
-        "name": "Better ToDo Panel",
-        "filename": "better-todo-panel.js",
-        "version": "0.7.0",
+        "name": "Better ToDo Panel Component",
+        "filename": "better-todo-panel-component.js",
+        "version": "0.8.0",
     },
     {
         "name": "Better ToDo Card",
