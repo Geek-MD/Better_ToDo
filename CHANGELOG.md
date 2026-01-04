@@ -15,11 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Proper support for all TodoListEntityFeature flags
   - Implements all required TodoListEntity methods (create, update, delete, move)
 
-- **Dashboard Structure**: Updated to use native todo-list cards
-  - Dashboard creates individual native `todo-list` cards for each Better ToDo entity
-  - Exactly replicates the structure of Home Assistant's core To-do list integration
-  - Each list displayed as a separate card with full native functionality
-  - Removed JavaScript DOM injection approach in favor of standard Lovelace cards
+- **Panel Structure**: Custom frontend panel instead of Lovelace dashboard
+  - Creates a custom panel (not a Lovelace dashboard) using `panel_custom`
+  - Replicates the structure of Home Assistant's core To-do list integration
+  - Left sidebar: List of all Better ToDo lists with task counts
+  - Main area: Native todo-list card for the selected list
+  - Sidebar entry appears automatically when Better ToDo is installed
 
 - **Platform Registration**: Added Platform.TODO to PLATFORMS
   - Better ToDo entities now registered through the standard todo platform
@@ -27,6 +28,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - No need for manual service registration
 
 ### Added
+- **Custom Panel Component**: New `better-todo-panel-component.js`
+  - Web component that renders the custom panel interface
+  - Two-column layout: sidebar with lists + main content with tasks
+  - Uses native `hui-todo-list-card` for task management
+  - Automatic entity detection and selection
+
+- **Panel Registration Module**: New `panel.py`
+  - Handles custom panel registration with `panel_custom`
+  - Configures sidebar title, icon, and URL path
+  - Clean panel unregistration on integration removal
+
 - **TodoListEntityFeature Support**: Full feature flag implementation
   - CREATE_TODO_ITEM
   - UPDATE_TODO_ITEM  
@@ -42,6 +54,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Maintains recurrence data in extra state attributes
 
 ### Removed
+- **Lovelace Dashboard**: Replaced with custom frontend panel
+  - No longer creates a Lovelace dashboard in storage mode
+  - Custom panel provides better integration with Home Assistant's architecture
+  
 - **Manual Service Registration**: Removed custom todo service handlers
   - Standard todo services (add_item, update_item, remove_item) now provided by TodoListEntity
   - Cleaner integration with Home Assistant's service architecture
@@ -49,13 +65,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Technical Details
 - Uses core `homeassistant.components.todo.TodoItem` for type compatibility
 - Proper type hints with TYPE_CHECKING for mypy compliance
+- Custom panel registered via `panel_custom.async_register_panel`
+- Panel component: `better-todo-panel-component.js` v0.8.0
 - All changes pass ruff, mypy, and hassfest validation
 - Version bumped to 0.8.0
 
 ### Migration Notes
+- **Breaking Change**: Better ToDo now uses a custom panel instead of a Lovelace dashboard
 - **Breaking Change**: Better ToDo entities now appear in the native "To-do lists" dashboard
+- Custom panel appears in sidebar as "Better ToDo"
 - Existing configurations will continue to work
-- Better ToDo dashboard still available for enhanced features
 - Reload Home Assistant after update to apply changes
 
 ## [0.7.0] - 2026-01-04
