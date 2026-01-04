@@ -16,11 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed old static path registration in favor of dynamic module registration
 
 ### Changed
-- **Dashboard Structure**: Dashboard uses `better-todo-dashboard-card` that replicates core To-do List integration structure
+- **Dashboard Structure**: Dashboard uses `better-todo-dashboard-card` that replicates and enhances core To-do List structure
   - Dashboard automatically created with `better-todo-dashboard-card` custom card
-  - Two-section layout (same as core integration): Lists on left, tasks on right
+  - Two-section layout structure (inspired by core): Lists on left, tasks on right
   - Enhanced with custom category headers (No due date, This week, Forthcoming, Completed)
-  - Same visual structure and workflow as Home Assistant's core To-do List integration
+  - Replicates core integration's visual layout with improved task organization
   - All Better ToDo lists automatically displayed with task counts
   - Click any list to view its tasks in the right panel
 
@@ -33,13 +33,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Following the pattern from [view_assist_integration](https://github.com/dinki/view_assist_integration)
 - JavaScript modules registered via `JSModuleRegistration` class with proper lifecycle management
 - Resources checked and updated based on version changes
-- `better-todo-dashboard-card` replicates core To-do List integration layout
+- `better-todo-dashboard-card` replicates core To-do List layout with enhanced task categorization
 - Custom cards automatically registered via view_assist pattern
 - All changes pass ruff and mypy validation
 
 ### Notes
-- Users will see `better-todo-dashboard-card` by default after update (same layout as core integration)
-- Custom card provides enhanced features while maintaining familiar structure
+- Users will see `better-todo-dashboard-card` by default after update (layout inspired by core integration)
+- Custom card provides core-like structure with enhanced task organization features
 - No breaking changes - existing configurations will continue to work
 - Reload browser after update to load new JavaScript modules
 

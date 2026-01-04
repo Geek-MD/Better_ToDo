@@ -150,13 +150,13 @@ async def _async_reload_frontend_panels(hass: HomeAssistant) -> None:
 async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     """Create or update the Better ToDo dashboard.
     
-    Creates a dashboard that replicates the core To-do List integration layout.
-    The dashboard uses the better-todo-dashboard-card which shows a two-section layout:
+    Creates a dashboard using better-todo-dashboard-card which replicates 
+    the core To-do List integration's two-section layout:
     - Left section: All Better ToDo lists with task counts
-    - Right section: Tasks from the selected list with category headers
+    - Right section: Tasks from the selected list with enhanced category headers
     
-    This implementation uses the websocket API approach (similar to view_assist_integration)
-    to programmatically create the dashboard panel.
+    The dashboard panel is created programmatically using standard Lovelace
+    configuration with websocket API fallback for compatibility.
     """
     # Get all Better ToDo entries
     entries = hass.config_entries.async_entries(DOMAIN)

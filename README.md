@@ -70,13 +70,12 @@ You can create more ToDo lists by adding the integration again with different na
 After installation, Better ToDo automatically creates a dedicated dashboard named **"Better ToDo"** in your sidebar. The dashboard uses the **custom `better-todo-dashboard-card`** that replicates the exact layout and structure of Home Assistant's core To-do List integration.
 
 **Default Dashboard Setup:**
-The dashboard features a two-section layout (same as core To-do List integration):
+The dashboard features a two-section layout (replicating core To-do List integration's structure):
 - **Left section**: Shows all your Better ToDo lists with task counts
-- **Right section**: Displays tasks from the selected list with smart category headers
+- **Right section**: Displays tasks from the selected list with enhanced category headers
 
-This provides:
-- Same visual structure as Home Assistant's native To-do List integration
-- Enhanced features with custom category grouping (No due date, This week, Forthcoming, Completed)
+This provides the familiar core To-do List layout enhanced with:
+- Smart category grouping (No due date, This week, Forthcoming, Completed)
 - Click on any list to view its tasks
 - Automatic translations (English/Spanish)
 
@@ -89,9 +88,9 @@ This provides:
 See the [Manual Dashboard Configuration](#manual-dashboard-configuration) section below for detailed examples.
 
 **Important Note (v0.6.8+):**
-Better ToDo uses a custom card that replicates the core To-do List integration structure:
-- ✅ `better-todo-dashboard-card` provides the same two-column layout as core integration
-- ✅ JavaScript modules are registered following the view_assist pattern for reliability
+Better ToDo uses a custom card that replicates and enhances the core To-do List integration:
+- ✅ `better-todo-dashboard-card` replicates the two-column layout structure
+- ✅ JavaScript modules registered following the view_assist pattern for reliability
 - ✅ Enhanced with custom category headers for better task organization
 - ✅ Full compatibility with Home Assistant's todo platform
 - ℹ️ All task operations (create, update, delete, move) work seamlessly
