@@ -353,7 +353,7 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
         if websocket_success:
             _LOGGER.info("Successfully created Better ToDo dashboard at /%s", DASHBOARD_URL)
         else:
-            _LOGGER.debug("Websocket API not available, will use fallback method")
+            _LOGGER.debug("Websocket method failed, will use fallback method")
     
     # If websocket approach didn't work, try file storage fallback
     if not dashboard_exists and not websocket_success:
@@ -365,7 +365,7 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
             storage_dir = config_dir / ".storage"
             storage_dir.mkdir(exist_ok=True)
             
-            # Create/update the lovelace_dashboards file to register the dashboard FIRST
+            # Create/update the lovelace_dashboards file to register the dashboard before creating the config file
             dashboards_file = storage_dir / "lovelace_dashboards"
             dashboards_data = {
                 "version": 1,
