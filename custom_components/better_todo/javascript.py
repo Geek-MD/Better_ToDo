@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any
 
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.components.lovelace import LovelaceData
@@ -56,7 +57,7 @@ class JSModuleRegistration:
     async def _async_wait_for_lovelace_resources(self) -> None:
         """Wait for lovelace resources to have loaded."""
 
-        async def _check_lovelace_resources_loaded(now):
+        async def _check_lovelace_resources_loaded(now: Any) -> None:
             if self.lovelace and self.lovelace.resources.loaded:
                 await self._async_register_modules()
             else:
@@ -84,6 +85,7 @@ class JSModuleRegistration:
 
         for module in JSMODULES:
             url = f"{JS_URL}/{module.get('filename')}"
+            version = module.get("version", "0")
 
             card_registered = False
 
@@ -91,37 +93,35 @@ class JSModuleRegistration:
                 if self._get_resource_path(resource["url"]) == url:
                     card_registered = True
                     # check version
-                    if self._get_resource_version(resource["url"]) != module.get(
-                        "version"
-                    ):
+                    if self._get_resource_version(resource["url"]) != version:
                         # Update card version
                         _LOGGER.debug(
                             "Updating %s to version %s",
                             module.get("name"),
-                            module.get("version"),
+                            version,
                         )
                         await self.lovelace.resources.async_update_item(
                             resource.get("id"),
                             {
                                 "res_type": "module",
-                                "url": url + "?v=" + module.get("version"),
+                                "url": url + "?v=" + version,
                             },
                         )
                     else:
                         _LOGGER.debug(
                             "%s already registered as version %s",
                             module.get("name"),
-                            module.get("version"),
+                            version,
                         )
 
             if not card_registered:
                 _LOGGER.debug(
                     "Registering %s as version %s",
                     module.get("name"),
-                    module.get("version"),
+                    version,
                 )
                 await self.lovelace.resources.async_create_item(
-                    {"res_type": "module", "url": url + "?v=" + module.get("version")}
+                    {"res_type": "module", "url": url + "?v=" + version}
                 )
 
     def _get_resource_path(self, url: str) -> str:
