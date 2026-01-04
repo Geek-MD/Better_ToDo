@@ -9,24 +9,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Lovelace Resource Registration**: Fixed persistent "Custom element not found: better-todo-dashboard-card" error
-  - Changed resource type from "js" back to "module" for proper ES6 module loading
-  - Improved resource registration logic to always attempt file storage fallback
-  - Added better error handling and logging for resource registration
-  - Resources now saved to storage file only when actually modified
-  - Changed final error log level from DEBUG to ERROR for better visibility
+  - **Root cause identified**: Incorrect API field name and fallback logic bug
+  - Changed API resource field from `"type"` to `"res_type"` following Home Assistant standard (as used by view_assist_integration)
+  - Fixed critical bug where fallback to file storage was never reached when API returned dict
+  - Improved resource registration to check if Lovelace resources are loaded before attempting registration
+  - Simplified resource checking logic using `async_items()` method
+  - Resources now properly saved to storage file only when actually modified
+  - Changed error logging level from DEBUG to ERROR for better visibility of critical issues
   - Custom dashboard cards now load reliably in all Home Assistant configurations
 
 ### Technical Details
-- Resource type "module" is the correct type for modern JavaScript custom elements
-- Improved fallback mechanism when Lovelace API returns dict instead of collection
-- Better tracking of API success/failure to ensure fallback is always attempted
-- File storage writes are now conditional on actual changes to prevent unnecessary I/O
-- Error messages are now properly logged at ERROR level for critical issues
+- Following the pattern from [view_assist_integration](https://github.com/dinki/view_assist_integration)
+- When using Lovelace resources API (`resources.async_create_item()`), the field must be `"res_type": "module"` not `"type": "module"`
+- When writing directly to storage file, the field remains `"type": "module"`
+- Fixed logic bug where code would return after API loop even when resources were dict, preventing fallback
+- Improved API success tracking to ensure fallback is attempted when needed
+- Added check for `resources.loaded` to ensure Lovelace resources are ready
+- File storage writes are conditional on actual changes to prevent unnecessary I/O
 
 ### Notes
 - Users experiencing the "Custom element not found" error should reload their browser after updating
 - This fix addresses the root cause of the resource loading issue
 - No breaking changes - existing installations will continue to work normally
+- If custom cards still don't load after update, check Settings → Dashboards → Resources to verify they're registered
 
 ## [0.6.6] - 2026-01-04
 
