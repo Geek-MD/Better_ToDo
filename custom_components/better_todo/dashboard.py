@@ -97,55 +97,57 @@ async def _async_write_file(hass: HomeAssistant, file_path: Path, content: str) 
 
 
 async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
-    """Ensure Lovelace resources are registered for custom cards."""
+    """Ensure Lovelace resources are registered for custom cards.
+    
+    Following the pattern from view_assist_integration, this function:
+    1. Tries to use the Lovelace resources API with proper field names
+    2. Falls back to file storage if API is unavailable
+    """
+    api_success = False
+    
     try:
         # Try to register resources using the Lovelace resources API
         if "lovelace" in hass.data:
             lovelace_data = hass.data["lovelace"]
             
-            # Check if resources collection exists
-            if hasattr(lovelace_data, "resources"):
+            # Check if resources collection exists and is loaded
+            if hasattr(lovelace_data, "resources") and hasattr(lovelace_data.resources, "loaded"):
                 resources = lovelace_data.resources
                 
-                # Define resources to add
-                resource_configs = [
-                    {
-                        "url": CARD_RESOURCE_URL,
-                        "type": "js",
-                    },
-                    {
-                        "url": DASHBOARD_CARD_RESOURCE_URL,
-                        "type": "js",
-                    },
-                ]
-                
-                # Check and add each resource if not already present
-                for resource_data in resource_configs:
-                    resource_exists = False
+                # Wait for resources to be loaded before registering
+                if not resources.loaded:
+                    _LOGGER.debug("Lovelace resources not yet loaded, will use file storage fallback")
+                else:
+                    # Define resources to add (using res_type for API as per HA standard)
+                    resources_to_add = [
+                        CARD_RESOURCE_URL,
+                        DASHBOARD_CARD_RESOURCE_URL,
+                    ]
                     
-                    # Handle both dict and collection object types
-                    if isinstance(resources, dict):
-                        # resources is a dict - iterate over values
-                        for resource in resources.values():
-                            if isinstance(resource, dict) and resource.get("url") == resource_data["url"]:
-                                resource_exists = True
-                                break
-                    else:
-                        # resources is a collection object with async methods
-                        for resource_id in resources.async_items_ids():
-                            resource = await resources.async_get_item(resource_id)
-                            if resource.get("url") == resource_data["url"]:
-                                resource_exists = True
-                                break
+                    # Get existing resources
+                    existing_resources = [
+                        resource for resource in resources.async_items()
+                        if resource.get("url") in resources_to_add
+                    ]
+                    existing_urls = {resource.get("url") for resource in existing_resources}
                     
-                    if not resource_exists:
-                        if isinstance(resources, dict):
-                            _LOGGER.debug("Cannot add resource via dict API - skipping resource addition, will use file storage fallback")
+                    # Add missing resources
+                    for resource_url in resources_to_add:
+                        if resource_url not in existing_urls:
+                            # Use res_type (not type) when using the API, as per HA standard
+                            await resources.async_create_item({
+                                "res_type": "module",
+                                "url": resource_url,
+                            })
+                            _LOGGER.info("Added Lovelace resource via API: %s", resource_url)
+                            api_success = True
                         else:
-                            await resources.async_create_item(resource_data)
-                            _LOGGER.info("Added Lovelace resource: %s", resource_data["url"])
-                
-                return
+                            _LOGGER.debug("Resource already registered: %s", resource_url)
+                            api_success = True
+                    
+                    # If we successfully used the API, we're done
+                    if api_success:
+                        return
     except Exception as err:
         _LOGGER.debug("Could not register Lovelace resources via API: %s", err)
     
@@ -175,8 +177,8 @@ async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
             except (json.JSONDecodeError, ValueError) as err:
                 _LOGGER.warning("Could not parse lovelace_resources file: %s", err)
         
-        # Define resources to add
-        resources_to_add: list[str] = [
+        # Define resources URLs for file storage
+        resource_urls_for_storage: list[str] = [
             CARD_RESOURCE_URL,
             DASHBOARD_CARD_RESOURCE_URL,
         ]
@@ -186,7 +188,8 @@ async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
         if isinstance(data_dict, dict):
             items = data_dict.get("items")
             if isinstance(items, list):
-                for resource_url in resources_to_add:
+                resources_added = False
+                for resource_url in resource_urls_for_storage:
                     resource_exists = any(
                         isinstance(item, dict) and item.get("url") == resource_url
                         for item in items
@@ -198,15 +201,18 @@ async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
                         items.append({
                             "id": resource_id,
                             "url": resource_url,
-                            "type": "js",
+                            "type": "module",
                         })
                         _LOGGER.info("Added Lovelace resource to storage: %s", resource_url)
-        
-        # Save resources file
-        await _async_write_file(hass, resources_file, json.dumps(resources_data, indent=2))
+                        resources_added = True
+                
+                # Save resources file only if we added new resources
+                if resources_added:
+                    await _async_write_file(hass, resources_file, json.dumps(resources_data, indent=2))
+                    _LOGGER.info("Saved lovelace_resources file with Better ToDo custom cards")
     
     except Exception as err:
-        _LOGGER.debug("Could not register Lovelace resources via file storage: %s", err)
+        _LOGGER.error("Could not register Lovelace resources via file storage: %s", err)
 
 
 async def _async_reload_frontend_panels(hass: HomeAssistant) -> None:
