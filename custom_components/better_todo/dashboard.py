@@ -140,7 +140,7 @@ async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
                     
                     if not resource_exists:
                         if isinstance(resources, dict):
-                            _LOGGER.debug("Cannot add resource via dict API, falling back to file storage")
+                            _LOGGER.debug("Cannot add resource via dict API - skipping resource addition, will use file storage fallback")
                         else:
                             await resources.async_create_item(resource_data)
                             _LOGGER.info("Added Lovelace resource: %s", resource_data["url"])
@@ -224,14 +224,11 @@ async def _async_reload_frontend_panels(hass: HomeAssistant) -> None:
             if hasattr(lovelace_data, "dashboards"):
                 dashboards = lovelace_data.dashboards
                 # Trigger a reload by accessing the dashboards
-                # This causes the system to refresh its internal state
-                # Note: We call list() to iterate through items as a side effect
-                # that triggers the internal dashboard state refresh
                 if isinstance(dashboards, dict):
-                    # dashboards is a dict - just access it to trigger any side effects
-                    list(dashboards.keys())
+                    # dashboards is a dict - no refresh mechanism needed
+                    _LOGGER.debug("Dashboards is a dict, skipping refresh")
                 else:
-                    # dashboards is a collection object with async methods
+                    # dashboards is a collection object - iterate to trigger refresh
                     list(dashboards.async_items_ids())
                 _LOGGER.debug("Refreshed lovelace dashboards state")
     except Exception as err:
@@ -479,7 +476,7 @@ async def async_remove_dashboard(hass: HomeAssistant) -> None:
                             break
                     
                     if dashboard_id_to_remove:
-                        _LOGGER.info("Found dashboard to remove but cannot remove via dict API")
+                        _LOGGER.debug("Found dashboard %s to remove but cannot remove via dict API - falling back to file-based removal", dashboard_id_to_remove)
                         # Fall through to file-based removal
                 else:
                     # dashboards is a collection object with async methods
