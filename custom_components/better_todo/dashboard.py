@@ -162,33 +162,40 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     if not entries:
         return
     
-    # Use the better-todo-dashboard-card which provides a two-column layout
-    # Left column: List of all Better ToDo lists
-    # Right column: Tasks from the selected list
-    cards: list[dict[str, Any]] = [
-        {
-            "type": "custom:better-todo-dashboard-card",
-        }
-    ]
+    # Replicate the EXACT structure of the core To-do list integration:
+    # Create individual native todo-list cards for each Better ToDo entity
+    # This matches the native Home Assistant To-do lists dashboard structure
+    cards: list[dict[str, Any]] = []
     
-    # Dashboard configuration with the custom dashboard card
+    for entry in entries:
+        # Get the entity_id for this entry
+        list_name = entry.data.get("name", "tasks")
+        slug = list_name.lower().replace(" ", "_")
+        entity_id = f"todo.{slug}"
+        
+        # Create a native todo-list card for this entity
+        cards.append({
+            "type": "todo-list",
+            "entity": entity_id,
+        })
+    
+    # Dashboard configuration matching core To-do list structure
     config: dict[str, Any] = {
         "views": [
             {
                 "title": "Tasks",
                 "path": "tasks",
                 "icon": "mdi:format-list-checks",
-                "cards": cards,
+                "cards": cards,  # Individual todo-list cards like native integration
             }
         ]
     }
     
-    # The better-todo-dashboard-card provides:
-    # - Left panel with all Better ToDo lists
-    # - Right panel with tasks from the selected list
-    # - Full CRUD operations for tasks (create, update, delete, mark complete)
-    # - Category headers (No due date, This week, Forthcoming, Completed)
-    # - Integrated task dialog with recurrence support
+    # This replicates the EXACT structure of Home Assistant's core To-do list integration:
+    # - Each list gets its own native todo-list card
+    # - Cards are displayed in a simple vertical/grid layout
+    # - Users can interact with each list independently
+    # - Native Home Assistant todo-list card functionality for all operations
     
     # Check if dashboard already exists
     dashboard_exists = False
