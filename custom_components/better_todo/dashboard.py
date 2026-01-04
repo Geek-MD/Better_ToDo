@@ -1,11 +1,14 @@
 """Dashboard management for Better ToDo integration."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 import json
 import logging
 from pathlib import Path
 from typing import Any, cast
 
+from homeassistant.components.lovelace import CONF_ICON, CONF_REQUIRE_ADMIN, CONF_SHOW_IN_SIDEBAR, CONF_TITLE, CONF_URL_PATH
+from homeassistant.const import CONF_ID, CONF_MODE, CONF_TYPE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import storage
 
@@ -19,6 +22,60 @@ STORAGE_VERSION = 1
 # Lovelace resource URLs
 CARD_RESOURCE_URL = "/better_todo/better-todo-card.js"
 DASHBOARD_CARD_RESOURCE_URL = "/better_todo/better-todo-dashboard-card.js"
+
+
+class MockWSConnection:
+    """Mock a websocket connection to call websocket handler functions.
+    
+    This is used for creating the Better ToDo dashboard programmatically
+    by calling the lovelace/dashboards/create websocket endpoint.
+    """
+
+    @dataclass
+    class MockAdminUser:
+        """Mock admin user for use in MockWSConnection."""
+
+        is_admin = True
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        """Initialize the mock connection."""
+        self.hass = hass
+        self.user = self.MockAdminUser()
+        self.failed_request: bool = False
+
+    def send_result(self, id: int, item: Any) -> None:
+        """Receive result from websocket handler."""
+        self.failed_request = False
+
+    def send_error(self, id: int, code: str, msg: str) -> None:
+        """Receive error from websocket handler."""
+        self.failed_request = True
+        _LOGGER.debug("MockWSConnection error: %s - %s", code, msg)
+
+    def execute_ws_func(self, ws_type: str, msg: dict[str, Any]) -> bool:
+        """Execute websocket function.
+        
+        Args:
+            ws_type: The websocket command type (e.g., "lovelace/dashboards/create")
+            msg: The message payload with command parameters
+            
+        Returns:
+            True if the command executed successfully, False otherwise
+        """
+        if self.hass.data.get("websocket_api", {}).get(ws_type):
+            try:
+                handler, schema = self.hass.data["websocket_api"][ws_type]
+                if schema is False:
+                    handler(self.hass, self, msg)
+                else:
+                    handler(self.hass, self, schema(msg))
+            except Exception as ex:
+                _LOGGER.error("Error calling %s: %s", ws_type, ex)
+                return False
+            else:
+                return not self.failed_request
+        _LOGGER.debug("Websocket command %s not found", ws_type)
+        return False
 
 
 async def _async_read_file(hass: HomeAssistant, file_path: Path) -> str:
@@ -198,6 +255,9 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     Creates an empty dashboard that users can manually customize with their own cards.
     Users can add custom cards, iframes, or any other Lovelace card configuration.
     See README.md for examples on how to manually configure the dashboard.
+    
+    This implementation uses the websocket API approach (similar to view_assist_integration)
+    to programmatically create the dashboard panel.
     """
     # Get all Better ToDo entries
     entries = hass.config_entries.async_entries(DOMAIN)
@@ -224,104 +284,126 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     # Ensure Lovelace resources are configured
     await _async_ensure_lovelace_resources(hass)
     
-    # Try to register the dashboard
-    try:
-        # First, try using the lovelace dashboards collection API
-        if "lovelace" in hass.data:
-            lovelace_data = hass.data["lovelace"]
-            
-            # Check if dashboards collection exists
-            if hasattr(lovelace_data, "dashboards"):
-                dashboards = lovelace_data.dashboards
-                
-                # Check if our dashboard exists
-                existing_dashboard_id = None
-                for dashboard_id in dashboards.async_items_ids():
-                    dashboard = await dashboards.async_get_item(dashboard_id)
-                    if dashboard.get("url_path") == DASHBOARD_URL:
-                        existing_dashboard_id = dashboard_id
-                        break
-                
-                dashboard_data = {
-                    "require_admin": False,
-                    "show_in_sidebar": True,
-                    "icon": DASHBOARD_ICON,
-                    "title": DASHBOARD_TITLE,
-                    "url_path": DASHBOARD_URL,
-                    "mode": "storage",
-                }
-                
-                if existing_dashboard_id:
-                    # Update existing dashboard
-                    await dashboards.async_update_item(existing_dashboard_id, dashboard_data)
-                    _LOGGER.info("Updated Better ToDo dashboard")
-                else:
-                    # Create new dashboard
-                    await dashboards.async_create_item(dashboard_data)
-                    _LOGGER.info("Created Better ToDo dashboard at /%s", DASHBOARD_URL)
-                
-                # Save the dashboard configuration
-                store = storage.Store(hass, STORAGE_VERSION, STORAGE_KEY)
-                await store.async_save(config)
-                _LOGGER.info("Dashboard configuration saved successfully")
-                
-                # Reload frontend panels to show the new dashboard without restart
-                await _async_reload_frontend_panels(hass)
-                
-                return
-    except Exception as err:
-        _LOGGER.info("Dashboard collection API not available, using file storage fallback: %s", err)
+    # Check if dashboard already exists
+    dashboard_exists = False
+    if "lovelace" in hass.data:
+        lovelace_data = hass.data["lovelace"]
+        if hasattr(lovelace_data, "dashboards"):
+            dashboards = lovelace_data.dashboards
+            for dashboard_id in dashboards.async_items_ids():
+                dashboard = await dashboards.async_get_item(dashboard_id)
+                if dashboard.get("url_path") == DASHBOARD_URL:
+                    dashboard_exists = True
+                    _LOGGER.info("Better ToDo dashboard already exists")
+                    break
     
-    # Fallback: Try direct file creation in .storage
-    try:
-        config_dir = Path(hass.config.config_dir)
-        storage_dir = config_dir / ".storage"
-        storage_dir.mkdir(exist_ok=True)
+    # Create dashboard if it doesn't exist using websocket API
+    websocket_success = False
+    if not dashboard_exists:
+        _LOGGER.info("Creating Better ToDo dashboard using websocket API")
+        mock_connection = MockWSConnection(hass)
         
-        # Create the lovelace dashboard metadata file
-        dashboard_file = storage_dir / f"lovelace.{DASHBOARD_URL}"
-        dashboard_metadata = {
-            "version": 1,
-            "minor_version": 1,
-            "key": f"lovelace.{DASHBOARD_URL}",
-            "data": config,
-        }
-        
-        await _async_write_file(hass, dashboard_file, json.dumps(dashboard_metadata, indent=2))
-        
-        # Create/update the lovelace_dashboards file to register the dashboard
-        dashboards_file = storage_dir / "lovelace_dashboards"
-        dashboards_data = {
-            "version": 1,
-            "minor_version": 1,
-            "key": "lovelace_dashboards",
-            "data": {
-                "items": []
+        # Use websocket command to create dashboard
+        websocket_success = mock_connection.execute_ws_func(
+            "lovelace/dashboards/create",
+            {
+                CONF_ID: 1,
+                CONF_TYPE: "lovelace/dashboards/create",
+                CONF_ICON: DASHBOARD_ICON,
+                CONF_TITLE: DASHBOARD_TITLE,
+                CONF_URL_PATH: DASHBOARD_URL,
+                CONF_MODE: "storage",
+                CONF_SHOW_IN_SIDEBAR: True,
+                CONF_REQUIRE_ADMIN: False,
             },
-        }
+        )
         
-        # Load existing dashboards if file exists
-        if dashboards_file.exists():
-            try:
-                content = await _async_read_file(hass, dashboards_file)
-                loaded_data = json.loads(content)
-                # Type assertion for mypy
-                if isinstance(loaded_data, dict):
-                    dashboards_data = loaded_data
-            except (json.JSONDecodeError, ValueError) as err:
-                _LOGGER.warning("Could not parse lovelace_dashboards file: %s", err)
+        if websocket_success:
+            _LOGGER.info("Successfully created Better ToDo dashboard at /%s", DASHBOARD_URL)
+        else:
+            _LOGGER.warning("Failed to create dashboard via websocket API, trying fallback method")
+    
+    # Save the empty dashboard configuration
+    try:
+        store = storage.Store(hass, STORAGE_VERSION, STORAGE_KEY)
+        await store.async_save(config)
+        _LOGGER.info("Dashboard configuration saved successfully")
+    except Exception as err:
+        _LOGGER.warning("Could not save dashboard configuration: %s", err)
+    
+    # If websocket approach didn't work, try file storage fallback
+    if not dashboard_exists and not websocket_success:
+        _LOGGER.info("Using file storage fallback for dashboard creation")
         
-        # Check if our dashboard is already registered
-        dashboard_registered = False
-        data_dict = dashboards_data.get("data")
-        if isinstance(data_dict, dict):
-            items = data_dict.get("items")
-            if isinstance(items, list):
-                for item in items:
-                    if isinstance(item, dict) and item.get("url_path") == DASHBOARD_URL:
-                        dashboard_registered = True
-                        # Update existing entry
-                        item.update({
+        # Fallback: Try direct file creation in .storage
+        try:
+            config_dir = Path(hass.config.config_dir)
+            storage_dir = config_dir / ".storage"
+            storage_dir.mkdir(exist_ok=True)
+            
+            # Create the lovelace dashboard metadata file
+            dashboard_file = storage_dir / f"lovelace.{DASHBOARD_URL}"
+            dashboard_metadata = {
+                "version": 1,
+                "minor_version": 1,
+                "key": f"lovelace.{DASHBOARD_URL}",
+                "data": config,
+            }
+            
+            await _async_write_file(hass, dashboard_file, json.dumps(dashboard_metadata, indent=2))
+            
+            # Create/update the lovelace_dashboards file to register the dashboard
+            dashboards_file = storage_dir / "lovelace_dashboards"
+            dashboards_data = {
+                "version": 1,
+                "minor_version": 1,
+                "key": "lovelace_dashboards",
+                "data": {
+                    "items": []
+                },
+            }
+            
+            # Load existing dashboards if file exists
+            if dashboards_file.exists():
+                try:
+                    content = await _async_read_file(hass, dashboards_file)
+                    loaded_data = json.loads(content)
+                    # Type assertion for mypy
+                    if isinstance(loaded_data, dict):
+                        dashboards_data = loaded_data
+                except (json.JSONDecodeError, ValueError) as err:
+                    _LOGGER.warning("Could not parse lovelace_dashboards file: %s", err)
+            
+            # Check if our dashboard is already registered
+            dashboard_registered = False
+            data_dict = dashboards_data.get("data")
+            if isinstance(data_dict, dict):
+                items = data_dict.get("items")
+                if isinstance(items, list):
+                    for item in items:
+                        if isinstance(item, dict) and item.get("url_path") == DASHBOARD_URL:
+                            dashboard_registered = True
+                            # Update existing entry
+                            item.update({
+                                "require_admin": False,
+                                "show_in_sidebar": True,
+                                "icon": DASHBOARD_ICON,
+                                "title": DASHBOARD_TITLE,
+                                "url_path": DASHBOARD_URL,
+                                "mode": "storage",
+                            })
+                            break
+            
+            # Add new dashboard if not registered
+            if not dashboard_registered:
+                import secrets
+                dashboard_id = secrets.token_hex(16)
+                data_dict = dashboards_data.get("data")
+                if isinstance(data_dict, dict):
+                    items = data_dict.get("items")
+                    if isinstance(items, list):
+                        items.append({
+                            "id": dashboard_id,
                             "require_admin": False,
                             "show_in_sidebar": True,
                             "icon": DASHBOARD_ICON,
@@ -329,36 +411,17 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
                             "url_path": DASHBOARD_URL,
                             "mode": "storage",
                         })
-                        break
+            
+            # Save dashboards registry
+            await _async_write_file(hass, dashboards_file, json.dumps(dashboards_data, indent=2))
+            
+            _LOGGER.info("Created/updated Better ToDo dashboard via file storage at /%s", DASHBOARD_URL)
         
-        # Add new dashboard if not registered
-        if not dashboard_registered:
-            import secrets
-            dashboard_id = secrets.token_hex(16)
-            data_dict = dashboards_data.get("data")
-            if isinstance(data_dict, dict):
-                items = data_dict.get("items")
-                if isinstance(items, list):
-                    items.append({
-                        "id": dashboard_id,
-                        "require_admin": False,
-                        "show_in_sidebar": True,
-                        "icon": DASHBOARD_ICON,
-                        "title": DASHBOARD_TITLE,
-                        "url_path": DASHBOARD_URL,
-                        "mode": "storage",
-                    })
-        
-        # Save dashboards registry
-        await _async_write_file(hass, dashboards_file, json.dumps(dashboards_data, indent=2))
-        
-        _LOGGER.info("Created/updated Better ToDo dashboard via file storage at /%s", DASHBOARD_URL)
-        
-        # Reload frontend panels to show the new dashboard without restart
-        await _async_reload_frontend_panels(hass)
-        
-    except Exception as err:
-        _LOGGER.warning("Could not create dashboard via file storage: %s", err)
+        except Exception as err:
+            _LOGGER.warning("Could not create dashboard via file storage: %s", err)
+    
+    # Reload frontend panels to show the new dashboard without restart
+    await _async_reload_frontend_panels(hass)
 
 
 async def async_remove_dashboard(hass: HomeAssistant) -> None:

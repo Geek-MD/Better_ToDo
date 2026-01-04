@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-01-04
+
+### Changed
+- **Dashboard Panel Registration**: Improved automatic dashboard panel creation using websocket API approach
+  - Implemented `MockWSConnection` class to programmatically call `lovelace/dashboards/create` websocket endpoint
+  - Dashboard panel now appears automatically in the sidebar when the integration is configured
+  - Based on the approach used in `view_assist_integration` for reliable panel registration
+  - Maintains file storage fallback for compatibility with different Home Assistant versions
+  - Empty dashboard panel is created by default, allowing users to customize with their own cards
+
+### Technical Details
+- Added `MockWSConnection` class to simulate websocket connections for dashboard creation
+- Uses Home Assistant's websocket API (`lovelace/dashboards/create`) for programmatic dashboard registration
+- Dashboard is created with `show_in_sidebar: True` and `mode: "storage"` settings
+- Proper error handling with fallback to file-based dashboard creation
+- Dashboard appears immediately without requiring a Home Assistant restart
+
+### Notes
+- The dashboard panel is intentionally empty by default, as requested
+- Users can customize the dashboard by clicking the three dots menu → "Edit Dashboard"
+- This is a patch release that improves the dashboard creation reliability
+- No breaking changes - existing installations will continue to work normally
+
 ## [0.6.0] - 2026-01-03
 
 ### Added
