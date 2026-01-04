@@ -67,22 +67,30 @@ You can create more ToDo lists by adding the integration again with different na
 
 ### Better ToDo Dashboard
 
-After installation, Better ToDo automatically creates a dedicated dashboard named **"Better ToDo"** in your sidebar. The dashboard is **empty by default**, allowing you to customize it with your preferred cards and layout.
+After installation, Better ToDo automatically creates a dedicated dashboard named **"Better ToDo"** in your sidebar. The dashboard uses **native Home Assistant todo-list cards** by default, ensuring full compatibility with the core To-do List integration.
+
+**Default Dashboard Setup:**
+The dashboard is automatically populated with native `todo-list` cards for each Better ToDo list you create. This provides:
+- Full compatibility with Home Assistant's native UI
+- Automatic integration with the core todo platform
+- Standard todo list functionality without custom card dependencies
 
 **To customize the dashboard:**
 1. Navigate to the "Better ToDo" dashboard in your sidebar
 2. Click the three dots menu (⋮) in the top right corner
 3. Select "Edit Dashboard"
-4. Add cards manually using the UI or YAML configuration
+4. Add or modify cards using the UI or YAML configuration
+5. Optionally use Better ToDo custom cards for enhanced features (see below)
 
 See the [Manual Dashboard Configuration](#manual-dashboard-configuration) section below for detailed examples.
 
-**Important Note (v0.5.0+):**
-Better ToDo no longer uses Home Assistant's core Todo platform. This means:
-- ✅ Better ToDo tasks are **independent** and managed exclusively through the Better ToDo dashboard
-- ✅ Tasks **do NOT appear** in Home Assistant's native "To-do lists" dashboard
-- ✅ Full control over task management without interference from core HA features
-- ℹ️ All task operations (create, update, delete, move) are handled via Better ToDo services
+**Important Note (v0.6.7+):**
+Better ToDo now uses the same structure as Home Assistant's core To-do List integration:
+- ✅ Native `todo-list` cards are used by default
+- ✅ JavaScript modules are registered following the view_assist pattern for reliability
+- ✅ Custom cards are available as optional enhancements (better-todo-card, better-todo-dashboard-card)
+- ✅ Full compatibility with Home Assistant's todo platform
+- ℹ️ All task operations (create, update, delete, move) work seamlessly with native cards
 
 ### Managing Tasks
 
@@ -291,15 +299,20 @@ Better ToDo integrates with Home Assistant's automation system. You can trigger 
 
 ### Lovelace Cards and Dashboards
 
-Better ToDo automatically creates a dedicated **"Better ToDo" dashboard** when you install the integration. This dashboard appears in your sidebar and is **empty by default**, allowing you to customize it with your preferred layout.
+Better ToDo automatically creates a dedicated **"Better ToDo" dashboard** when you install the integration. This dashboard appears in your sidebar and uses **native Home Assistant todo-list cards** by default for full compatibility.
+
+#### Default Dashboard Configuration
+
+The dashboard is automatically populated with native `todo-list` cards for each Better ToDo list. No manual configuration is required. The native cards provide:
+
+- ✅ Standard Home Assistant todo list interface
+- ✅ Full compatibility with core features
+- ✅ Automatic task creation, editing, and completion
+- ✅ No custom card dependencies
 
 #### Manual Dashboard Configuration
 
-The Better ToDo dashboard is created empty to give you full control over its content. You can add any cards you want, including:
-- Better ToDo custom cards
-- Native Home Assistant cards
-- Iframe cards for external content
-- Any other Lovelace card
+You can customize the Better ToDo dashboard at any time to use different card types:
 
 **To edit the dashboard:**
 1. Click on "Better ToDo" in your Home Assistant sidebar
@@ -307,9 +320,24 @@ The Better ToDo dashboard is created empty to give you full control over its con
 3. Select "Edit Dashboard"
 4. Click "+ ADD CARD" to add cards via UI, or click the three dots again and select "Raw configuration editor" to edit YAML directly
 
-#### Better ToDo Dashboard Card (Two-Section Layout)
+#### Native Todo-List Card (Default)
 
-The main dashboard card displays all your lists on the left and tasks on the right:
+The standard Home Assistant todo-list card (used by default):
+
+```yaml
+type: todo-list
+entity: todo.tasks
+```
+
+**Features:**
+- Native Home Assistant interface
+- Automatic "Active" and "Completed" sections
+- Built-in task creation and editing
+- Full compatibility with all HA features
+
+#### Better ToDo Dashboard Card (Optional Enhancement)
+
+An optional custom card that displays all your lists on the left and tasks on the right:
 
 ```yaml
 type: custom:better-todo-dashboard-card
@@ -322,9 +350,11 @@ type: custom:better-todo-dashboard-card
 - Category headers: "No due date", "This week", "Forthcoming", "Completed"
 - Automatic translations (English/Spanish)
 
-#### Better ToDo Card (Single List)
+**Note:** This card requires the custom JavaScript modules to be loaded (automatically registered during installation).
 
-Display a single todo list with custom category headers:
+#### Better ToDo Card (Optional Enhancement)
+
+An optional custom card to display a single todo list with custom category headers:
 
 ```yaml
 type: custom:better-todo-card
@@ -337,6 +367,8 @@ title: My Tasks  # Optional
 - Native "Completed" section for finished tasks
 - Automatic translations (English/Spanish)
 - Locale-aware week calculations
+
+**Note:** This card requires the custom JavaScript modules to be loaded (automatically registered during installation).
 
 #### Recurrence Configuration Card
 
@@ -389,7 +421,11 @@ entity: todo.tasks
 
 #### Complete Example Dashboard Configuration
 
-Here's a complete example showing how to configure the Better ToDo dashboard with multiple cards:
+Here's a complete example showing how to configure the Better ToDo dashboard with multiple options:
+
+**Option 1: Native Cards (Default, Automatically Created)**
+
+This configuration is automatically created for you:
 
 ```yaml
 views:
@@ -397,7 +433,24 @@ views:
     path: tasks
     icon: mdi:format-list-checks
     cards:
-      # Main dashboard card with all lists
+      # Native todo-list cards (automatically added for each list)
+      - type: todo-list
+        entity: todo.tasks
+      - type: todo-list
+        entity: todo.shopping_list
+```
+
+**Option 2: Custom Cards (Optional Enhancement)**
+
+You can manually edit the dashboard to use custom cards:
+
+```yaml
+views:
+  - title: Tasks
+    path: tasks
+    icon: mdi:format-list-checks
+    cards:
+      # Custom dashboard card with all lists (optional)
       - type: custom:better-todo-dashboard-card
       
       # Recurrence configuration for Tasks list
@@ -432,21 +485,29 @@ views:
         title: Shopping List
 ```
 
-To use this configuration:
+To use custom cards:
 1. Go to the Better ToDo dashboard
 2. Click the three dots menu (⋮) → "Edit Dashboard"
 3. Click the three dots again → "Raw configuration editor"
-4. Paste the configuration above
+4. Replace the default configuration with your custom one
 5. Click "Save"
+
+#### About JavaScript Module Registration
+
+Better ToDo follows the same pattern as view_assist_integration for registering JavaScript modules:
+
+- ✅ Custom cards are automatically registered in Lovelace resources
+- ✅ Version management ensures cards are updated when needed
+- ✅ No manual resource registration required
+- ✅ Works seamlessly with Home Assistant's storage mode
 
 #### About the Native "To-do lists" Dashboard
 
-**Note:** Home Assistant automatically creates a native "To-do lists" dashboard when TODO entities exist. Better ToDo entities will appear there too, but **we recommend using the "Better ToDo" dashboard** instead for the enhanced experience with custom category headers.
+Better ToDo entities appear in both:
+- **Better ToDo dashboard** (recommended): Uses native cards by default with optional custom enhancements
+- **Native "To-do lists" dashboard**: Automatically shows all Better ToDo lists alongside other todo integrations
 
-If you want to hide the native "To-do lists" dashboard:
-1. Go to Settings → Dashboards
-2. Find "To-do lists" dashboard
-3. Click the three dots menu → Hide from sidebar
+Both dashboards provide full functionality. The Better ToDo dashboard is recommended because it's specifically designed for Better ToDo features.
 
 ## Requirements
 
