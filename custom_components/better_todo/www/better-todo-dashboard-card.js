@@ -818,15 +818,7 @@ class BetterTodoDashboardCard extends HTMLElement {
    * Handle add new list button click
    */
   _handleAddNewList() {
-    const language = this._hass.language || 'en';
-    const isSpanish = language.startsWith('es');
-    
-    // Navigate to integrations page
-    const event = new Event('hass-more-info', { bubbles: true, composed: true });
-    event.detail = { entityId: null };
-    
-    // Instead of using more-info, navigate to the integrations page
-    // This uses the browser's native navigation
+    // Navigate to Better ToDo integrations page to add a new list
     const integrationsUrl = '/config/integrations/integration/better_todo';
     window.location.href = integrationsUrl;
   }
