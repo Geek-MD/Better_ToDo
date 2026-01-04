@@ -39,3 +39,18 @@ GROUP_NO_DUE_DATE = "no_due_date"
 GROUP_THIS_WEEK = "this_week"
 GROUP_FORTHCOMING = "forthcoming"
 # GROUP_DONE is no longer used - HA's native "Completed" section handles done tasks
+
+# Frontend resource constants
+URL_BASE = "better_todo"
+JSMODULES = [
+    {
+        "name": "Better ToDo Card",
+        "filename": "better-todo-card.js",
+        "version": "0.6.7",
+    },
+    {
+        "name": "Better ToDo Dashboard Card",
+        "filename": "better-todo-dashboard-card.js",
+        "version": "0.6.7",
+    },
+]

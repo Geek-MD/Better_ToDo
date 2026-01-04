@@ -149,8 +149,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
-    # Register the custom frontend card
-    await _async_register_frontend(hass)
+    # Register JavaScript modules using view_assist pattern (only once for all entries)
+    if not hass.data[DOMAIN].get("js_registered"):
+        from .javascript import JSModuleRegistration
+        js_registration = JSModuleRegistration(hass)
+        await js_registration.async_setup()
+        hass.data[DOMAIN]["js_registered"] = js_registration
+        _LOGGER.info("Registered Better ToDo JavaScript modules")
     
     # Create or update the Better ToDo dashboard with custom cards
     # The dashboard will automatically appear in the sidebar when created
@@ -459,54 +464,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
     return True
-
-
-async def _async_register_frontend(hass: HomeAssistant) -> None:
-    """Register the frontend resources for the custom card."""
-    try:
-        # Register the custom card JavaScript
-        from pathlib import Path
-        from homeassistant.components.http import StaticPathConfig
-        
-        # Get the path to the www directory
-        integration_dir = Path(__file__).parent
-        www_dir = integration_dir / "www"
-        card_path = www_dir / "better-todo-card.js"
-        dashboard_card_path = www_dir / "better-todo-dashboard-card.js"
-        
-        # Collect paths to register
-        paths_to_register = []
-        
-        if card_path.exists():
-            paths_to_register.append(
-                StaticPathConfig(
-                    "/better_todo/better-todo-card.js",
-                    str(card_path),
-                    False
-                )
-            )
-            _LOGGER.info("Prepared Better ToDo custom card for registration at /better_todo/better-todo-card.js")
-        else:
-            _LOGGER.warning("Custom card file not found at %s", card_path)
-        
-        if dashboard_card_path.exists():
-            paths_to_register.append(
-                StaticPathConfig(
-                    "/better_todo/better-todo-dashboard-card.js",
-                    str(dashboard_card_path),
-                    False
-                )
-            )
-            _LOGGER.info("Prepared Better ToDo dashboard card for registration at /better_todo/better-todo-dashboard-card.js")
-        else:
-            _LOGGER.warning("Dashboard card file not found at %s", dashboard_card_path)
-        
-        # Register all paths at once
-        if paths_to_register:
-            await hass.http.async_register_static_paths(paths_to_register)
-            _LOGGER.info("Registered %d Better ToDo static paths", len(paths_to_register))
-    except Exception as err:
-        _LOGGER.error("Error registering frontend resources: %s", err)
 
 
 async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:

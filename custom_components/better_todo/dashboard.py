@@ -19,10 +19,6 @@ _LOGGER = logging.getLogger(__name__)
 STORAGE_KEY = "lovelace.better_todo"
 STORAGE_VERSION = 1
 
-# Lovelace resource URLs
-CARD_RESOURCE_URL = "/better_todo/better-todo-card.js"
-DASHBOARD_CARD_RESOURCE_URL = "/better_todo/better-todo-dashboard-card.js"
-
 
 class MockWSConnection:
     """Mock a websocket connection to call websocket handler functions.
@@ -96,125 +92,6 @@ async def _async_write_file(hass: HomeAssistant, file_path: Path, content: str) 
     await hass.async_add_executor_job(_write)
 
 
-async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
-    """Ensure Lovelace resources are registered for custom cards.
-    
-    Following the pattern from view_assist_integration, this function:
-    1. Tries to use the Lovelace resources API with proper field names
-    2. Falls back to file storage if API is unavailable
-    """
-    api_success = False
-    
-    try:
-        # Try to register resources using the Lovelace resources API
-        if "lovelace" in hass.data:
-            lovelace_data = hass.data["lovelace"]
-            
-            # Check if resources collection exists and is loaded
-            if hasattr(lovelace_data, "resources") and hasattr(lovelace_data.resources, "loaded"):
-                resources = lovelace_data.resources
-                
-                # Wait for resources to be loaded before registering
-                if not resources.loaded:
-                    _LOGGER.debug("Lovelace resources not yet loaded, will use file storage fallback")
-                else:
-                    # Define resources to add (using res_type for API as per HA standard)
-                    resources_to_add = [
-                        CARD_RESOURCE_URL,
-                        DASHBOARD_CARD_RESOURCE_URL,
-                    ]
-                    
-                    # Get existing resources
-                    existing_resources = [
-                        resource for resource in resources.async_items()
-                        if resource.get("url") in resources_to_add
-                    ]
-                    existing_urls = {resource.get("url") for resource in existing_resources}
-                    
-                    # Add missing resources
-                    for resource_url in resources_to_add:
-                        if resource_url not in existing_urls:
-                            # Use res_type (not type) when using the API, as per HA standard
-                            await resources.async_create_item({
-                                "res_type": "module",
-                                "url": resource_url,
-                            })
-                            _LOGGER.info("Added Lovelace resource via API: %s", resource_url)
-                            api_success = True
-                        else:
-                            _LOGGER.debug("Resource already registered: %s", resource_url)
-                            api_success = True
-                    
-                    # If we successfully used the API, we're done
-                    if api_success:
-                        return
-    except Exception as err:
-        _LOGGER.debug("Could not register Lovelace resources via API: %s", err)
-    
-    # Fallback: Try direct file creation in .storage
-    try:
-        config_dir = Path(hass.config.config_dir)
-        storage_dir = config_dir / ".storage"
-        storage_dir.mkdir(exist_ok=True)
-        
-        # Load or create lovelace_resources file
-        resources_file = storage_dir / "lovelace_resources"
-        resources_data = {
-            "version": 1,
-            "minor_version": 1,
-            "key": "lovelace_resources",
-            "data": {
-                "items": []
-            },
-        }
-        
-        if resources_file.exists():
-            try:
-                content = await _async_read_file(hass, resources_file)
-                loaded_data = json.loads(content)
-                if isinstance(loaded_data, dict):
-                    resources_data = loaded_data
-            except (json.JSONDecodeError, ValueError) as err:
-                _LOGGER.warning("Could not parse lovelace_resources file: %s", err)
-        
-        # Define resources URLs for file storage
-        resource_urls_for_storage: list[str] = [
-            CARD_RESOURCE_URL,
-            DASHBOARD_CARD_RESOURCE_URL,
-        ]
-        
-        # Check and add resources
-        data_dict = resources_data.get("data")
-        if isinstance(data_dict, dict):
-            items = data_dict.get("items")
-            if isinstance(items, list):
-                resources_added = False
-                for resource_url in resource_urls_for_storage:
-                    resource_exists = any(
-                        isinstance(item, dict) and item.get("url") == resource_url
-                        for item in items
-                    )
-                    
-                    if not resource_exists:
-                        import secrets
-                        resource_id = secrets.token_hex(16)
-                        items.append({
-                            "id": resource_id,
-                            "url": resource_url,
-                            "type": "module",
-                        })
-                        _LOGGER.info("Added Lovelace resource to storage: %s", resource_url)
-                        resources_added = True
-                
-                # Save resources file only if we added new resources
-                if resources_added:
-                    await _async_write_file(hass, resources_file, json.dumps(resources_data, indent=2))
-                    _LOGGER.info("Saved lovelace_resources file with Better ToDo custom cards")
-    
-    except Exception as err:
-        _LOGGER.error("Could not register Lovelace resources via file storage: %s", err)
-
-
 async def _async_reload_frontend_panels(hass: HomeAssistant) -> None:
     """Reload frontend panels to show new dashboard without restart.
     
@@ -273,28 +150,39 @@ async def _async_reload_frontend_panels(hass: HomeAssistant) -> None:
 async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     """Create or update the Better ToDo dashboard.
     
-    Creates a dashboard that replicates the core To-do List integration layout.
-    The dashboard uses the better-todo-dashboard-card which shows a two-section layout:
-    - Left section: All Better ToDo lists with task counts
-    - Right section: Tasks from the selected list with category headers
+    Uses the same structure as Home Assistant's core To-do List integration:
+    - Native todo-list cards showing all Better ToDo entities
+    - Standard two-column layout (todo-list on left, todo-list on right)
+    - Each entity gets its own native todo-list card
     
-    This implementation uses the websocket API approach (similar to view_assist_integration)
-    to programmatically create the dashboard panel.
+    This ensures full compatibility with Home Assistant's native UI components
+    and eliminates any custom card errors.
     """
     # Get all Better ToDo entries
     entries = hass.config_entries.async_entries(DOMAIN)
     if not entries:
         return
     
-    # Create dashboard with the better-todo-dashboard-card that replicates
-    # the core To-do List integration layout (two-section: lists on left, tasks on right)
-    cards: list[dict[str, Any]] = [
-        {
-            "type": "custom:better-todo-dashboard-card",
-        }
-    ]
+    # Create cards using NATIVE todo-list type (same as core To-do List integration)
+    # Get all Better ToDo entities
+    all_entities = []
+    for entry in entries:
+        entity_id = f"todo.{entry.data['name'].lower().replace(' ', '_')}"
+        # Verify entity exists before adding
+        if hass.states.get(entity_id):
+            all_entities.append(entity_id)
     
-    # Dashboard configuration - includes the main dashboard card
+    # Build cards array with native todo-list cards (core To-do list structure)
+    cards: list[dict[str, Any]] = []
+    
+    # Create native todo-list cards for each entity (2 columns layout like core)
+    for entity_id in all_entities:
+        cards.append({
+            "type": "todo-list",
+            "entity": entity_id,
+        })
+    
+    # Dashboard configuration - uses standard views structure like core To-do List
     config: dict[str, Any] = {
         "views": [
             {
@@ -305,9 +193,6 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
             }
         ]
     }
-    
-    # Ensure Lovelace resources are configured
-    await _async_ensure_lovelace_resources(hass)
     
     # Check if dashboard already exists
     dashboard_exists = False
