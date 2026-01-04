@@ -98,6 +98,8 @@ async def _async_write_file(hass: HomeAssistant, file_path: Path, content: str) 
 
 async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
     """Ensure Lovelace resources are registered for custom cards."""
+    api_success = False
+    
     try:
         # Try to register resources using the Lovelace resources API
         if "lovelace" in hass.data:
@@ -111,11 +113,11 @@ async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
                 resource_configs = [
                     {
                         "url": CARD_RESOURCE_URL,
-                        "type": "js",
+                        "type": "module",
                     },
                     {
                         "url": DASHBOARD_CARD_RESOURCE_URL,
-                        "type": "js",
+                        "type": "module",
                     },
                 ]
                 
@@ -140,12 +142,16 @@ async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
                     
                     if not resource_exists:
                         if isinstance(resources, dict):
-                            _LOGGER.debug("Cannot add resource via dict API - skipping resource addition, will use file storage fallback")
+                            _LOGGER.debug("Cannot add resource via dict API - will use file storage fallback")
+                            # Don't set api_success since we can't use the API
                         else:
                             await resources.async_create_item(resource_data)
-                            _LOGGER.info("Added Lovelace resource: %s", resource_data["url"])
+                            _LOGGER.info("Added Lovelace resource via API: %s", resource_data["url"])
+                            api_success = True
                 
-                return
+                # If we successfully used the API, we're done
+                if api_success:
+                    return
     except Exception as err:
         _LOGGER.debug("Could not register Lovelace resources via API: %s", err)
     
@@ -186,6 +192,7 @@ async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
         if isinstance(data_dict, dict):
             items = data_dict.get("items")
             if isinstance(items, list):
+                resources_added = False
                 for resource_url in resources_to_add:
                     resource_exists = any(
                         isinstance(item, dict) and item.get("url") == resource_url
@@ -198,15 +205,18 @@ async def _async_ensure_lovelace_resources(hass: HomeAssistant) -> None:
                         items.append({
                             "id": resource_id,
                             "url": resource_url,
-                            "type": "js",
+                            "type": "module",
                         })
                         _LOGGER.info("Added Lovelace resource to storage: %s", resource_url)
-        
-        # Save resources file
-        await _async_write_file(hass, resources_file, json.dumps(resources_data, indent=2))
+                        resources_added = True
+                
+                # Save resources file only if we added new resources
+                if resources_added:
+                    await _async_write_file(hass, resources_file, json.dumps(resources_data, indent=2))
+                    _LOGGER.info("Saved lovelace_resources file with Better ToDo custom cards")
     
     except Exception as err:
-        _LOGGER.debug("Could not register Lovelace resources via file storage: %s", err)
+        _LOGGER.error("Could not register Lovelace resources via file storage: %s", err)
 
 
 async def _async_reload_frontend_panels(hass: HomeAssistant) -> None:

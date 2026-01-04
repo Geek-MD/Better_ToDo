@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.7] - 2026-01-04
+
+### Fixed
+- **Lovelace Resource Registration**: Fixed persistent "Custom element not found: better-todo-dashboard-card" error
+  - Changed resource type from "js" back to "module" for proper ES6 module loading
+  - Improved resource registration logic to always attempt file storage fallback
+  - Added better error handling and logging for resource registration
+  - Resources now saved to storage file only when actually modified
+  - Changed final error log level from DEBUG to ERROR for better visibility
+  - Custom dashboard cards now load reliably in all Home Assistant configurations
+
+### Technical Details
+- Resource type "module" is the correct type for modern JavaScript custom elements
+- Improved fallback mechanism when Lovelace API returns dict instead of collection
+- Better tracking of API success/failure to ensure fallback is always attempted
+- File storage writes are now conditional on actual changes to prevent unnecessary I/O
+- Error messages are now properly logged at ERROR level for critical issues
+
+### Notes
+- Users experiencing the "Custom element not found" error should reload their browser after updating
+- This fix addresses the root cause of the resource loading issue
+- No breaking changes - existing installations will continue to work normally
+
 ## [0.6.6] - 2026-01-04
 
 ### Fixed
