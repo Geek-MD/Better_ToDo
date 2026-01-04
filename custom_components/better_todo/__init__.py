@@ -166,6 +166,131 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Note: Dashboard creation is handled through device grouping
     # All entities are automatically grouped under their device in the UI
 
+    # Register standard todo platform services to make entities compatible with native cards
+    async def handle_todo_add_item(call: ServiceCall) -> None:
+        """Handle the standard todo.add_item service call."""
+        from .todo import TodoItem
+        
+        entity_id = call.data["entity_id"]
+        
+        # Find the entity
+        entity = None
+        for entry_data in hass.data[DOMAIN].values():
+            if isinstance(entry_data, dict) and "entities" in entry_data:
+                entity = entry_data["entities"].get(entity_id)
+                if entity is not None:
+                    break
+        
+        if entity is None:
+            _LOGGER.debug("Entity %s not found for todo.add_item service", entity_id)
+            return
+        
+        # Create the task using standard service parameters
+        item = TodoItem(
+            summary=call.data["item"],
+            description=call.data.get("description"),
+            due=call.data.get("due_date") or call.data.get("due"),
+        )
+        await entity.async_create_todo_item(item)
+    
+    async def handle_todo_update_item(call: ServiceCall) -> None:
+        """Handle the standard todo.update_item service call."""
+        from .todo import TodoItem
+        
+        entity_id = call.data["entity_id"]
+        item_id = call.data["item"]
+        
+        # Find the entity
+        entity = None
+        for entry_data in hass.data[DOMAIN].values():
+            if isinstance(entry_data, dict) and "entities" in entry_data:
+                entity = entry_data["entities"].get(entity_id)
+                if entity is not None:
+                    break
+        
+        if entity is None:
+            _LOGGER.debug("Entity %s not found for todo.update_item service", entity_id)
+            return
+        
+        # Find the existing task by UID
+        existing_item = entity.get_item_by_uid(item_id)
+        
+        if existing_item is None:
+            _LOGGER.debug("Task with UID %s not found in entity %s", item_id, entity_id)
+            return
+        
+        # Build updated item with new values
+        updated_item = TodoItem(
+            uid=item_id,
+            summary=call.data.get("rename", existing_item.summary),
+            description=call.data.get("description", existing_item.description),
+            due=call.data.get("due_date") or call.data.get("due", existing_item.due),
+            status=call.data.get("status", existing_item.status),
+        )
+        await entity.async_update_todo_item(updated_item)
+    
+    async def handle_todo_remove_item(call: ServiceCall) -> None:
+        """Handle the standard todo.remove_item service call."""
+        entity_id = call.data["entity_id"]
+        item_id = call.data["item"]
+        
+        # Find the entity
+        entity = None
+        for entry_data in hass.data[DOMAIN].values():
+            if isinstance(entry_data, dict) and "entities" in entry_data:
+                entity = entry_data["entities"].get(entity_id)
+                if entity is not None:
+                    break
+        
+        if entity is None:
+            _LOGGER.debug("Entity %s not found for todo.remove_item service", entity_id)
+            return
+        
+        await entity.async_delete_todo_items([item_id])
+    
+    # Register standard todo services for compatibility with native cards
+    # Only register once, and only if not already registered by core todo platform
+    if not hass.services.has_service("todo", "add_item"):
+        hass.services.async_register(
+            "todo",
+            "add_item",
+            handle_todo_add_item,
+            schema=vol.Schema({
+                vol.Required("entity_id"): cv.entity_ids,
+                vol.Required("item"): cv.string,
+                vol.Optional("description"): cv.string,
+                vol.Optional("due_date"): cv.string,
+                vol.Optional("due"): cv.string,
+            }),
+        )
+    
+    if not hass.services.has_service("todo", "update_item"):
+        hass.services.async_register(
+            "todo",
+            "update_item",
+            handle_todo_update_item,
+            schema=vol.Schema({
+                vol.Required("entity_id"): cv.entity_ids,
+                vol.Required("item"): cv.string,
+                vol.Optional("rename"): cv.string,
+                vol.Optional("description"): cv.string,
+                vol.Optional("due_date"): cv.string,
+                vol.Optional("due"): cv.string,
+                vol.Optional("status"): vol.In(["needs_action", "completed"]),
+            }),
+        )
+    
+    if not hass.services.has_service("todo", "remove_item"):
+        hass.services.async_register(
+            "todo",
+            "remove_item",
+            handle_todo_remove_item,
+            schema=vol.Schema({
+                vol.Required("entity_id"): cv.entity_ids,
+                vol.Required("item"): cv.string,
+            }),
+        )
+
     # Register services
     async def handle_set_task_recurrence(call: ServiceCall) -> None:
         """Handle the set_task_recurrence service call."""
@@ -491,7 +616,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         await async_remove_dashboard(hass)
         _LOGGER.info("Removed Better ToDo dashboard - no more lists configured")
         
-        # Unregister services
+        # Unregister Better ToDo custom services
         hass.services.async_remove(DOMAIN, SERVICE_SET_TASK_RECURRENCE)
         hass.services.async_remove(DOMAIN, SERVICE_GET_TASK_RECURRENCE)
         hass.services.async_remove(DOMAIN, SERVICE_APPLY_RECURRENCE_FROM_UI)
@@ -499,5 +624,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.services.async_remove(DOMAIN, SERVICE_UPDATE_TASK)
         hass.services.async_remove(DOMAIN, SERVICE_DELETE_TASK)
         hass.services.async_remove(DOMAIN, SERVICE_MOVE_TASK)
+        
+        # Unregister standard todo services (only if we registered them)
+        # Check if there are other todo platform entities before removing
+        if hass.services.has_service("todo", "add_item"):
+            # Only remove if no other todo entities exist
+            all_states = hass.states.async_all("todo")
+            if not all_states:
+                hass.services.async_remove("todo", "add_item")
+                hass.services.async_remove("todo", "update_item")
+                hass.services.async_remove("todo", "remove_item")
 
     return unload_ok

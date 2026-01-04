@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-01-04
+
+### Changed
+- **Dashboard Visualization**: Complete overhaul using View Assist-inspired DOM injection pattern
+  - Replaced custom card definitions with dynamic DOM injection approach
+  - Dashboard now uses empty panel that JavaScript populates at runtime
+  - Cards are injected directly into the DOM using native `hui-todo-list-card` elements
+  - Eliminates complex custom card coordination and YAML configuration
+  - More reliable rendering through direct shadow DOM manipulation
+
+### Added
+- **better-todo-panel.js**: New JavaScript module for dynamic card injection
+  - Automatically detects Better ToDo dashboard navigation
+  - Traverses shadow DOM to inject native todo-list cards
+  - Uses proven patterns from View Assist integration
+  - Handles automatic updates when entities change
+  - No manual card configuration required
+
+- **Standard Todo Service Support**: Added handlers for Home Assistant's native todo services
+  - `todo.add_item` - Create new tasks
+  - `todo.update_item` - Update existing tasks
+  - `todo.remove_item` - Delete tasks
+  - Full compatibility with Home Assistant's todo platform ecosystem
+
+### Fixed
+- **Entity Attributes**: Modified `extra_state_attributes` in todo.py
+  - Provides clean `items` list without header items for native card consumption
+  - Maintains backward compatibility via `todo_items` attribute with headers
+  - Fixes visualization issues with native cards
+
+### Technical Details
+- JavaScript module registration updated to follow View Assist pattern exactly
+  - Added gzip file cleanup functionality
+  - Improved version management and module updates
+  - Resources registered at `/better_todo/js` path
+- Dashboard creates empty view - all cards generated dynamically by JavaScript
+- Native `hui-todo-list-card` elements used for maximum compatibility
+- All changes pass ruff, mypy, and hassfest validation
+
+### Migration Notes
+- No breaking changes - existing configurations will continue to work
+- Dashboard will automatically use new DOM injection approach
+- Reload browser after update to load new JavaScript modules
+- Custom cards (better-todo-card, better-todo-dashboard-card) remain available for manual use
+
 ## [0.6.8] - 2026-01-04
 
 ### Changed

@@ -150,10 +150,9 @@ async def _async_reload_frontend_panels(hass: HomeAssistant) -> None:
 async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     """Create or update the Better ToDo dashboard.
     
-    Creates a dashboard using better-todo-dashboard-card which replicates 
-    the core To-do List integration's two-section layout:
-    - Left section: All Better ToDo lists with task counts
-    - Right section: Tasks from the selected list with enhanced category headers
+    Creates a dashboard that will be dynamically populated by better-todo-panel.js.
+    This approach uses DOM injection similar to View Assist, eliminating the need
+    for YAML card configuration and providing more reliable visualization.
     
     The dashboard panel is created programmatically using standard Lovelace
     configuration with websocket API fallback for compatibility.
@@ -163,28 +162,25 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     if not entries:
         return
     
-    # Create dashboard with the better-todo-dashboard-card that replicates
-    # the core To-do List integration layout (two-section: lists on left, tasks on right)
-    cards: list[dict[str, Any]] = [
-        {
-            "type": "custom:better-todo-dashboard-card",
-        }
-    ]
+    # Create an empty dashboard - cards will be injected by better-todo-panel.js
+    # This approach is more reliable as it uses direct DOM manipulation
+    # similar to the View Assist integration pattern
+    cards: list[dict[str, Any]] = []
     
-    # Dashboard configuration - includes the main dashboard card
+    # Dashboard configuration - empty view that will be populated by JavaScript
     config: dict[str, Any] = {
         "views": [
             {
                 "title": "Tasks",
                 "path": "tasks",
                 "icon": "mdi:format-list-checks",
-                "cards": cards,
+                "cards": cards,  # Empty - JavaScript will inject native cards
             }
         ]
     }
     
-    # JavaScript resources are now handled by javascript.py module
-    # following the view_assist pattern for reliable registration
+    # JavaScript module (better-todo-panel.js) handles card injection
+    # It will automatically create native todo-list cards for each Better ToDo entity
     
     # Check if dashboard already exists
     dashboard_exists = False

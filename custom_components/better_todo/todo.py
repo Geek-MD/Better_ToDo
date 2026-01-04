@@ -388,8 +388,11 @@ class BetterTodoEntity(Entity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return extra state attributes including all task data."""
-        # Get sorted items for display
-        sorted_items = self._sort_items(self._items)
+        # Get actual task items (no headers, no completed for active list)
+        active_items = [
+            item for item in self._items 
+            if not self._is_header_item(item) and item.status != STATUS_COMPLETED
+        ]
         
         # Get completed items
         completed_items = [
@@ -397,16 +400,22 @@ class BetterTodoEntity(Entity):
             if not self._is_header_item(item) and item.status == STATUS_COMPLETED
         ]
         
+        # For native todo-list card compatibility, provide a clean items list
+        # without headers, just the actual tasks
+        all_items = active_items + completed_items
+        
         # Convert TodoItem objects to dicts for attributes
-        sorted_items_dict = [asdict(item) for item in sorted_items]
-        completed_items_dict = [asdict(item) for item in completed_items]
+        all_items_dict = [asdict(item) for item in all_items]
+        
+        # Also provide sorted items with headers for custom cards (backward compatibility)
+        sorted_items_with_headers = self._sort_items(self._items)
+        sorted_items_dict = [asdict(item) for item in sorted_items_with_headers]
         
         return {
-            "items": sorted_items_dict,
-            "todo_items": sorted_items_dict,  # Alias for custom cards compatibility
-            "completed_items": completed_items_dict,
+            "items": all_items_dict,  # Clean list for native card
+            "todo_items": sorted_items_dict,  # With headers for custom cards
             "recurrence_data": self._recurrence_data,
-            "total_tasks": len([i for i in self._items if not self._is_header_item(i)]),
+            "total_tasks": len(all_items),
         }
 
     async def async_create_todo_item(self, item: TodoItem) -> None:
@@ -528,6 +537,6 @@ class BetterTodoEntity(Entity):
             "name": self._entry.data["name"],
             "manufacturer": "Better ToDo",
             "model": "Task List",
-            "sw_version": "0.6.0",
+            "sw_version": "0.7.0",
         }
 
