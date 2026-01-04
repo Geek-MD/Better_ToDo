@@ -1,18 +1,21 @@
-"""Custom todo entity for Better ToDo integration (NOT using Platform.TODO)."""
+"""Custom todo entity for Better ToDo integration."""
 from __future__ import annotations
 
 import logging
 import uuid
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, replace
 from datetime import datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
+from homeassistant.components.todo import TodoItem, TodoItemStatus, TodoListEntity, TodoListEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.entity import Entity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers import storage
 from homeassistant.util import dt as dt_util
+
+if TYPE_CHECKING:
+    pass
 
 from .const import (
     ATTR_RECURRENCE_CURRENT_COUNT,
@@ -39,20 +42,9 @@ HEADER_SUFFIX = " ---"
 
 STORAGE_VERSION = 1
 
-# Task status constants (replicating TodoItemStatus)
-STATUS_NEEDS_ACTION = "needs_action"
-STATUS_COMPLETED = "completed"
-
-
-@dataclass
-class TodoItem:
-    """Represent a todo item (replicate homeassistant.components.todo.TodoItem)."""
-
-    summary: str
-    uid: str | None = None
-    status: str = STATUS_NEEDS_ACTION
-    due: str | None = None
-    description: str | None = None
+# Task status constants (using core TodoItemStatus)
+STATUS_NEEDS_ACTION = TodoItemStatus.NEEDS_ACTION
+STATUS_COMPLETED = TodoItemStatus.COMPLETED
 
 
 async def async_setup_entry(
@@ -60,7 +52,7 @@ async def async_setup_entry(
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the Better ToDo custom entity (NOT using Platform.TODO)."""
+    """Set up the Better ToDo entity."""
     entity = BetterTodoEntity(hass, entry)
     await entity.async_load_data()
     async_add_entities([entity], True)
@@ -70,17 +62,24 @@ async def async_setup_entry(
         hass.data[DOMAIN][entry.entry_id]["entities"][entity.entity_id] = entity
 
 
-class BetterTodoEntity(Entity):
-    """A custom To-do List entity that does NOT inherit from TodoListEntity.
+class BetterTodoEntity(TodoListEntity):
+    """A Better ToDo List entity that inherits from TodoListEntity.
     
-    This entity replicates all TodoListEntity functionality but is NOT recognized
-    by Home Assistant's core Todo integration, so it won't appear in the native
-    "To-do lists" dashboard.
+    This entity properly inherits from TodoListEntity to ensure compatibility with
+    Home Assistant's native todo-list cards and the core todo integration structure.
     """
 
     _attr_has_entity_name = True
     _attr_name = None  # Will use the device name
     _attr_icon = "mdi:format-list-checks"
+    _attr_supported_features = (
+        TodoListEntityFeature.CREATE_TODO_ITEM
+        | TodoListEntityFeature.UPDATE_TODO_ITEM
+        | TodoListEntityFeature.DELETE_TODO_ITEM
+        | TodoListEntityFeature.MOVE_TODO_ITEM
+        | TodoListEntityFeature.SET_DUE_DATE_ON_ITEM
+        | TodoListEntityFeature.SET_DESCRIPTION_ON_ITEM
+    )
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize BetterTodoEntity."""
@@ -123,12 +122,10 @@ class BetterTodoEntity(Entity):
 
     async def async_save_data(self) -> None:
         """Save task data to storage."""
-        from dataclasses import is_dataclass
-        
         # Convert TodoItem objects to dicts for JSON serialization
         items_data = []
         for item in self._items:
-            if is_dataclass(item):
+            if hasattr(item, '__dataclass_fields__'):
                 items_data.append(asdict(item))
             elif isinstance(item, dict):
                 items_data.append(item)
@@ -141,13 +138,10 @@ class BetterTodoEntity(Entity):
         })
 
     @property
-    def state(self) -> str:
-        """Return the state of the entity (number of active tasks)."""
-        active_count = sum(
-            1 for item in self._items 
-            if item.status != STATUS_COMPLETED
-        )
-        return str(active_count)
+    def todo_items(self) -> list[TodoItem]:
+        """Return the To-do items in the To-do list."""
+        # Filter out header items and return actual tasks
+        return [item for item in self._items if not self._is_header_item(item)]
 
     @property
     def entity_id(self) -> str:
@@ -419,7 +413,7 @@ class BetterTodoEntity(Entity):
         }
 
     async def async_create_todo_item(self, item: TodoItem) -> None:
-        """Create a To-do item."""
+        """Create a To-do item (required by TodoListEntity)."""
         # Ensure the item has a UID
         item = self._ensure_item_uid(item)
         self._items.append(item)
@@ -427,7 +421,7 @@ class BetterTodoEntity(Entity):
         self.async_write_ha_state()
 
     async def async_update_todo_item(self, item: TodoItem) -> None:
-        """Update a To-do item."""
+        """Update a To-do item (required by TodoListEntity)."""
         # Ensure the item has a UID
         if item.uid is None:
             # If no UID, we can't update - this shouldn't happen
@@ -442,7 +436,7 @@ class BetterTodoEntity(Entity):
         self.async_write_ha_state()
 
     async def async_delete_todo_items(self, uids: list[str]) -> None:
-        """Delete To-do items."""
+        """Delete To-do items (required by TodoListEntity)."""
         self._items = [item for item in self._items if item.uid not in uids]
         # Clean up recurrence data for deleted items
         for uid in uids:
@@ -453,7 +447,7 @@ class BetterTodoEntity(Entity):
     async def async_move_todo_item(
         self, uid: str, previous_uid: str | None = None
     ) -> None:
-        """Move a To-do item."""
+        """Move a To-do item (required by TodoListEntity)."""
         # Find the item to move
         item_to_move = None
         for idx, item in enumerate(self._items):
@@ -537,6 +531,6 @@ class BetterTodoEntity(Entity):
             "name": self._entry.data["name"],
             "manufacturer": "Better ToDo",
             "model": "Task List",
-            "sw_version": "0.7.0",
+            "sw_version": "0.8.0",
         }
 

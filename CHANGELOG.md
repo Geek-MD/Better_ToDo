@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-01-04
+
+### Changed
+- **Entity Architecture**: Complete refactor to inherit from core TodoListEntity
+  - BetterTodoEntity now properly inherits from `TodoListEntity` instead of base `Entity`
+  - Full compatibility with Home Assistant's native todo platform and services
+  - Entities now work seamlessly with native `todo-list` cards
+  - Proper support for all TodoListEntityFeature flags
+  - Implements all required TodoListEntity methods (create, update, delete, move)
+
+- **Dashboard Structure**: Updated to use native todo-list cards
+  - Dashboard creates individual native `todo-list` cards for each Better ToDo entity
+  - Exactly replicates the structure of Home Assistant's core To-do list integration
+  - Each list displayed as a separate card with full native functionality
+  - Removed JavaScript DOM injection approach in favor of standard Lovelace cards
+
+- **Platform Registration**: Added Platform.TODO to PLATFORMS
+  - Better ToDo entities now registered through the standard todo platform
+  - Automatic integration with Home Assistant's todo services
+  - No need for manual service registration
+
+### Added
+- **TodoListEntityFeature Support**: Full feature flag implementation
+  - CREATE_TODO_ITEM
+  - UPDATE_TODO_ITEM  
+  - DELETE_TODO_ITEM
+  - MOVE_TODO_ITEM
+  - SET_DUE_DATE_ON_ITEM
+  - SET_DESCRIPTION_ON_ITEM
+
+### Fixed
+- **Native Card Compatibility**: Entities now properly expose `todo_items` property
+  - Returns list of TodoItem objects as expected by native cards
+  - Filters out header items for clean presentation
+  - Maintains recurrence data in extra state attributes
+
+### Removed
+- **Manual Service Registration**: Removed custom todo service handlers
+  - Standard todo services (add_item, update_item, remove_item) now provided by TodoListEntity
+  - Cleaner integration with Home Assistant's service architecture
+
+### Technical Details
+- Uses core `homeassistant.components.todo.TodoItem` for type compatibility
+- Proper type hints with TYPE_CHECKING for mypy compliance
+- All changes pass ruff, mypy, and hassfest validation
+- Version bumped to 0.8.0
+
+### Migration Notes
+- **Breaking Change**: Better ToDo entities now appear in the native "To-do lists" dashboard
+- Existing configurations will continue to work
+- Better ToDo dashboard still available for enhanced features
+- Reload Home Assistant after update to apply changes
+
 ## [0.7.0] - 2026-01-04
 
 ### Changed
