@@ -162,25 +162,33 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     if not entries:
         return
     
-    # Create an empty dashboard - cards will be injected by better-todo-panel.js
-    # This approach is more reliable as it uses direct DOM manipulation
-    # similar to the View Assist integration pattern
-    cards: list[dict[str, Any]] = []
+    # Use the better-todo-dashboard-card which provides a two-column layout
+    # Left column: List of all Better ToDo lists
+    # Right column: Tasks from the selected list
+    cards: list[dict[str, Any]] = [
+        {
+            "type": "custom:better-todo-dashboard-card",
+        }
+    ]
     
-    # Dashboard configuration - empty view that will be populated by JavaScript
+    # Dashboard configuration with the custom dashboard card
     config: dict[str, Any] = {
         "views": [
             {
                 "title": "Tasks",
                 "path": "tasks",
                 "icon": "mdi:format-list-checks",
-                "cards": cards,  # Empty - JavaScript will inject native cards
+                "cards": cards,
             }
         ]
     }
     
-    # JavaScript module (better-todo-panel.js) handles card injection
-    # It will automatically create native todo-list cards for each Better ToDo entity
+    # The better-todo-dashboard-card provides:
+    # - Left panel with all Better ToDo lists
+    # - Right panel with tasks from the selected list
+    # - Full CRUD operations for tasks (create, update, delete, mark complete)
+    # - Category headers (No due date, This week, Forthcoming, Completed)
+    # - Integrated task dialog with recurrence support
     
     # Check if dashboard already exists
     dashboard_exists = False
