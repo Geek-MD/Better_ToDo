@@ -252,9 +252,10 @@ async def _async_reload_frontend_panels(hass: HomeAssistant) -> None:
 async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     """Create or update the Better ToDo dashboard.
     
-    Creates an empty dashboard that users can manually customize with their own cards.
-    Users can add custom cards, iframes, or any other Lovelace card configuration.
-    See README.md for examples on how to manually configure the dashboard.
+    Creates a dashboard that replicates the core To-do List integration layout.
+    The dashboard uses the better-todo-dashboard-card which shows a two-section layout:
+    - Left section: All Better ToDo lists with task counts
+    - Right section: Tasks from the selected list with category headers
     
     This implementation uses the websocket API approach (similar to view_assist_integration)
     to programmatically create the dashboard panel.
@@ -264,12 +265,15 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     if not entries:
         return
     
-    # Create an empty dashboard with no cards
-    # Users can manually add cards through the UI or by editing the dashboard YAML
-    # The empty list is kept for consistency with the configuration structure
-    cards: list[dict[str, Any]] = []
+    # Create dashboard with the better-todo-dashboard-card that replicates
+    # the core To-do List integration layout (two-section: lists on left, tasks on right)
+    cards: list[dict[str, Any]] = [
+        {
+            "type": "custom:better-todo-dashboard-card",
+        }
+    ]
     
-    # Dashboard configuration - empty by default
+    # Dashboard configuration - includes the main dashboard card
     config: dict[str, Any] = {
         "views": [
             {

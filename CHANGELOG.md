@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.2] - 2026-01-04
+
+### Changed
+- **Dashboard Content**: Updated dashboard to replicate the core To-do List integration layout
+  - Dashboard now includes `better-todo-dashboard-card` by default
+  - Two-section layout: Lists on the left, tasks on the right
+  - Matches the user experience of Home Assistant's core To-do List dashboard
+  - Users can still customize the dashboard by editing it through the UI
+
+### Technical Details
+- Dashboard configuration now includes the better-todo-dashboard-card instead of being empty
+- Card provides the same two-section interface as the core integration
+- Left section displays all Better ToDo lists with task counts
+- Right section shows tasks from the selected list with category headers
+
+### Notes
+- This change makes the dashboard immediately useful after installation
+- The dashboard still supports customization through the UI
+- No breaking changes - existing installations will see the new card on reload
+
 ## [0.6.1] - 2026-01-04
 
 ### Changed
