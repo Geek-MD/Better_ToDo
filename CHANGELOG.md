@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.4] - 2026-01-04
+
+### Fixed
+- **Dashboard Configuration KeyError**: Fixed `KeyError: 'config'` when loading Better ToDo dashboard
+  - Updated dashboard storage format to wrap configuration in a "config" key
+  - Home Assistant's lovelace system expects `{"config": {...}}` structure in storage
+  - Fixed both Storage API and file storage fallback methods
+  - Resolves "Unknown Error" message when selecting Better ToDo dashboard
+  - Dashboard now loads properly without requiring UI reload
+
+### Technical Details
+- Changed `store.async_save(config)` to `store.async_save({"config": config})`
+- Updated file storage metadata structure from `"data": config` to `"data": {"config": config}`
+- Ensures compatibility with Home Assistant's lovelace dashboard loader
+
+### Notes
+- This is a critical fix for dashboard display issues
+- Users may need to remove and recreate the integration for the fix to take effect, or manually delete the `.storage/lovelace.better-todo` file
+- No other functional changes
+
 ## [0.6.3] - 2026-01-04
 
 ### Fixed

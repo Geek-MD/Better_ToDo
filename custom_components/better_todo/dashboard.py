@@ -353,10 +353,11 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
         else:
             _LOGGER.warning("Failed to create dashboard via websocket API, trying fallback method")
     
-    # Save the empty dashboard configuration
+    # Save the dashboard configuration
+    # Home Assistant's lovelace expects the data to have a "config" key
     try:
         store = storage.Store(hass, STORAGE_VERSION, STORAGE_KEY)
-        await store.async_save(config)
+        await store.async_save({"config": config})
         _LOGGER.info("Dashboard configuration saved successfully")
     except Exception as err:
         _LOGGER.warning("Could not save dashboard configuration: %s", err)
@@ -372,12 +373,13 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
             storage_dir.mkdir(exist_ok=True)
             
             # Create the lovelace dashboard metadata file
+            # Home Assistant's lovelace expects the data to have a "config" key
             dashboard_file = storage_dir / f"lovelace.{DASHBOARD_URL}"
             dashboard_metadata = {
                 "version": 1,
                 "minor_version": 1,
                 "key": f"lovelace.{DASHBOARD_URL}",
-                "data": config,
+                "data": {"config": config},
             }
             
             await _async_write_file(hass, dashboard_file, json.dumps(dashboard_metadata, indent=2))
