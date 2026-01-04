@@ -16,12 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed old static path registration in favor of dynamic module registration
 
 ### Changed
-- **Dashboard Structure**: Dashboard now uses native Home Assistant todo-list cards by default
-  - Dashboard automatically populated with native `todo-list` cards for each Better ToDo list
-  - Full compatibility with Home Assistant core To-do List integration structure
-  - Custom cards (better-todo-card, better-todo-dashboard-card) remain available as optional enhancements
-  - No manual configuration required - dashboard works out of the box
-  - Better alignment with Home Assistant's native UI patterns
+- **Dashboard Structure**: Dashboard uses `better-todo-dashboard-card` that replicates core To-do List integration structure
+  - Dashboard automatically created with `better-todo-dashboard-card` custom card
+  - Two-section layout (same as core integration): Lists on left, tasks on right
+  - Enhanced with custom category headers (No due date, This week, Forthcoming, Completed)
+  - Same visual structure and workflow as Home Assistant's core To-do List integration
+  - All Better ToDo lists automatically displayed with task counts
+  - Click any list to view its tasks in the right panel
 
 ### Added
 - **Constants**: Added `URL_BASE` and `JSMODULES` constants to `const.py` for module management
@@ -32,14 +33,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Following the pattern from [view_assist_integration](https://github.com/dinki/view_assist_integration)
 - JavaScript modules registered via `JSModuleRegistration` class with proper lifecycle management
 - Resources checked and updated based on version changes
-- Native `todo-list` cards provide standard Home Assistant interface
-- Custom cards registered but not required for basic functionality
+- `better-todo-dashboard-card` replicates core To-do List integration layout
+- Custom cards automatically registered via view_assist pattern
 - All changes pass ruff and mypy validation
 
 ### Notes
-- Users will see native todo-list cards by default after update
-- Custom cards remain available and can be manually configured if desired
-- No breaking changes - existing custom card configurations will continue to work
+- Users will see `better-todo-dashboard-card` by default after update (same layout as core integration)
+- Custom card provides enhanced features while maintaining familiar structure
+- No breaking changes - existing configurations will continue to work
 - Reload browser after update to load new JavaScript modules
 
 ## [0.6.7] - 2026-01-04

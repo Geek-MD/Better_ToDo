@@ -150,39 +150,28 @@ async def _async_reload_frontend_panels(hass: HomeAssistant) -> None:
 async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     """Create or update the Better ToDo dashboard.
     
-    Uses the same structure as Home Assistant's core To-do List integration:
-    - Native todo-list cards showing all Better ToDo entities
-    - Standard two-column layout (todo-list on left, todo-list on right)
-    - Each entity gets its own native todo-list card
+    Creates a dashboard that replicates the core To-do List integration layout.
+    The dashboard uses the better-todo-dashboard-card which shows a two-section layout:
+    - Left section: All Better ToDo lists with task counts
+    - Right section: Tasks from the selected list with category headers
     
-    This ensures full compatibility with Home Assistant's native UI components
-    and eliminates any custom card errors.
+    This implementation uses the websocket API approach (similar to view_assist_integration)
+    to programmatically create the dashboard panel.
     """
     # Get all Better ToDo entries
     entries = hass.config_entries.async_entries(DOMAIN)
     if not entries:
         return
     
-    # Create cards using NATIVE todo-list type (same as core To-do List integration)
-    # Get all Better ToDo entities
-    all_entities = []
-    for entry in entries:
-        entity_id = f"todo.{entry.data['name'].lower().replace(' ', '_')}"
-        # Verify entity exists before adding
-        if hass.states.get(entity_id):
-            all_entities.append(entity_id)
+    # Create dashboard with the better-todo-dashboard-card that replicates
+    # the core To-do List integration layout (two-section: lists on left, tasks on right)
+    cards: list[dict[str, Any]] = [
+        {
+            "type": "custom:better-todo-dashboard-card",
+        }
+    ]
     
-    # Build cards array with native todo-list cards (core To-do list structure)
-    cards: list[dict[str, Any]] = []
-    
-    # Create native todo-list cards for each entity (2 columns layout like core)
-    for entity_id in all_entities:
-        cards.append({
-            "type": "todo-list",
-            "entity": entity_id,
-        })
-    
-    # Dashboard configuration - uses standard views structure like core To-do List
+    # Dashboard configuration - includes the main dashboard card
     config: dict[str, Any] = {
         "views": [
             {
@@ -193,6 +182,9 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
             }
         ]
     }
+    
+    # JavaScript resources are now handled by javascript.py module
+    # following the view_assist pattern for reliable registration
     
     # Check if dashboard already exists
     dashboard_exists = False
