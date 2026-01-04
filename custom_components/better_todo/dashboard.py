@@ -150,10 +150,9 @@ async def _async_reload_frontend_panels(hass: HomeAssistant) -> None:
 async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     """Create or update the Better ToDo dashboard.
     
-    Creates a dashboard using better-todo-dashboard-card which replicates 
-    the core To-do List integration's two-section layout:
-    - Left section: All Better ToDo lists with task counts
-    - Right section: Tasks from the selected list with enhanced category headers
+    Creates a dashboard using native Home Assistant todo-list cards.
+    This approach is simpler and more reliable than custom JavaScript cards,
+    as it uses Home Assistant's built-in visualization components.
     
     The dashboard panel is created programmatically using standard Lovelace
     configuration with websocket API fallback for compatibility.
@@ -163,15 +162,23 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     if not entries:
         return
     
-    # Create dashboard with the better-todo-dashboard-card that replicates
-    # the core To-do List integration layout (two-section: lists on left, tasks on right)
-    cards: list[dict[str, Any]] = [
-        {
-            "type": "custom:better-todo-dashboard-card",
-        }
-    ]
+    # Create a card for each todo list using the native todo-list card type
+    # This works with any entity in the todo domain that has the proper attributes
+    cards: list[dict[str, Any]] = []
     
-    # Dashboard configuration - includes the main dashboard card
+    for entry in entries:
+        list_name = entry.data.get("name", "Tasks")
+        slug = list_name.lower().replace(" ", "_")
+        entity_id = f"todo.{slug}"
+        
+        # Add a native todo-list card for this list
+        cards.append({
+            "type": "todo-list",
+            "entity": entity_id,
+            "title": list_name,
+        })
+    
+    # Dashboard configuration - uses native cards
     config: dict[str, Any] = {
         "views": [
             {
@@ -183,8 +190,8 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
         ]
     }
     
-    # JavaScript resources are now handled by javascript.py module
-    # following the view_assist pattern for reliable registration
+    # Note: Using native cards eliminates the need for JavaScript modules
+    # The native todo-list card is built into Home Assistant
     
     # Check if dashboard already exists
     dashboard_exists = False
