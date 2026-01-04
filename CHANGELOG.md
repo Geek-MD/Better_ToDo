@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Matches the user experience of Home Assistant's core To-do List dashboard
   - Users can still customize the dashboard by editing it through the UI
 
+### Fixed
+- **Dependencies**: Added `lovelace` to dependencies in manifest.json
+  - Required because the code imports from `homeassistant.components.lovelace`
+  - Fixes Hassfest validation error
+
 ### Technical Details
 - Dashboard configuration now includes the better-todo-dashboard-card instead of being empty
 - Card provides the same two-section interface as the core integration
