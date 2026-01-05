@@ -42,7 +42,6 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [
-    Platform.TODO,
     Platform.NUMBER,
     Platform.SELECT,
     Platform.BUTTON,
@@ -130,6 +129,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = {"config": entry.data, "entities": {}}
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    
+    # Manually set up the todo entity (not using Platform.TODO to avoid appearing in native todo dashboard)
+    # This creates a BetterTodoEntity that inherits from Entity instead of TodoListEntity
+    from .todo import async_setup_entry as async_setup_todo_entry
+    from homeassistant.helpers import entity_component
+    
+    # Create a callback to collect entities
+    entities_to_add = []
+    
+    def sync_add_entities(entities, update_before_add=True):
+        """Synchronous callback to collect entities."""
+        entities_to_add.extend(entities)
+    
+    # Call the todo setup function with our callback
+    await async_setup_todo_entry(hass, entry, sync_add_entities)
+    
+    # Register the entities with Home Assistant using 'todo' domain
+    if entities_to_add:
+        component = entity_component.EntityComponent(_LOGGER, "todo", hass)
+        await component.async_add_entities(entities_to_add)
+        _LOGGER.info("Registered %d Better ToDo entities", len(entities_to_add))
 
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
