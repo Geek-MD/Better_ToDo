@@ -5,6 +5,87 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-01-05
+
+### Changed
+- **Entity Architecture**: Complete refactor to use base Entity instead of TodoListEntity
+  - `BetterTodoEntity` now inherits from `Entity` instead of `TodoListEntity`
+  - Better ToDo entities no longer appear in Home Assistant's native "To-do lists" dashboard
+  - Provides complete independence from the core TODO platform
+  - All functionality maintained through custom Better ToDo services
+
+- **Platform Registration**: Removed Platform.TODO from PLATFORMS list
+  - Better ToDo no longer registers as a native TODO platform
+  - Prevents entities from appearing in the native "To-do lists" dashboard
+  - Users have a single, dedicated "Better ToDo" dashboard experience
+
+- **Dashboard Approach**: Switched from custom panel to Lovelace dashboard
+  - Following View Assist integration pattern for dashboard creation
+  - Uses standard Lovelace dashboard with sidebar integration
+  - Replaced `panel_custom` approach with `dashboard.py` Lovelace dashboard
+  - More reliable and maintainable architecture
+
+### Added
+- **Custom Better ToDo List Card**: New `better-todo-list-card.js` (v0.9.0)
+  - Custom card that replicates native Home Assistant todo-list card UI/UX
+  - Full CRUD operations using Better ToDo custom services
+  - Inline task creation with keyboard support
+  - Shows active and completed tasks in separate sections
+  - Works directly with Better ToDo entities (no TodoListEntity dependency)
+
+- **Enhanced Logging**: Comprehensive debug logging throughout the integration
+  - **Python logging** in `todo.py`:
+    - Entity initialization and setup operations
+    - Data loading and saving operations
+    - Task creation, update, and deletion operations
+    - Detailed error messages for troubleshooting
+  - **JavaScript logging** in cards:
+    - Entity detection and rendering
+    - Service call operations
+    - Error conditions and edge cases
+    - Debug mode enabled by default for easier troubleshooting
+
+- **State Property**: Added `state` property to BetterTodoEntity
+  - Returns count of active (incomplete) tasks
+  - Provides proper entity state for Home Assistant
+
+### Removed
+- **TodoListEntity Dependencies**: No longer uses TodoListEntity infrastructure
+  - Removed `TodoListEntity` and `TodoListEntityFeature` imports
+  - Removed `_attr_supported_features` attribute
+  - Custom services now handle all task operations
+
+### Fixed
+- **Native Dashboard Isolation**: Better ToDo tasks no longer appear in native "To-do lists" panel
+  - Solves the issue of tasks appearing in both dashboards
+  - Provides clear separation between Better ToDo and other TODO integrations
+  - Users have a dedicated Better ToDo experience
+
+### Breaking Changes
+⚠️ **Important for users upgrading from v0.8.x**:
+- Better ToDo entities will **no longer appear** in Home Assistant's native "To-do lists" dashboard
+- All task management **must be done** through the "Better ToDo" dashboard in the sidebar
+- The Better ToDo dashboard provides identical functionality to the native dashboard
+- All existing tasks and data are preserved during the upgrade
+- Recurrence and all Better ToDo features continue to work normally
+
+### Technical Details
+- Entity inheritance: `Entity` (not `TodoListEntity`)
+- Platform registration: Removed `Platform.TODO` from `PLATFORMS`
+- Dashboard: Lovelace dashboard at `/better-todo` with sidebar entry
+- Custom card: `custom:better-todo-list-card` registered via `javascript.py`
+- Services: All operations use `better_todo.*` services
+- Logging: DEBUG_MODE enabled in JavaScript modules
+- Version: 0.8.1 → 0.9.0
+- All changes pass ruff, mypy, and hassfest validation
+
+### Migration Notes
+- **No action required** for most users - upgrade is automatic
+- **Dashboard location**: Tasks accessible via "Better ToDo" in sidebar
+- **No data loss**: All existing tasks and settings are preserved
+- **Feature parity**: All functionality from v0.8.x is maintained
+- **Troubleshooting**: Enhanced logging helps diagnose any issues
+
 ## [0.8.1] - 2026-01-05
 
 ### Fixed
