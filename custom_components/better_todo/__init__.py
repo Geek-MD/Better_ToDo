@@ -27,6 +27,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import entity_component
+from homeassistant.helpers.entity import Entity
 
 from .const import (
     ATTR_RECURRENCE_ENABLED,
@@ -38,6 +40,7 @@ from .const import (
     ATTR_RECURRENCE_UNIT,
     DOMAIN,
 )
+from .todo import async_setup_entry as async_setup_todo_entry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -129,6 +132,30 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN][entry.entry_id] = {"config": entry.data, "entities": {}}
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    
+    # Manually set up the todo entity (not using Platform.TODO to avoid appearing in native todo dashboard)
+    # This creates a BetterTodoEntity that inherits from Entity instead of TodoListEntity
+    
+    # Create a callback to collect entities
+    entities_to_add: list[Entity] = []
+    
+    def collect_entities(entities: list[Entity], update_before_add: bool = True) -> None:
+        """Collect entities to be registered.
+        
+        Args:
+            entities: List of entities to collect
+            update_before_add: Compatibility parameter for AddEntitiesCallback signature
+        """
+        entities_to_add.extend(entities)
+    
+    # Call the todo setup function with our callback
+    await async_setup_todo_entry(hass, entry, collect_entities)
+    
+    # Register the entities with Home Assistant using 'todo' domain
+    if entities_to_add:
+        component = entity_component.EntityComponent(_LOGGER, "todo", hass)
+        await component.async_add_entities(entities_to_add)
+        _LOGGER.info("Registered %d Better ToDo entities", len(entities_to_add))
 
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
