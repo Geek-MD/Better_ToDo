@@ -28,6 +28,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_component
+from homeassistant.helpers.entity import Entity
 
 from .const import (
     ATTR_RECURRENCE_ENABLED,
@@ -136,10 +137,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # This creates a BetterTodoEntity that inherits from Entity instead of TodoListEntity
     
     # Create a callback to collect entities
-    entities_to_add: list = []
+    entities_to_add: list[Entity] = []
     
-    def collect_entities(entities: list, update_before_add: bool = True) -> None:
-        """Collect entities to be registered."""
+    def collect_entities(entities: list[Entity], update_before_add: bool = True) -> None:
+        """Collect entities to be registered.
+        
+        Args:
+            entities: List of entities to collect
+            update_before_add: Compatibility parameter for AddEntitiesCallback signature
+        """
         entities_to_add.extend(entities)
     
     # Call the todo setup function with our callback
