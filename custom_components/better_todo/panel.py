@@ -26,7 +26,7 @@ async def async_register_panel(hass: HomeAssistant) -> None:
         frontend_url_path=DASHBOARD_URL,
         sidebar_title=DASHBOARD_TITLE,
         sidebar_icon=DASHBOARD_ICON,
-        module_url="/better_todo/js/better-todo-panel.js",
+        module_url="/better_todo/js/better-todo-panel-component.js",
         embed_iframe=False,
         require_admin=False,
         config={},
