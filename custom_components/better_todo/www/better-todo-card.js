@@ -753,7 +753,7 @@ class BetterTodoCard extends HTMLElement {
 
   static getStubConfig() {
     return {
-      entity: 'todo.tasks'
+      entity: 'better_todo.tasks'
     };
   }
 

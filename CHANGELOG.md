@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-01-05
+
+### Changed
+- **⚠️ BREAKING CHANGE - Entity Domain**: Changed entity domain from `todo` to `better_todo`
+  - Entity IDs now use `better_todo.` prefix instead of `todo.` (e.g., `better_todo.shopping_list` instead of `todo.shopping_list`)
+  - Prevents Better ToDo entities from appearing in other todo integrations like Local Todo
+  - Ensures complete isolation from native todo platform and third-party todo integrations
+  - **Migration required**: After updating, entity IDs will change. You'll need to update:
+    - Automations referencing old entity IDs
+    - Scripts using Better ToDo entities
+    - Dashboard cards with hardcoded entity IDs
+    - Any custom integrations or templates using Better ToDo entities
+
+### Fixed
+- **Third-party Integration Isolation**: Better ToDo entities no longer appear in other todo integrations
+  - Entities were appearing as empty/non-functional in Local Todo integration
+  - Root cause: Using `todo` domain without `TodoListEntity` interface
+  - Solution: Changed to dedicated `better_todo` domain for proper isolation
+
+### Technical Details
+- Added `ENTITY_DOMAIN` constant to `const.py` with value `"better_todo"`
+- Updated `__init__.py`: EntityComponent now uses `ENTITY_DOMAIN` instead of hardcoded `"todo"`
+- Updated `todo.py`: entity_id property generates IDs with `better_todo` domain
+- Updated `dashboard.py`: Dashboard card generation uses new domain
+- Updated `button.py`: Service calls reference new entity domain
+- Updated JavaScript files:
+  - `better-todo-panel-component.js`: Entity detection updated to `better_todo.` prefix
+  - `better-todo-panel.js`: Entity filtering updated
+  - `better-todo-dashboard-card.js`: Entity filtering and comments updated
+  - `better-todo-card.js`: Stub config example updated
+- All changes validated with ruff, mypy, and CodeQL
+
+### Migration Guide
+1. **Backup your configuration** before updating
+2. After updating to v0.10.0:
+   - Go to Developer Tools → States
+   - Note your new entity IDs (e.g., `better_todo.tasks` instead of `todo.tasks`)
+3. Update automations:
+   - Find: `todo.shopping_list` → Replace: `better_todo.shopping_list`
+   - Find: `todo.tasks` → Replace: `better_todo.tasks`
+4. Update scripts and templates similarly
+5. Restart Home Assistant to ensure all changes take effect
+
 ## [0.9.3] - 2026-01-05
 
 ### Fixed

@@ -36,22 +36,20 @@ class BetterTodoDashboardCard extends HTMLElement {
 
   /**
    * Get all Better ToDo entities
-   * Note: This filters for all todo.* entities. While not strictly limited to
-   * Better ToDo entities, this card is designed to be used exclusively in the
-   * Better ToDo dashboard where only Better ToDo entities are expected to be present.
-   * For a more strict check, we would need access to entity registry data which
-   * is not available from the frontend state object.
-   * @returns {Array} - Array of todo entity IDs
+   * Note: This filters for all better_todo.* entities.
+   * Better ToDo entities now use their own domain to prevent appearing
+   * in other todo integrations' interfaces.
+   * @returns {Array} - Array of Better ToDo entity IDs
    */
   _getTodoEntities() {
     if (!this._hass) return [];
     
     const entities = [];
     Object.keys(this._hass.states).forEach(entityId => {
-      if (entityId.startsWith('todo.')) {
+      if (entityId.startsWith('better_todo.')) {
         const state = this._hass.states[entityId];
-        // Check if this is a Better ToDo entity by looking at integration attribute
-        if (state.attributes && state.attributes.supported_features !== undefined) {
+        // Check if this is a Better ToDo entity by looking for recurrence_data
+        if (state.attributes && state.attributes.recurrence_data !== undefined) {
           entities.push(entityId);
         }
       }

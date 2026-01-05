@@ -40,6 +40,7 @@ from .const import (
     ATTR_RECURRENCE_INTERVAL,
     ATTR_RECURRENCE_UNIT,
     DOMAIN,
+    ENTITY_DOMAIN,
 )
 from .todo import async_setup_entry as async_setup_todo_entry
 
@@ -155,9 +156,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Call the todo setup function with our callback
     await async_setup_todo_entry(hass, entry, collect_entities)
     
-    # Register the entities with Home Assistant using 'todo' domain
+    # Register the entities with Home Assistant using 'better_todo' domain
     if entities_to_add:
-        component = entity_component.EntityComponent(_LOGGER, "todo", hass)
+        component = entity_component.EntityComponent(_LOGGER, ENTITY_DOMAIN, hass)
         await component.async_add_entities(entities_to_add)
         _LOGGER.info("Registered %d Better ToDo entities", len(entities_to_add))
 

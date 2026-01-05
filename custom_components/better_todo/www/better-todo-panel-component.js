@@ -65,7 +65,7 @@ class BetterTodoPanel extends HTMLElement {
     
     const entities = [];
     Object.keys(this._hass.states).forEach(entityId => {
-      if (entityId.startsWith('todo.')) {
+      if (entityId.startsWith('better_todo.')) {
         const state = this._hass.states[entityId];
         // Check if this is a Better ToDo entity by checking for recurrence_data attribute
         if (state.attributes && state.attributes.recurrence_data !== undefined) {

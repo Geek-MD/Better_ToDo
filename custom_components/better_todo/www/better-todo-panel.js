@@ -169,7 +169,7 @@ class BetterTodoPanel {
     
     const entities = [];
     Object.keys(this.hass.states).forEach(entityId => {
-      if (entityId.startsWith('todo.')) {
+      if (entityId.startsWith('better_todo.')) {
         const state = this.hass.states[entityId];
         // Check if this is a Better ToDo entity
         // We can identify them by checking if they have our custom attributes

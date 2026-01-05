@@ -28,6 +28,7 @@ from .const import (
     ATTR_RECURRENCE_INTERVAL,
     ATTR_RECURRENCE_UNIT,
     DOMAIN,
+    ENTITY_DOMAIN,
     GROUP_FORTHCOMING,
     GROUP_NO_DUE_DATE,
     GROUP_THIS_WEEK,
@@ -157,14 +158,14 @@ class BetterTodoEntity(Entity):
 
     @property
     def entity_id(self) -> str:
-        """Return entity ID using 'todo' domain."""
+        """Return entity ID using 'better_todo' domain."""
         # Return stored entity_id if available, otherwise generate from name
         if self._entity_id:
             return self._entity_id
-        # Use 'todo' domain to maintain compatibility
+        # Use 'better_todo' domain for proper isolation from other todo integrations
         list_name = self._entry.data.get("name", "tasks")
         slug = list_name.lower().replace(" ", "_")
-        return f"todo.{slug}"
+        return f"{ENTITY_DOMAIN}.{slug}"
     
     @entity_id.setter
     def entity_id(self, value: str) -> None:

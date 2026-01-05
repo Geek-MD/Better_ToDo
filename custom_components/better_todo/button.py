@@ -8,7 +8,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .const import DOMAIN, ENTITY_DOMAIN
 
 
 async def async_setup_entry(
@@ -52,7 +52,7 @@ class ApplyRecurrenceButton(ButtonEntity):
         task UID text entity.
         """
         # Call the apply_recurrence_from_ui service
-        todo_entity_id = f"todo.{self._entry.data['name'].lower().replace(' ', '_')}"
+        todo_entity_id = f"{ENTITY_DOMAIN}.{self._entry.data['name'].lower().replace(' ', '_')}"
         
         await self.hass.services.async_call(
             "better_todo",
