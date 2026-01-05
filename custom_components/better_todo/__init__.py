@@ -20,6 +20,7 @@ easily accessible like other Lovelace dashboards.
 """
 from __future__ import annotations
 
+import asyncio
 import logging
 import voluptuous as vol
 
@@ -125,6 +126,9 @@ APPLY_RECURRENCE_FROM_UI_SCHEMA = vol.Schema(
     }
 )
 
+# Global lock to prevent race conditions during panel registration
+_SETUP_LOCK = asyncio.Lock()
+
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Better ToDo from a config entry."""
@@ -160,30 +164,32 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
     # Register JavaScript modules using view_assist pattern (only once for all entries)
-    if not hass.data[DOMAIN].get("js_registered"):
-        from .javascript import JSModuleRegistration
-        js_registration = JSModuleRegistration(hass)
-        await js_registration.async_setup()
-        hass.data[DOMAIN]["js_registered"] = js_registration
-        _LOGGER.info("Registered Better ToDo JavaScript modules")
-    
-    # Register custom panel with sidebar integration
-    # This creates a panel similar to the native To-do lists panel with a sidebar
-    # showing all Better ToDo lists and a main content area for task management
-    if not hass.data[DOMAIN].get("panel_registered"):
-        from .panel import async_register_panel
-        await async_register_panel(hass)
-        hass.data[DOMAIN]["panel_registered"] = True
-        _LOGGER.info("Registered Better ToDo panel")
-    
-    # Also create/update Lovelace dashboard as an alternative view
-    # This creates a sidebar dashboard that dynamically shows native todo-list cards
-    # Unlike the panel_custom approach, this uses standard Lovelace dashboards
-    if not hass.data[DOMAIN].get("dashboard_created"):
-        from .dashboard import async_create_or_update_dashboard
-        await async_create_or_update_dashboard(hass)
-        hass.data[DOMAIN]["dashboard_created"] = True
-        _LOGGER.info("Created/updated Better ToDo dashboard")
+    # Use async lock to prevent race conditions when multiple entries are loaded simultaneously
+    async with _SETUP_LOCK:
+        if not hass.data[DOMAIN].get("js_registered"):
+            from .javascript import JSModuleRegistration
+            js_registration = JSModuleRegistration(hass)
+            await js_registration.async_setup()
+            hass.data[DOMAIN]["js_registered"] = js_registration
+            _LOGGER.info("Registered Better ToDo JavaScript modules")
+        
+        # Register custom panel with sidebar integration
+        # This creates a panel similar to the native To-do lists panel with a sidebar
+        # showing all Better ToDo lists and a main content area for task management
+        if not hass.data[DOMAIN].get("panel_registered"):
+            from .panel import async_register_panel
+            await async_register_panel(hass)
+            hass.data[DOMAIN]["panel_registered"] = True
+            _LOGGER.info("Registered Better ToDo panel")
+        
+        # Also create/update Lovelace dashboard as an alternative view
+        # This creates a sidebar dashboard that dynamically shows native todo-list cards
+        # Unlike the panel_custom approach, this uses standard Lovelace dashboards
+        if not hass.data[DOMAIN].get("dashboard_created"):
+            from .dashboard import async_create_or_update_dashboard
+            await async_create_or_update_dashboard(hass)
+            hass.data[DOMAIN]["dashboard_created"] = True
+            _LOGGER.info("Created/updated Better ToDo dashboard")
     
     # Better ToDo entities no longer inherit from TodoListEntity to prevent
     # them from appearing in the native "To-do lists" dashboard.

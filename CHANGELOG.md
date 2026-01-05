@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.3] - 2026-01-05
+
+### Fixed
+- **Panel Registration Race Condition**: Fixed `ValueError: Overwriting panel better-todo` error when multiple config entries load simultaneously
+  - Added `asyncio.Lock` to prevent race conditions during panel registration
+  - Panel, JavaScript modules, and dashboard are now registered with proper synchronization
+  - Prevents duplicate registration attempts when "Shopping List" and "Tasks" entries load at the same time
+  - Error "Error setting up entry Shopping List for better_todo" and "Error setting up entry Tasks for better_todo" is now resolved
+
+### Changed
+- **Code Quality Improvements**:
+  - Added asyncio import for proper async lock support
+  - Wrapped panel, JS modules, and dashboard registration in `async with _SETUP_LOCK` block
+  - Improved thread safety for concurrent entry setup operations
+  - All changes validated with ruff, mypy, and hassfest
+
+### Technical Details
+- Global `_SETUP_LOCK = asyncio.Lock()` ensures only one entry can register shared resources at a time
+- Lock protects the check-and-set pattern for `panel_registered`, `js_registered`, and `dashboard_created` flags
+- Eliminates timing issues when Home Assistant loads multiple config entries concurrently
+- No functional changes - only synchronization improvements
+
 ## [0.9.2] - 2026-01-05
 
 ### Fixed
