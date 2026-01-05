@@ -531,6 +531,6 @@ class BetterTodoEntity(TodoListEntity):
             "name": self._entry.data["name"],
             "manufacturer": "Better ToDo",
             "model": "Task List",
-            "sw_version": "0.8.0",
+            "sw_version": "0.8.1",
         }
 

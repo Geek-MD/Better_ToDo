@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2026-01-05
+
+### Fixed
+- **Panel JavaScript Loading**: Fixed custom panel loading incorrect JavaScript file
+  - Changed `panel.py` to load `better-todo-panel-component.js` instead of `better-todo-panel.js`
+  - The panel was trying to load the Lovelace DOM injection script (v0.7.0 approach) instead of the custom panel component (v0.8.0 approach)
+  - Panel now correctly displays the two-column layout with lists sidebar and task view
+  - Resolves issue where Better ToDo panel appeared empty while tasks were visible in native "To-do lists" dashboard
+
+### Technical Details
+- Updated `module_url` in `panel.py` to reference the correct JavaScript component
+- Now matches the JSMODULES registry in `const.py`
+- All changes pass ruff, mypy, and hassfest validation
+
 ## [0.8.0] - 2026-01-04
 
 ### Changed
