@@ -42,6 +42,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [
+    Platform.TODO,
     Platform.NUMBER,
     Platform.SELECT,
     Platform.BUTTON,
