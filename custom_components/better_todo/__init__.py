@@ -42,7 +42,6 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [
-    Platform.TODO,
     Platform.NUMBER,
     Platform.SELECT,
     Platform.BUTTON,
@@ -141,17 +140,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN]["js_registered"] = js_registration
         _LOGGER.info("Registered Better ToDo JavaScript modules")
     
-    # Register custom frontend panel (only once for all entries)
-    # This creates a sidebar entry with a custom panel (not a Lovelace dashboard)
-    # that replicates the core To-do list structure
-    if not hass.data[DOMAIN].get("panel_registered"):
-        from .panel import async_register_panel
-        await async_register_panel(hass)
-        hass.data[DOMAIN]["panel_registered"] = True
-
-    # Better ToDo entities now inherit from TodoListEntity, so they automatically
-    # work with Home Assistant's native todo services (todo.add_item, todo.update_item, etc.)
-    # No need to manually register these services anymore
+    # Create/update Lovelace dashboard (View Assist approach)
+    # This creates a sidebar dashboard that dynamically shows native todo-list cards
+    # Unlike the old panel_custom approach, this uses standard Lovelace dashboards
+    if not hass.data[DOMAIN].get("dashboard_created"):
+        from .dashboard import async_create_or_update_dashboard
+        await async_create_or_update_dashboard(hass)
+        hass.data[DOMAIN]["dashboard_created"] = True
+        _LOGGER.info("Created/updated Better ToDo dashboard")
+    
+    # Better ToDo entities no longer inherit from TodoListEntity to prevent
+    # them from appearing in the native "To-do lists" dashboard.
+    # All functionality is provided through the custom Better ToDo dashboard.
 
     # Register services
     async def handle_set_task_recurrence(call: ServiceCall) -> None:
@@ -472,10 +472,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if e.entry_id != entry.entry_id
     ]
     
-    # Remove panel and services if no more entries will remain
+    # Remove dashboard and services if no more entries will remain
     if not remaining_entries:
-        # Note: Custom panel removal is handled by Home Assistant automatically
-        _LOGGER.info("Removed Better ToDo panel - no more lists configured")
+        # Remove the dashboard
+        from .dashboard import async_remove_dashboard
+        await async_remove_dashboard(hass)
+        _LOGGER.info("Removed Better ToDo dashboard - no more lists configured")
         
         # Unregister Better ToDo custom services
         hass.services.async_remove(DOMAIN, SERVICE_SET_TASK_RECURRENCE)

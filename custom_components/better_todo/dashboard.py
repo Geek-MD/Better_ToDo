@@ -162,9 +162,9 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     if not entries:
         return
     
-    # Replicate the EXACT structure of the core To-do list integration:
-    # Create individual native todo-list cards for each Better ToDo entity
-    # This matches the native Home Assistant To-do lists dashboard structure
+    # Create custom Better ToDo cards for each entity
+    # Uses custom:better-todo-list-card which replicates native functionality
+    # but works with Better ToDo entities that don't inherit from TodoListEntity
     cards: list[dict[str, Any]] = []
     
     for entry in entries:
@@ -173,29 +173,29 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
         slug = list_name.lower().replace(" ", "_")
         entity_id = f"todo.{slug}"
         
-        # Create a native todo-list card for this entity
+        # Create a custom Better ToDo list card for this entity
         cards.append({
-            "type": "todo-list",
+            "type": "custom:better-todo-list-card",
             "entity": entity_id,
         })
     
-    # Dashboard configuration matching core To-do list structure
+    # Dashboard configuration with custom cards
     config: dict[str, Any] = {
         "views": [
             {
                 "title": "Tasks",
                 "path": "tasks",
                 "icon": "mdi:format-list-checks",
-                "cards": cards,  # Individual todo-list cards like native integration
+                "cards": cards,  # Custom Better ToDo list cards
             }
         ]
     }
     
-    # This replicates the EXACT structure of Home Assistant's core To-do list integration:
-    # - Each list gets its own native todo-list card
+    # This creates a dashboard with custom Better ToDo cards:
+    # - Each list gets its own custom:better-todo-list-card
     # - Cards are displayed in a simple vertical/grid layout
-    # - Users can interact with each list independently
-    # - Native Home Assistant todo-list card functionality for all operations
+    # - Users can interact with each list using Better ToDo services
+    # - Full CRUD functionality through custom services
     
     # Check if dashboard already exists
     dashboard_exists = False

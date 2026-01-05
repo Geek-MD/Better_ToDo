@@ -1,15 +1,31 @@
 /**
  * Better ToDo Custom Panel Component
  * 
- * This creates a custom frontend panel (not a Lovelace dashboard) that replicates
- * the structure and functionality of Home Assistant's core To-do list integration.
+ * This creates a custom frontend panel (not a Lovelace dashboard) that displays
+ * Better ToDo lists with full task management capabilities.
  * 
  * Structure:
  * - Left sidebar: List of all Better ToDo lists
  * - Main area: Tasks from the selected list with full CRUD operations
+ * 
+ * Note: As of v0.9.0, Better ToDo entities no longer inherit from TodoListEntity,
+ * so we use custom rendering instead of native hui-todo-list-card.
  */
 
-const BETTER_TODO_VERSION = "0.8.0";
+const BETTER_TODO_VERSION = "0.9.0";
+
+// Enable detailed logging for debugging
+const DEBUG_MODE = true;
+
+function debugLog(message, ...args) {
+  if (DEBUG_MODE) {
+    console.log(`[Better ToDo Panel] ${message}`, ...args);
+  }
+}
+
+function errorLog(message, ...args) {
+  console.error(`[Better ToDo Panel ERROR] ${message}`, ...args);
+}
 
 class BetterTodoPanel extends HTMLElement {
   constructor() {
@@ -27,6 +43,7 @@ class BetterTodoPanel extends HTMLElement {
     this._hass = hass;
     if (!this._initialized) {
       this._initialized = true;
+      debugLog('Initializing Better ToDo Panel');
       this._render();
     } else {
       this._updateContent();
@@ -41,7 +58,10 @@ class BetterTodoPanel extends HTMLElement {
    * Get all Better ToDo entities
    */
   _getBetterTodoEntities() {
-    if (!this._hass) return [];
+    if (!this._hass) {
+      debugLog('Cannot get entities: hass not available');
+      return [];
+    }
     
     const entities = [];
     Object.keys(this._hass.states).forEach(entityId => {
@@ -50,10 +70,12 @@ class BetterTodoPanel extends HTMLElement {
         // Check if this is a Better ToDo entity by checking for recurrence_data attribute
         if (state.attributes && state.attributes.recurrence_data !== undefined) {
           entities.push(entityId);
+          debugLog(`Found Better ToDo entity: ${entityId}`, state);
         }
       }
     });
     
+    debugLog(`Found ${entities.length} Better ToDo entities total`);
     return entities.sort();
   }
 
@@ -61,13 +83,18 @@ class BetterTodoPanel extends HTMLElement {
    * Initial render of the panel
    */
   _render() {
-    if (!this._hass) return;
+    if (!this._hass) {
+      errorLog('Cannot render: hass not available');
+      return;
+    }
 
+    debugLog('Rendering Better ToDo Panel');
     const entities = this._getBetterTodoEntities();
     
     // Auto-select first entity if none selected
     if (!this._selectedEntityId && entities.length > 0) {
       this._selectedEntityId = entities[0];
+      debugLog(`Auto-selected entity: ${this._selectedEntityId}`);
     }
 
     this.innerHTML = `
@@ -175,8 +202,12 @@ class BetterTodoPanel extends HTMLElement {
     const listsContainer = this.querySelector('#lists-container');
     const contentContainer = this.querySelector('#content-container');
     
-    if (!listsContainer || !contentContainer) return;
+    if (!listsContainer || !contentContainer) {
+      errorLog('Container elements not found');
+      return;
+    }
 
+    debugLog('Updating panel content');
     const entities = this._getBetterTodoEntities();
 
     // Render lists sidebar
