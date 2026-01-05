@@ -9,7 +9,7 @@
  * - Main area: Tasks from the selected list with full CRUD operations
  * 
  * Note: As of v0.9.0, Better ToDo entities no longer inherit from TodoListEntity,
- * so we use custom rendering instead of native hui-todo-list-card.
+ * so we use custom better-todo-list-card instead of native hui-todo-list-card.
  */
 
 const BETTER_TODO_VERSION = "0.9.0";
@@ -198,7 +198,7 @@ class BetterTodoPanel extends HTMLElement {
   /**
    * Update the panel content
    */
-  _updateContent() {
+  async _updateContent() {
     const listsContainer = this.querySelector('#lists-container');
     const contentContainer = this.querySelector('#content-container');
     
@@ -249,7 +249,7 @@ class BetterTodoPanel extends HTMLElement {
       });
     });
 
-    // Render main content with native todo-list card
+    // Render main content with Better ToDo custom card
     if (this._selectedEntityId) {
       const state = this._hass.states[this._selectedEntityId];
       const name = state.attributes.friendly_name || this._selectedEntityId;
@@ -261,11 +261,14 @@ class BetterTodoPanel extends HTMLElement {
         <div id="todo-card-container"></div>
       `;
 
-      // Create native todo-list card
+      // Wait for better-todo-list-card to be defined
+      await customElements.whenDefined('better-todo-list-card');
+      
+      // Create Better ToDo list card (custom card for Better ToDo entities)
       const cardContainer = contentContainer.querySelector('#todo-card-container');
-      const card = document.createElement('hui-todo-list-card');
+      const card = document.createElement('better-todo-list-card');
       card.setConfig({
-        type: 'todo-list',
+        type: 'custom:better-todo-list-card',
         entity: this._selectedEntityId,
       });
       card.hass = this._hass;

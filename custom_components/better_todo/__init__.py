@@ -140,9 +140,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN]["js_registered"] = js_registration
         _LOGGER.info("Registered Better ToDo JavaScript modules")
     
-    # Create/update Lovelace dashboard (View Assist approach)
+    # Register custom panel with sidebar integration
+    # This creates a panel similar to the native To-do lists panel with a sidebar
+    # showing all Better ToDo lists and a main content area for task management
+    if not hass.data[DOMAIN].get("panel_registered"):
+        from .panel import async_register_panel
+        await async_register_panel(hass)
+        hass.data[DOMAIN]["panel_registered"] = True
+        _LOGGER.info("Registered Better ToDo panel")
+    
+    # Also create/update Lovelace dashboard as an alternative view
     # This creates a sidebar dashboard that dynamically shows native todo-list cards
-    # Unlike the old panel_custom approach, this uses standard Lovelace dashboards
+    # Unlike the panel_custom approach, this uses standard Lovelace dashboards
     if not hass.data[DOMAIN].get("dashboard_created"):
         from .dashboard import async_create_or_update_dashboard
         await async_create_or_update_dashboard(hass)
@@ -474,6 +483,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     # Remove dashboard and services if no more entries will remain
     if not remaining_entries:
+        # Remove the panel
+        from .panel import async_unregister_panel
+        await async_unregister_panel(hass)
+        _LOGGER.info("Unregistered Better ToDo panel - no more lists configured")
+        
         # Remove the dashboard
         from .dashboard import async_remove_dashboard
         await async_remove_dashboard(hass)

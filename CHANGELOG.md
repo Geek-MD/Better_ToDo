@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] - 2026-01-05
+
+### Fixed
+- **Custom Panel Registration**: Re-enabled custom panel with sidebar structure
+  - Panel registration was previously disabled in favor of Lovelace dashboard only
+  - Now registers both custom panel (for rich UI) and Lovelace dashboard (for compatibility)
+  - Custom panel provides sidebar navigation similar to native "To-do lists" panel
+  - Left sidebar displays all Better ToDo lists with active task counters
+  - Main content area shows selected list's tasks using `better-todo-list-card`
+
+- **Panel Component Card Rendering**: Fixed card type for Better ToDo entities
+  - Changed from native `hui-todo-list-card` to `custom:better-todo-list-card`
+  - Native card expects TodoListEntity, but Better ToDo uses base Entity (v0.9.0 architecture)
+  - Added `await customElements.whenDefined()` to ensure card loads before use
+  - Prevents rendering errors and ensures proper task display
+
+- **Dashboard View Title**: Corrected from "Tasks" to "Better ToDo"
+  - Dashboard view title now matches the integration branding
+  - Consistent naming throughout the UI (sidebar, panel header, dashboard view)
+
+### Technical Details
+- Updated `__init__.py` to register custom panel via `panel.py`
+- Modified `better-todo-panel-component.js` to use custom card element
+- Made `_updateContent()` async to properly await card element definition
+- Panel cleanup added to `async_unload_entry()` for proper integration removal
+- All changes pass ruff, mypy, and hassfest validation
+
+### Structure
+The Better ToDo interface now provides:
+- **Custom Panel** (primary): `/better-todo` with sidebar layout and list navigation
+- **Lovelace Dashboard** (alternative): Standard dashboard with custom cards
+- Both approaches provide full task management functionality
+
 ## [0.9.0] - 2026-01-05
 
 ### Changed
