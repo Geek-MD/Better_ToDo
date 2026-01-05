@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.2] - 2026-01-05
+
+### Fixed
+- **Entity Registration Issue**: Fixed critical bug where todo entities were not being created
+  - Todo entities were never registered because Platform.TODO was intentionally not in PLATFORMS list
+  - This was by design to keep Better ToDo separate from native todo integration
+  - However, without Platform.TODO, the `todo.py::async_setup_entry` was never called
+  - **Solution**: Manually call `async_setup_todo_entry` and register entities using EntityComponent
+  - Entities are now properly created with 'todo' domain without Platform.TODO conflicts
+  - This fixes: "Entity todo.tasks not found for create_task service" error
+
+- **Service Error Resolution**: Create, update, delete, and move task services now work correctly
+  - Services can now find todo entities in hass.data
+  - Entity storage mechanism working as expected
+  - All CRUD operations functional
+
+- **Panel Display**: Panel now properly displays Better ToDo lists and tasks
+  - Entities are available for panel to render
+  - Custom cards can access entity data
+  - Sidebar shows all Better ToDo lists with task counts
+
+### Changed
+- **Code Quality Improvements**: 
+  - Moved imports to top of file following PEP8 conventions
+  - Renamed `sync_add_entities` to `collect_entities` for clarity
+  - Added proper type hints and documentation
+  - All changes validated with ruff, mypy, and hassfest
+
+### Technical Details
+- Manual entity registration approach maintains separation from native todo integration
+- EntityComponent used with 'todo' domain for proper entity ID generation
+- No Platform.TODO conflicts or integration with core todo platform
+- Better ToDo remains fully independent with custom functionality
+
 ## [0.9.1] - 2026-01-05
 
 ### Fixed
