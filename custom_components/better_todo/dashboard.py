@@ -183,7 +183,7 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     config: dict[str, Any] = {
         "views": [
             {
-                "title": "Tasks",
+                "title": "Better ToDo",
                 "path": "tasks",
                 "icon": "mdi:format-list-checks",
                 "cards": cards,  # Custom Better ToDo list cards
