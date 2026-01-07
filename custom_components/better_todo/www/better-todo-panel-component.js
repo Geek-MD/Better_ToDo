@@ -273,6 +273,9 @@ class BetterTodoPanel extends HTMLElement {
     debugLog('Rendering task list for:', entityId, state);
 
     // Get items from entity attributes
+    // Note: Using 'items' instead of 'todo_items' because Better ToDo entities
+    // provide a clean 'items' list for native card compatibility, while 'todo_items'
+    // includes header items for custom card backward compatibility
     const items = state.attributes.items || [];
     const activeItems = items.filter(item => item.status !== 'completed');
     const completedItems = items.filter(item => item.status === 'completed');
@@ -566,8 +569,9 @@ class BetterTodoPanel extends HTMLElement {
 
   /**
    * Show a toast notification (Home Assistant style)
+   * Uses persistent notifications which can be dismissed by the user
    */
-  _showToast(message, duration = 3000) {
+  _showToast(message) {
     if (this._hass) {
       this._hass.callService('persistent_notification', 'create', {
         message: message,
