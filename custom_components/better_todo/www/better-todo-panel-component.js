@@ -15,7 +15,8 @@
 const BETTER_TODO_VERSION = "0.9.1";
 
 // Enable detailed logging for debugging
-const DEBUG_MODE = true;
+// Set to false in production to avoid unnecessary console output
+const DEBUG_MODE = false;
 
 function debugLog(message, ...args) {
   if (DEBUG_MODE) {
@@ -254,12 +255,16 @@ class BetterTodoPanel extends HTMLElement {
       const items = state.attributes.items || [];
       const activeCount = items.filter(item => item.status !== 'completed').length;
       const isSelected = entityId === this._selectedEntityId;
+      
+      // Escape values for safe HTML attribute usage
+      const safeEntityId = this._escapeHtml(entityId);
+      const safeName = this._escapeHtml(name);
 
       return `
-        <div class="list-item ${isSelected ? 'selected' : ''}" data-entity="${entityId}">
+        <div class="list-item ${isSelected ? 'selected' : ''}" data-entity="${safeEntityId}">
           <ha-icon icon="mdi:format-list-checks"></ha-icon>
           <div class="list-item-content">
-            <div class="list-item-name">${name}</div>
+            <div class="list-item-name">${safeName}</div>
             <div class="list-item-count">${activeCount} active</div>
           </div>
         </div>
@@ -599,12 +604,14 @@ class BetterTodoPanel extends HTMLElement {
    */
   _showToast(message) {
     if (this._hass) {
+      // Sanitize message to prevent XSS
+      const safeMessage = this._escapeHtml(String(message));
       this._hass.callService('persistent_notification', 'create', {
-        message: message,
+        message: safeMessage,
         title: 'Better ToDo',
       }).catch(() => {
         // Fallback to console if notification service fails
-        console.warn('[Better ToDo]', message);
+        console.warn('[Better ToDo]', safeMessage);
       });
     }
   }

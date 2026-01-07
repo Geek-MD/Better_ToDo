@@ -1,4 +1,4 @@
-name: Ruff + Mypy + Hassfest
+name: Ruff + Mypy + Hassfest + JavaScript
 
 on:
   workflow_dispatch:
@@ -36,6 +36,22 @@ jobs:
         run: pip install mypy types-setuptools types-pyyaml types-requests
       - name: Run Mypy
         run: mypy --config-file mypy.ini
+
+  javascript:
+    name: JavaScript Syntax Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Check JavaScript Syntax
+        run: |
+          for file in custom_components/better_todo/www/*.js; do
+            echo "Checking $file..."
+            node --check "$file"
+          done
 
   hassfest:
     name: Hassfest Validation
