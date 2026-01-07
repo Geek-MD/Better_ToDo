@@ -385,6 +385,12 @@ class BetterTodoPanel extends HTMLElement {
           font-size: 12px;
           color: var(--secondary-text-color);
           margin-left: 8px;
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .task-item-due ha-icon {
+          --mdc-icon-size: 16px;
         }
         .section-header {
           padding: 12px 16px;
@@ -461,7 +467,7 @@ class BetterTodoPanel extends HTMLElement {
    * Render a single task item
    */
   _renderTaskItem(item, isCompleted) {
-    const dueText = item.due ? `📅 ${item.due}` : '';
+    const dueDate = item.due ? new Date(item.due).toLocaleDateString() : '';
     const summary = this._escapeHtml(item.summary || '');
     const description = item.description ? this._escapeHtml(item.description) : '';
     
@@ -472,7 +478,7 @@ class BetterTodoPanel extends HTMLElement {
           <div class="task-item-summary">${summary}</div>
           ${description ? `<div class="task-item-description">${description}</div>` : ''}
         </div>
-        ${dueText ? `<div class="task-item-due">${dueText}</div>` : ''}
+        ${dueDate ? `<div class="task-item-due"><ha-icon icon="mdi:calendar"></ha-icon> ${dueDate}</div>` : ''}
       </div>
     `;
   }
@@ -559,6 +565,21 @@ class BetterTodoPanel extends HTMLElement {
   }
 
   /**
+   * Show a toast notification (Home Assistant style)
+   */
+  _showToast(message, duration = 3000) {
+    if (this._hass) {
+      this._hass.callService('persistent_notification', 'create', {
+        message: message,
+        title: 'Better ToDo',
+      }).catch(() => {
+        // Fallback to console if notification service fails
+        console.warn('[Better ToDo]', message);
+      });
+    }
+  }
+
+  /**
    * Save a new task
    */
   async _saveNewTask(entityId) {
@@ -581,7 +602,7 @@ class BetterTodoPanel extends HTMLElement {
       // The state will update automatically and trigger re-render
     } catch (error) {
       errorLog('Error creating task:', error);
-      alert('Failed to create task: ' + error.message);
+      this._showToast(`Failed to create task: ${error.message}`);
     }
   }
 
@@ -602,7 +623,7 @@ class BetterTodoPanel extends HTMLElement {
       // The state will update automatically and trigger re-render
     } catch (error) {
       errorLog('Error updating task status:', error);
-      alert('Failed to update task: ' + error.message);
+      this._showToast(`Failed to update task: ${error.message}`);
     }
   }
 }
