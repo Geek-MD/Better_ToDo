@@ -19,12 +19,36 @@ const DEBUG_MODE = true;
 
 function debugLog(message, ...args) {
   if (DEBUG_MODE) {
-    console.log(`[Better ToDo Panel] ${message}`, ...args);
+    // Sanitize args to prevent log injection - only log safe types
+    const safeArgs = args.map(arg => {
+      if (typeof arg === 'string' || typeof arg === 'number' || typeof arg === 'boolean') {
+        return arg;
+      }
+      // For objects, use JSON stringify with error handling
+      try {
+        return JSON.stringify(arg);
+      } catch (e) {
+        return '[Object]';
+      }
+    });
+    console.log(`[Better ToDo Panel] ${message}`, ...safeArgs);
   }
 }
 
 function errorLog(message, ...args) {
-  console.error(`[Better ToDo Panel ERROR] ${message}`, ...args);
+  // Sanitize args to prevent log injection - only log safe types
+  const safeArgs = args.map(arg => {
+    if (typeof arg === 'string' || typeof arg === 'number' || typeof arg === 'boolean') {
+      return arg;
+    }
+    // For objects, use JSON stringify with error handling
+    try {
+      return JSON.stringify(arg);
+    } catch (e) {
+      return '[Object]';
+    }
+  });
+  console.error(`[Better ToDo Panel ERROR] ${message}`, ...safeArgs);
 }
 
 class BetterTodoPanel extends HTMLElement {
@@ -473,9 +497,11 @@ class BetterTodoPanel extends HTMLElement {
     const dueDate = item.due ? new Date(item.due).toLocaleDateString() : '';
     const summary = this._escapeHtml(item.summary || '');
     const description = item.description ? this._escapeHtml(item.description) : '';
+    // Escape UID for safe HTML attribute usage
+    const safeUid = this._escapeHtml(item.uid || '');
     
     return `
-      <div class="task-item ${isCompleted ? 'completed' : ''}" data-uid="${item.uid}">
+      <div class="task-item ${isCompleted ? 'completed' : ''}" data-uid="${safeUid}">
         <ha-checkbox ${isCompleted ? 'checked' : ''}></ha-checkbox>
         <div class="task-item-content">
           <div class="task-item-summary">${summary}</div>
