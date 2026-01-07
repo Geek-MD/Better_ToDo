@@ -1,6 +1,7 @@
 """Constants for the Better ToDo integration."""
 
 DOMAIN = "better_todo"
+ENTITY_DOMAIN = "better_todo"  # Domain for entity IDs (e.g., better_todo.shopping_list)
 
 # Default list names
 DEFAULT_LIST_NAME = "Tasks"

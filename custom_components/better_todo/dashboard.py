@@ -12,7 +12,7 @@ from homeassistant.const import CONF_ID, CONF_MODE, CONF_TYPE
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import storage
 
-from .const import DASHBOARD_ICON, DASHBOARD_TITLE, DASHBOARD_URL, DOMAIN
+from .const import DASHBOARD_ICON, DASHBOARD_TITLE, DASHBOARD_URL, DOMAIN, ENTITY_DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -171,7 +171,7 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
         # Get the entity_id for this entry
         list_name = entry.data.get("name", "tasks")
         slug = list_name.lower().replace(" ", "_")
-        entity_id = f"todo.{slug}"
+        entity_id = f"{ENTITY_DOMAIN}.{slug}"
         
         # Create a custom Better ToDo list card for this entity
         cards.append({
