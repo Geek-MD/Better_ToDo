@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.3] - 2026-01-07
+
+### Fixed
+- **Better ToDo Panel UI Enhancement**: Complete panel restructure to match expected behavior
+  - Fixed list sorting to descending alphabetical order (Z to A)
+  - "Shopping List" now always appears last regardless of alphabetical position
+  - Added "Create list" button at bottom of sidebar for easy list creation
+  - Fixed header structure to span full panel width (sidebar + main area)
+  
+### Changed
+- **Panel Component Architecture** (`better-todo-panel-component.js` v0.10.2):
+  - Improved list sorting algorithm with special handling for Shopping List
+  - Quick-add input now always visible at top (no toggle button needed)
+  - Added FAB (Floating Action Button) in bottom-right corner for advanced task creation
+  - Header "Better ToDo" now properly spans entire panel width
+  - Removed separate sidebar header - unified with main panel header
+  - Enhanced flexbox layout for better responsiveness
+  
+### Added
+- **Enhanced Task Management UI**:
+  - Quick add: Enter key creates task instantly from top input
+  - FAB button: Opens full dialog with all options (description, due date, recurrence)
+  - Click-to-edit: Click any task to open edit dialog
+  - Create list button: Navigate to integrations to add new lists
+  - Task counters: Show active task count for each list
+  
+### Security
+- **UX Improvements**: 
+  - Replaced browser `alert()` calls with Home Assistant toast notifications
+  - Better error handling with persistent notification system
+  - Consistent user experience across all operations
+
+### Technical Details
+- List sorting uses `localeCompare` for proper alphabetical ordering
+- Shopping List detection via case-insensitive name matching
+- All changes validated with ruff, mypy, hassfest, and JavaScript linting
+- No breaking changes - fully backward compatible
+- Panel auto-updates when entity state changes
+
 ## [0.10.2] - 2026-01-07
 
 ### Fixed
