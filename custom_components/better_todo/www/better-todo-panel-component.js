@@ -9,10 +9,10 @@
  * - Main area: Tasks from the selected list with full CRUD operations
  * 
  * Note: As of v0.9.0, Better ToDo entities no longer inherit from TodoListEntity,
- * so we use custom better-todo-list-card instead of native hui-todo-list-card.
+ * so we use an inline card implementation instead of relying on external modules.
  */
 
-const BETTER_TODO_VERSION = "0.9.0";
+const BETTER_TODO_VERSION = "0.9.1";
 
 // Enable detailed logging for debugging
 const DEBUG_MODE = true;
@@ -226,7 +226,8 @@ class BetterTodoPanel extends HTMLElement {
     listsContainer.innerHTML = entities.map(entityId => {
       const state = this._hass.states[entityId];
       const name = state.attributes.friendly_name || entityId;
-      const items = state.attributes.todo_items || [];
+      // Use 'items' attribute which contains clean task list
+      const items = state.attributes.items || [];
       const activeCount = items.filter(item => item.status !== 'completed').length;
       const isSelected = entityId === this._selectedEntityId;
 
@@ -249,30 +250,359 @@ class BetterTodoPanel extends HTMLElement {
       });
     });
 
-    // Render main content with Better ToDo custom card
+    // Render main content with inline task list
     if (this._selectedEntityId) {
       const state = this._hass.states[this._selectedEntityId];
       const name = state.attributes.friendly_name || this._selectedEntityId;
-
-      contentContainer.innerHTML = `
-        <div class="main-header">
-          <h1>${name}</h1>
-        </div>
-        <div id="todo-card-container"></div>
-      `;
-
-      // Wait for better-todo-list-card to be defined
-      await customElements.whenDefined('better-todo-list-card');
       
-      // Create Better ToDo list card (custom card for Better ToDo entities)
-      const cardContainer = contentContainer.querySelector('#todo-card-container');
-      const card = document.createElement('better-todo-list-card');
-      card.setConfig({
-        type: 'custom:better-todo-list-card',
-        entity: this._selectedEntityId,
+      // Render task list inline
+      this._renderTaskList(contentContainer, this._selectedEntityId, name);
+    }
+  }
+
+  /**
+   * Render an inline task list (no external card dependency)
+   */
+  _renderTaskList(container, entityId, title) {
+    const state = this._hass.states[entityId];
+    if (!state) {
+      errorLog('Entity state not found:', entityId);
+      return;
+    }
+
+    debugLog('Rendering task list for:', entityId, state);
+
+    // Get items from entity attributes
+    const items = state.attributes.items || [];
+    const activeItems = items.filter(item => item.status !== 'completed');
+    const completedItems = items.filter(item => item.status === 'completed');
+
+    debugLog(`Found ${activeItems.length} active and ${completedItems.length} completed items`);
+
+    container.innerHTML = `
+      <style>
+        .task-list-container {
+          max-width: 800px;
+          margin: 0 auto;
+        }
+        .task-list-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 20px;
+        }
+        .task-list-header h1 {
+          margin: 0;
+          font-size: 24px;
+          font-weight: 400;
+        }
+        .add-task-button {
+          --mdc-theme-primary: var(--primary-color);
+        }
+        .task-card {
+          background: var(--card-background-color);
+          border-radius: 8px;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          margin-bottom: 16px;
+        }
+        .task-card-header {
+          padding: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          border-bottom: 1px solid var(--divider-color);
+        }
+        .task-card-header-title {
+          font-size: 16px;
+          font-weight: 500;
+        }
+        .task-card-content {
+          padding: 0;
+        }
+        .add-task-form {
+          padding: 16px;
+          border-bottom: 1px solid var(--divider-color);
+          display: none;
+        }
+        .add-task-form.active {
+          display: block;
+        }
+        .add-task-input {
+          width: 100%;
+          padding: 12px;
+          font-size: 14px;
+          border: 1px solid var(--divider-color);
+          border-radius: 4px;
+          background: var(--card-background-color);
+          color: var(--primary-text-color);
+          margin-bottom: 8px;
+        }
+        .add-task-buttons {
+          display: flex;
+          gap: 8px;
+        }
+        .task-item {
+          display: flex;
+          align-items: center;
+          padding: 12px 16px;
+          border-bottom: 1px solid var(--divider-color);
+          cursor: pointer;
+          transition: background-color 0.2s;
+        }
+        .task-item:hover {
+          background-color: var(--secondary-background-color);
+        }
+        .task-item:last-child {
+          border-bottom: none;
+        }
+        .task-item.completed {
+          opacity: 0.6;
+        }
+        .task-item ha-checkbox {
+          margin-right: 12px;
+        }
+        .task-item-content {
+          flex: 1;
+          min-width: 0;
+        }
+        .task-item-summary {
+          font-size: 14px;
+          color: var(--primary-text-color);
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .task-item.completed .task-item-summary {
+          text-decoration: line-through;
+        }
+        .task-item-description {
+          font-size: 12px;
+          color: var(--secondary-text-color);
+          margin-top: 4px;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .task-item-due {
+          font-size: 12px;
+          color: var(--secondary-text-color);
+          margin-left: 8px;
+        }
+        .section-header {
+          padding: 12px 16px;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--secondary-text-color);
+          background-color: var(--secondary-background-color);
+        }
+        .empty-state {
+          padding: 48px 16px;
+          text-align: center;
+          color: var(--secondary-text-color);
+        }
+        .empty-state ha-icon {
+          --mdc-icon-size: 64px;
+          opacity: 0.3;
+          margin-bottom: 16px;
+        }
+      </style>
+      
+      <div class="task-list-container">
+        <div class="task-list-header">
+          <h1>${this._escapeHtml(title)}</h1>
+          <mwc-button raised class="add-task-button" id="add-task-btn">
+            <ha-icon icon="mdi:plus" slot="icon"></ha-icon>
+            Add Task
+          </mwc-button>
+        </div>
+        
+        <div class="task-card">
+          <div class="add-task-form" id="add-task-form">
+            <input 
+              type="text" 
+              class="add-task-input" 
+              id="new-task-input"
+              placeholder="Task name..."
+            />
+            <div class="add-task-buttons">
+              <mwc-button raised id="save-task-btn">Save</mwc-button>
+              <mwc-button id="cancel-task-btn">Cancel</mwc-button>
+            </div>
+          </div>
+          
+          <div class="task-card-content">
+            ${activeItems.length === 0 && completedItems.length === 0 ? `
+              <div class="empty-state">
+                <ha-icon icon="mdi:checkbox-marked-circle-outline"></ha-icon>
+                <p>No tasks yet</p>
+                <p style="font-size: 0.9em;">Click "Add Task" to create your first task</p>
+              </div>
+            ` : ''}
+            
+            ${activeItems.length > 0 ? `
+              <div class="active-section">
+                ${activeItems.map(item => this._renderTaskItem(item, false)).join('')}
+              </div>
+            ` : ''}
+            
+            ${completedItems.length > 0 ? `
+              <div class="section-header">Completed</div>
+              <div class="completed-section">
+                ${completedItems.map(item => this._renderTaskItem(item, true)).join('')}
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+
+    this._attachTaskListEventListeners(entityId);
+  }
+
+  /**
+   * Render a single task item
+   */
+  _renderTaskItem(item, isCompleted) {
+    const dueText = item.due ? `📅 ${item.due}` : '';
+    const summary = this._escapeHtml(item.summary || '');
+    const description = item.description ? this._escapeHtml(item.description) : '';
+    
+    return `
+      <div class="task-item ${isCompleted ? 'completed' : ''}" data-uid="${item.uid}">
+        <ha-checkbox ${isCompleted ? 'checked' : ''}></ha-checkbox>
+        <div class="task-item-content">
+          <div class="task-item-summary">${summary}</div>
+          ${description ? `<div class="task-item-description">${description}</div>` : ''}
+        </div>
+        ${dueText ? `<div class="task-item-due">${dueText}</div>` : ''}
+      </div>
+    `;
+  }
+
+  /**
+   * Escape HTML to prevent XSS
+   */
+  _escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  /**
+   * Attach event listeners to task list elements
+   */
+  _attachTaskListEventListeners(entityId) {
+    // Add task button
+    const addBtn = this.querySelector('#add-task-btn');
+    if (addBtn) {
+      addBtn.addEventListener('click', () => this._showAddTaskForm());
+    }
+
+    // Save task button
+    const saveBtn = this.querySelector('#save-task-btn');
+    if (saveBtn) {
+      saveBtn.addEventListener('click', () => this._saveNewTask(entityId));
+    }
+
+    // Cancel button
+    const cancelBtn = this.querySelector('#cancel-task-btn');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', () => this._hideAddTaskForm());
+    }
+
+    // Enter key on input
+    const input = this.querySelector('#new-task-input');
+    if (input) {
+      input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          this._saveNewTask(entityId);
+        }
       });
-      card.hass = this._hass;
-      cardContainer.appendChild(card);
+    }
+
+    // Checkboxes for toggling task status
+    const checkboxes = this.querySelectorAll('.task-item ha-checkbox');
+    checkboxes.forEach(checkbox => {
+      checkbox.addEventListener('change', (e) => {
+        const taskItem = e.target.closest('.task-item');
+        const uid = taskItem.dataset.uid;
+        const isCompleted = e.target.checked;
+        this._toggleTaskStatus(entityId, uid, isCompleted);
+      });
+    });
+  }
+
+  /**
+   * Show the add task form
+   */
+  _showAddTaskForm() {
+    const form = this.querySelector('#add-task-form');
+    if (form) {
+      form.classList.add('active');
+      const input = this.querySelector('#new-task-input');
+      if (input) {
+        input.focus();
+      }
+    }
+  }
+
+  /**
+   * Hide the add task form
+   */
+  _hideAddTaskForm() {
+    const form = this.querySelector('#add-task-form');
+    if (form) {
+      form.classList.remove('active');
+      const input = this.querySelector('#new-task-input');
+      if (input) {
+        input.value = '';
+      }
+    }
+  }
+
+  /**
+   * Save a new task
+   */
+  async _saveNewTask(entityId) {
+    const input = this.querySelector('#new-task-input');
+    if (!input || !input.value.trim()) {
+      return;
+    }
+
+    const summary = input.value.trim();
+    debugLog('Creating new task:', summary);
+
+    try {
+      await this._hass.callService('better_todo', 'create_task', {
+        entity_id: entityId,
+        summary: summary,
+      });
+      
+      debugLog('Task created successfully');
+      this._hideAddTaskForm();
+      // The state will update automatically and trigger re-render
+    } catch (error) {
+      errorLog('Error creating task:', error);
+      alert('Failed to create task: ' + error.message);
+    }
+  }
+
+  /**
+   * Toggle task completion status
+   */
+  async _toggleTaskStatus(entityId, uid, isCompleted) {
+    debugLog('Toggling task status:', uid, isCompleted);
+
+    try {
+      await this._hass.callService('better_todo', 'update_task', {
+        entity_id: entityId,
+        uid: uid,
+        status: isCompleted ? 'completed' : 'needs_action',
+      });
+      
+      debugLog('Task status updated successfully');
+      // The state will update automatically and trigger re-render
+    } catch (error) {
+      errorLog('Error updating task status:', error);
+      alert('Failed to update task: ' + error.message);
     }
   }
 }
