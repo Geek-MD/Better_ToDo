@@ -142,13 +142,26 @@ class BetterTodoPanel extends HTMLElement {
     this.innerHTML = `
       <style>
         :host {
-          display: block;
+          display: flex;
+          flex-direction: column;
           height: 100%;
           background-color: var(--primary-background-color);
         }
+        .panel-header {
+          padding: 16px 24px;
+          background-color: var(--primary-color);
+          color: var(--text-primary-color);
+          border-bottom: 1px solid var(--divider-color);
+        }
+        .panel-header h1 {
+          margin: 0;
+          font-size: 20px;
+          font-weight: 500;
+        }
         .better-todo-container {
           display: flex;
-          height: 100%;
+          flex: 1;
+          overflow: hidden;
         }
         .sidebar {
           width: 300px;
@@ -157,15 +170,6 @@ class BetterTodoPanel extends HTMLElement {
           background-color: var(--sidebar-background-color, var(--card-background-color));
           display: flex;
           flex-direction: column;
-        }
-        .sidebar-header {
-          padding: 16px;
-          border-bottom: 1px solid var(--divider-color);
-        }
-        .sidebar-header h2 {
-          margin: 0;
-          font-size: 20px;
-          font-weight: 500;
         }
         .list-item {
           padding: 12px 16px;
@@ -250,11 +254,11 @@ class BetterTodoPanel extends HTMLElement {
           opacity: 0.3;
         }
       </style>
+      <div class="panel-header">
+        <h1>Better ToDo</h1>
+      </div>
       <div class="better-todo-container">
         <div class="sidebar">
-          <div class="sidebar-header">
-            <h2>Better ToDo</h2>
-          </div>
           <div id="lists-container"></div>
           <div class="sidebar-footer">
             <button class="create-list-button" id="create-list-button">
