@@ -12,7 +12,7 @@
  * so we use an inline card implementation instead of relying on external modules.
  */
 
-const BETTER_TODO_VERSION = "0.9.1";
+const BETTER_TODO_VERSION = "0.10.2";
 
 // Enable detailed logging for debugging
 // Set to false in production to avoid unnecessary console output
@@ -302,9 +302,10 @@ class BetterTodoPanel extends HTMLElement {
     debugLog('Rendering task list for:', entityId, state);
 
     // Get items from entity attributes
-    // Note: Using 'items' instead of 'todo_items' because Better ToDo entities
-    // provide a clean 'items' list for native card compatibility, while 'todo_items'
-    // includes header items for custom card backward compatibility
+    // Note: Using 'items' instead of 'todo_items' to fix display issue
+    // The panel was showing "You have no to-do items!" because 'todo_items'
+    // includes header items for custom cards, while 'items' provides clean
+    // task list for native card compatibility and proper rendering
     const items = state.attributes.items || [];
     const activeItems = items.filter(item => item.status !== 'completed');
     const completedItems = items.filter(item => item.status === 'completed');
@@ -499,11 +500,23 @@ class BetterTodoPanel extends HTMLElement {
    * Render a single task item
    */
   _renderTaskItem(item, isCompleted) {
-    const dueDate = item.due ? new Date(item.due).toLocaleDateString() : '';
+    // Safely format due date with error handling
+    let dueDate = '';
+    if (item.due) {
+      try {
+        dueDate = new Date(item.due).toLocaleDateString();
+      } catch (e) {
+        // Invalid date format - show raw value
+        dueDate = String(item.due);
+      }
+    }
+    
     const summary = this._escapeHtml(item.summary || '');
     const description = item.description ? this._escapeHtml(item.description) : '';
     // Escape UID for safe HTML attribute usage
     const safeUid = this._escapeHtml(item.uid || '');
+    // Escape due date for safe HTML content
+    const safeDueDate = this._escapeHtml(dueDate);
     
     return `
       <div class="task-item ${isCompleted ? 'completed' : ''}" data-uid="${safeUid}">
@@ -512,7 +525,7 @@ class BetterTodoPanel extends HTMLElement {
           <div class="task-item-summary">${summary}</div>
           ${description ? `<div class="task-item-description">${description}</div>` : ''}
         </div>
-        ${dueDate ? `<div class="task-item-due"><ha-icon icon="mdi:calendar"></ha-icon> ${dueDate}</div>` : ''}
+        ${safeDueDate ? `<div class="task-item-due"><ha-icon icon="mdi:calendar"></ha-icon> ${safeDueDate}</div>` : ''}
       </div>
     `;
   }
