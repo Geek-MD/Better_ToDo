@@ -184,11 +184,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 hass.data[DOMAIN]["panel_registered"] = True
                 _LOGGER.info("Registered Better ToDo panel")
             except ValueError as err:
-                # Panel already registered (e.g., by another config entry)
+                # Panel already registered (e.g., by another config entry racing to register)
+                # Home Assistant's frontend raises ValueError when attempting to overwrite a panel
+                # Since we can't query if a panel exists beforehand, we catch this specific error
                 if "Overwriting panel" in str(err):
-                    _LOGGER.debug("Panel already registered: %s", err)
+                    _LOGGER.debug("Panel already registered by another entry: %s", err)
                     hass.data[DOMAIN]["panel_registered"] = True
                 else:
+                    # Re-raise if it's a different ValueError
                     raise
         
         # Also create/update Lovelace dashboard as an alternative view

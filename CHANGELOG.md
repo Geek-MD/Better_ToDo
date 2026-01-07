@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.1] - 2026-01-07
+
+### Fixed
+- **Panel Registration Error**: Fixed "ValueError: Overwriting panel better-todo" error when multiple config entries exist
+  - Issue occurred when both "Tasks" and "Shopping List" entries tried to register the same panel
+  - Added error handling to gracefully catch panel registration conflicts
+  - Panel is now only registered once across all config entries
+  - Error logs changed from error level to debug level when panel already exists
+
+### Technical Details
+- Modified `__init__.py`: Added try-except block around panel registration
+- Catches `ValueError` specifically for "Overwriting panel" scenario
+- Sets `panel_registered` flag even when catching the error to prevent repeated attempts
+- Maintains existing lock mechanism to prevent race conditions
+- All changes validated with ruff, mypy, and hassfest
+
 ## [0.10.0] - 2026-01-05
 
 ### Changed
