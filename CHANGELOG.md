@@ -5,6 +5,60 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.2] - 2026-01-07
+
+### Fixed
+- **Better ToDo Panel Display Issues**: Complete rewrite of the panel component to fix display and functionality problems
+  - Panel was showing "You have no to-do items!" instead of actual tasks
+  - Root cause: Race condition with external card module loading and incorrect attribute access
+  - Solution: Rewrote panel component with inline task rendering (no external card dependencies)
+  - Fixed attribute access from `todo_items` to `items` for proper task display
+  - Panel now renders tasks inline with full CRUD operations
+  - Added proper error handling with Home Assistant-style persistent notifications
+  - Improved user experience with native-like task management interface
+
+### Changed
+- **Panel Component Architecture** (`better-todo-panel-component.js` v0.9.1):
+  - Removed dependency on external `better-todo-list-card` module
+  - Implemented inline task list rendering (~390 lines of new code)
+  - Fixed entity attribute access to use correct `items` attribute
+  - Calendar icon (`mdi:calendar`) instead of emoji for better accessibility
+  - Persistent notifications instead of browser alerts for better UX
+  - Comprehensive debug logging with safe input sanitization
+  - DEBUG_MODE set to false by default for production use
+
+### Security
+- **XSS Protection**: Added comprehensive security improvements
+  - HTML attribute escaping for all dynamic values (entity IDs, names, UIDs)
+  - Safe logging with input sanitization to prevent log injection attacks
+  - Message sanitization in notification system
+  - All user-provided values are now properly escaped before rendering
+
+### Added
+- **Inline Task Management**: Full-featured task interface without external dependencies
+  - Sidebar navigation showing all Better ToDo lists with active task counters
+  - Inline task display with active/completed sections
+  - Add task form with inline input and save/cancel buttons
+  - Task toggle completion via `better_todo.update_task` service
+  - Task creation via `better_todo.create_task` service
+  - Responsive design matching Home Assistant's design system
+  - Proper theming support using HA CSS variables
+
+### Technical Details
+- All changes validated with ruff, mypy, and hassfest
+- JavaScript syntax validated with Node.js parser
+- Code review completed with all security feedback addressed
+- No breaking changes - backward compatible with existing installations
+- Panel now auto-updates when entity state changes
+- Eliminates module loading race conditions
+
+### Migration Notes
+- **Automatic**: No user action required
+- Panel will automatically use new inline rendering on next page refresh
+- All existing Better ToDo functionality preserved
+- Tasks and recurrence settings remain unchanged
+- Recommended: Clear browser cache after updating for best experience
+
 ## [0.10.1] - 2026-01-07
 
 ### Fixed
