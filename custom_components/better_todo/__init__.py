@@ -179,9 +179,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # showing all Better ToDo lists and a main content area for task management
         if not hass.data[DOMAIN].get("panel_registered"):
             from .panel import async_register_panel
-            await async_register_panel(hass)
-            hass.data[DOMAIN]["panel_registered"] = True
-            _LOGGER.info("Registered Better ToDo panel")
+            try:
+                await async_register_panel(hass)
+                hass.data[DOMAIN]["panel_registered"] = True
+                _LOGGER.info("Registered Better ToDo panel")
+            except ValueError as err:
+                # Panel already registered (e.g., by another config entry)
+                if "Overwriting panel" in str(err):
+                    _LOGGER.debug("Panel already registered: %s", err)
+                    hass.data[DOMAIN]["panel_registered"] = True
+                else:
+                    raise
         
         # Also create/update Lovelace dashboard as an alternative view
         # This creates a sidebar dashboard that dynamically shows native todo-list cards
