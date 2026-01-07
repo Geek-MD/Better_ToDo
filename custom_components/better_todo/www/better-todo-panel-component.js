@@ -1022,7 +1022,7 @@ class BetterTodoPanel extends HTMLElement {
     
     // Validate required fields
     if (!summary) {
-      alert(this._hass.language?.startsWith('es') ? 'El nombre de la tarea es obligatorio' : 'Task name is required');
+      this._showToast(this._hass.language?.startsWith('es') ? 'El nombre de la tarea es obligatorio' : 'Task name is required');
       return;
     }
     
@@ -1122,7 +1122,7 @@ class BetterTodoPanel extends HTMLElement {
       }
     } catch (err) {
       errorLog('Error saving task:', err);
-      alert(this._hass.language?.startsWith('es') ? 'Error al guardar la tarea' : 'Error saving task');
+      this._showToast(this._hass.language?.startsWith('es') ? 'Error al guardar la tarea' : 'Error saving task');
     }
   }
 }
