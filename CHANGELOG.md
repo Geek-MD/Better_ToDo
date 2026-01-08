@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.8] - 2026-01-08
+
+### Fixed
+- **Sidebar Integration**: Fixed Better ToDo not appearing correctly in sidebar
+  - Switched from custom panel to Lovelace dashboard following View Assist pattern
+  - Dashboard now properly displays in sidebar with `show_in_sidebar: True`
+  - Fixed issue where clicking "Better ToDo" in sidebar showed wrong content (Overview page)
+  - Dashboard now correctly shows Better ToDo cards at `/better-todo`
+
+### Changed
+- **Architecture Improvement**: Simplified sidebar integration approach
+  - Removed custom panel implementation (`panel.py`)
+  - Now uses only Lovelace dashboard (more reliable and compatible)
+  - Follows proven pattern from View Assist integration
+  - Dashboard URL changed from `/better-todo-dashboard` to `/better-todo`
+  - Removed panel component from JSMODULES (no longer needed)
+
+### Technical Details
+- Removed custom panel registration from `__init__.py`
+- Updated `dashboard.py`: Set `show_in_sidebar: True` for all creation paths
+- Updated `const.py`: Unified constants to single dashboard URL
+- Removed `PANEL_URL`, `PANEL_TITLE`, `PANEL_ICON` constants
+- Removed `better-todo-panel-component.js` from JSMODULES
+- All Python code passes ruff, mypy, and hassfest validation
+
 ## [0.10.7] - 2026-01-08
 
 ### Fixed

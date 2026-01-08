@@ -66,33 +66,25 @@ You can create more ToDo lists by adding the integration again with different na
 
 ## Usage
 
-### Better ToDo Panel
+### Better ToDo Dashboard
 
-After installation, Better ToDo automatically creates a dedicated panel named **"Better ToDo"** in your sidebar. The panel provides a structured interface similar to Home Assistant's native "To-do lists" panel, with a sidebar for list navigation and a main content area for task management.
+After installation, Better ToDo automatically creates a dashboard named **"Better ToDo"** in your sidebar. The dashboard provides a card-based interface for managing all your Better ToDo lists with full functionality.
 
-**Panel Structure:**
-The Better ToDo panel features:
-1. **Left Sidebar**: Shows all your Better ToDo lists with active task counters
-2. **Main Content Area**: Displays tasks from the selected list using custom cards
-3. **List Selection**: Click any list in the sidebar to view and manage its tasks
-4. **Full CRUD Operations**: Create, read, update, and delete tasks directly in the panel
-
-**Benefits of This Approach:**
-- ✅ Native-like experience with sidebar navigation
+**Dashboard Features:**
+- ✅ Appears in Home Assistant sidebar for easy access
 - ✅ Custom cards designed specifically for Better ToDo entities
 - ✅ Full support for all Better ToDo features (recurrence, due dates, descriptions)
 - ✅ Automatic list detection and display
-- ✅ Task counters show active items at a glance
-- ✅ Clean, organized interface matching Home Assistant's design language
+- ✅ Clean interface matching Home Assistant's design language
+- ✅ Full CRUD operations: Create, read, update, and delete tasks
 
 **To view your tasks:**
 1. Click on "Better ToDo" in your Home Assistant sidebar
-2. Select a list from the left sidebar
-3. View and manage tasks in the main content area
-4. Add, edit, complete, and delete tasks using the interface
+2. View all your Better ToDo lists displayed as cards
+3. Add, edit, complete, and delete tasks using the card interfaces
+4. Customize the dashboard layout in edit mode if desired
 
-**Alternative Access:**
-Better ToDo also creates a Lovelace dashboard (accessible via the same sidebar entry) that provides a simpler card-based view. Both interfaces provide full functionality.
+**Note:** This follows the same pattern as other successful integrations like View Assist, using a Lovelace dashboard instead of a custom panel for better compatibility and reliability.
 
 ### Managing Tasks
 
