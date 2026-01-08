@@ -1131,10 +1131,15 @@ class BetterTodoPanel extends HTMLElement {
   }
 }
 
-customElements.define('better-todo-panel', BetterTodoPanel);
-
-console.info(
-  `%c BETTER-TODO-PANEL %c v${BETTER_TODO_VERSION} `,
-  'background-color: #555;color: #fff;font-weight: bold;',
-  'background-color: #4caf50;color: #fff;font-weight: bold;'
-);
+// Only define the custom element if it hasn't been defined yet
+// This prevents the "already been used with this registry" error
+if (!customElements.get('better-todo-panel')) {
+  customElements.define('better-todo-panel', BetterTodoPanel);
+  console.info(
+    `%c BETTER-TODO-PANEL %c v${BETTER_TODO_VERSION} `,
+    'background-color: #555;color: #fff;font-weight: bold;',
+    'background-color: #4caf50;color: #fff;font-weight: bold;'
+  );
+} else {
+  debugLog('better-todo-panel already registered, skipping registration');
+}

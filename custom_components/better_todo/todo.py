@@ -61,9 +61,13 @@ async def async_setup_entry(
     async_add_entities([entity], True)
     
     # Store entity reference for service access
+    # Store using entry_id to ensure reliable lookup regardless of entity_id collisions
     if entry.entry_id in hass.data[DOMAIN]:
+        hass.data[DOMAIN][entry.entry_id]["entity"] = entity
+        # Also store in entities dict by entity_id for backward compatibility with services
+        # Note: entity_id might get a suffix (_2, _3, etc.) if there are collisions
         hass.data[DOMAIN][entry.entry_id]["entities"][entity.entity_id] = entity
-        _LOGGER.debug("Stored entity reference for %s", entity.entity_id)
+        _LOGGER.debug("Stored entity reference for entry %s with entity_id %s", entry.entry_id, entity.entity_id)
 
 
 class BetterTodoEntity(Entity):
