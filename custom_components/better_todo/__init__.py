@@ -160,23 +160,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Register JavaScript modules and dashboard using View Assist pattern (only once for all entries)
     # Use async lock to prevent race conditions when multiple entries are loaded simultaneously
     async with _SETUP_LOCK:
-        # Clean up old custom panel if it exists (migration from v0.10.7 and earlier)
-        # The panel used URL "better-todo" which now conflicts with our dashboard
-        # Note: Home Assistant automatically removes panels when integration is unloaded,
-        # but we try to clean up proactively for better user experience
-        if not hass.data[DOMAIN].get("panel_cleanup_done"):
-            try:
-                # Check if the old panel exists in Home Assistant's frontend data
-                if hasattr(hass.data.get("frontend_panels", {}), "get"):
-                    panels = hass.data.get("frontend_panels", {})
-                    if "better-todo" in panels:
-                        _LOGGER.info("Old Better ToDo custom panel detected, will be removed on next restart")
-                # Mark cleanup as done even if panel doesn't exist
-            except Exception as err:
-                _LOGGER.debug("Could not check for old panel: %s", err)
-            finally:
-                hass.data[DOMAIN]["panel_cleanup_done"] = True
-        
         if not hass.data[DOMAIN].get("js_registered"):
             from .javascript import JSModuleRegistration
             js_registration = JSModuleRegistration(hass)

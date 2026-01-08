@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Dashboard now properly displays in sidebar with `show_in_sidebar: True`
   - Fixed issue where clicking "Better ToDo" in sidebar showed wrong content (Overview page)
   - Dashboard now correctly shows Better ToDo cards at `/better-todo`
-  - Added migration code to remove old custom panel on upgrade
+  - Old custom panel automatically removed by Home Assistant on integration reload
 
 ### Changed
 - **Architecture Improvement**: Simplified sidebar integration approach
@@ -26,13 +26,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Technical Details
 - Removed custom panel registration from `__init__.py`
-- Added cleanup code to remove old panel on upgrade (if it exists)
 - Updated `dashboard.py`: Set `show_in_sidebar: True` for all creation paths
 - Updated `const.py`: Unified constants to single dashboard URL
 - Removed `PANEL_URL`, `PANEL_TITLE`, `PANEL_ICON` constants
 - Removed `better-todo-panel-component.js` from JSMODULES
 - All Python code passes ruff, mypy, and hassfest validation
-- Graceful migration for users upgrading from v0.10.7 or earlier
+- Old panel automatically cleaned up by Home Assistant on integration reload
 
 ## [0.10.7] - 2026-01-08
 
