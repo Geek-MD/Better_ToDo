@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.7] - 2026-01-08
+
+### Fixed
+- **Dashboard Visibility in Settings**: Fixed Better ToDo not appearing in Settings → Dashboards
+  - Enabled Lovelace dashboard creation alongside custom panel using different URLs
+  - Custom panel remains at `/better-todo` (primary interface with sidebar navigation)
+  - Lovelace dashboard now available at `/better-todo-dashboard` (appears in Settings → Dashboards)
+  - Dashboard configured with `show_in_sidebar: False` to prevent duplicate sidebar entries
+  - Both interfaces provide full Better ToDo functionality
+
+### Changed
+- **Separated Panel and Dashboard URLs**: Added distinct constants for panel and dashboard
+  - `PANEL_URL`, `PANEL_TITLE`, `PANEL_ICON` for custom panel
+  - `DASHBOARD_URL`, `DASHBOARD_TITLE`, `DASHBOARD_ICON` for Lovelace dashboard
+  - Dashboard uses `mdi:view-dashboard` icon to distinguish from panel's `mdi:checkbox-marked-circle-outline`
+
+### Technical Details
+- Constants changes in `const.py`: Separated PANEL_ and DASHBOARD_ constants
+- Panel registration in `panel.py`: Updated to use PANEL_ constants
+- Dashboard creation in `__init__.py`: Re-enabled with different URL to avoid conflicts
+- Dashboard visibility in `dashboard.py`: Set `show_in_sidebar: False` for all creation paths
+- Resolves issue where dashboard was disabled in v0.10.5 to prevent URL conflicts
+
 ## [0.10.6] - 2026-01-08
 
 ### Fixed
