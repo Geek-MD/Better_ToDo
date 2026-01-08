@@ -239,7 +239,7 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
                 CONF_TITLE: DASHBOARD_TITLE,
                 CONF_URL_PATH: DASHBOARD_URL,
                 CONF_MODE: "storage",
-                CONF_SHOW_IN_SIDEBAR: True,
+                CONF_SHOW_IN_SIDEBAR: False,  # Don't show in sidebar - panel already provides sidebar access
                 CONF_REQUIRE_ADMIN: False,
             },
         )
@@ -293,7 +293,7 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
                             # Update existing entry
                             item.update({
                                 "require_admin": False,
-                                "show_in_sidebar": True,
+                                "show_in_sidebar": False,  # Don't show in sidebar - panel already provides sidebar access
                                 "icon": DASHBOARD_ICON,
                                 "title": DASHBOARD_TITLE,
                                 "url_path": DASHBOARD_URL,
@@ -312,7 +312,7 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
                         items.append({
                             "id": dashboard_id,
                             "require_admin": False,
-                            "show_in_sidebar": True,
+                            "show_in_sidebar": False,  # Don't show in sidebar - panel already provides sidebar access
                             "icon": DASHBOARD_ICON,
                             "title": DASHBOARD_TITLE,
                             "url_path": DASHBOARD_URL,
