@@ -194,14 +194,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     # Re-raise if it's a different ValueError
                     raise
         
-        # Also create/update Lovelace dashboard as an alternative view
-        # This creates a sidebar dashboard that dynamically shows native todo-list cards
-        # Unlike the panel_custom approach, this uses standard Lovelace dashboards
-        if not hass.data[DOMAIN].get("dashboard_created"):
-            from .dashboard import async_create_or_update_dashboard
-            await async_create_or_update_dashboard(hass)
-            hass.data[DOMAIN]["dashboard_created"] = True
-            _LOGGER.info("Created/updated Better ToDo dashboard")
+        # Lovelace dashboard creation disabled to prevent conflict with custom panel
+        # The custom panel above provides the primary Better ToDo interface
+        # Enabling this would create a dashboard at the same URL, overriding the panel
+        # if not hass.data[DOMAIN].get("dashboard_created"):
+        #     from .dashboard import async_create_or_update_dashboard
+        #     await async_create_or_update_dashboard(hass)
+        #     hass.data[DOMAIN]["dashboard_created"] = True
+        #     _LOGGER.info("Created/updated Better ToDo dashboard")
     
     # Better ToDo entities no longer inherit from TodoListEntity to prevent
     # them from appearing in the native "To-do lists" dashboard.

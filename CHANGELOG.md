@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.5] - 2026-01-08
+
+### Fixed
+- **Panel Display Conflict**: Disabled Lovelace dashboard creation to prevent URL conflict
+  - Fixed issue where custom panel and Lovelace dashboard used the same URL path (`/better-todo`)
+  - Lovelace dashboard was overriding the custom panel component display
+  - Custom panel now properly displays its unique interface with sidebar and task management
+  - Overview and Better ToDo panel now show different content as intended
+  - The custom panel (`better-todo-panel-component.js`) is now the primary interface
+
+### Technical Details
+- Integration setup changes in `__init__.py`: Commented out Lovelace dashboard creation
+- Custom panel registration remains active to provide the Better ToDo interface
+- Users who added Better ToDo cards to their Overview can still see them there
+- The Better ToDo sidebar entry now opens the custom panel with unique functionality
+
 ## [0.10.4] - 2026-01-08
 
 ### Fixed
