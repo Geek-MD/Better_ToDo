@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.4] - 2026-01-08
+
+### Fixed
+- **JavaScript Custom Element Registration**: Added guard to prevent duplicate registration errors
+  - Checks `customElements.get('better-todo-panel')` before defining the element
+  - Prevents "Failed to execute 'define' on 'CustomElementRegistry': the name has already been used" error
+  - Module can now be safely loaded multiple times without throwing exceptions
+  - Added debug logging when element is already registered
+  
+- **Config Flow Deprecation**: Removed deprecated OptionsFlow pattern
+  - Removed explicit `self.config_entry` assignment in `BetterTodoOptionsFlow.__init__`
+  - Base class now properly handles `config_entry` property (Home Assistant 2025.12+ requirement)
+  - Eliminates deprecation warning about setting option flow config_entry explicitly
+  
+- **Entity Registry Cleanup**: Improved entity removal during integration unload
+  - Added proper entity registry cleanup in `async_unload_entry`
+  - Entities tracked by both `entry_id` and `entity_id` for reliable service lookups
+  - Manually registered todo entities now properly unload from entity registry
+  - Prevents duplicate entity registration errors on reload
+  - Fixed "Platform better_todo does not generate unique IDs" warnings
+
+### Technical Details
+- JavaScript changes in `better-todo-panel-component.js`: Idempotent custom element registration
+- Config flow changes in `config_flow.py`: Removed deprecated `__init__` override
+- Entity registry changes in `__init__.py`: Added entity removal with error handling
+- Entity storage changes in `todo.py`: Dual storage by entry_id and entity_id
+- All changes maintain backward compatibility with existing installations
+
 ## [0.10.3] - 2026-01-07
 
 ### Fixed
