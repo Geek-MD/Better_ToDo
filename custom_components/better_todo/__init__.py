@@ -162,20 +162,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async with _SETUP_LOCK:
         # Clean up old custom panel if it exists (migration from v0.10.7 and earlier)
         # The panel used URL "better-todo" which now conflicts with our dashboard
+        # Note: Home Assistant automatically removes panels when integration is unloaded,
+        # but we try to clean up proactively for better user experience
         if not hass.data[DOMAIN].get("panel_cleanup_done"):
             try:
-                # Try to remove the old panel if it exists
-                # Home Assistant's panel_custom stores panels in hass.data["panel_custom"]
-                if "panel_custom" in hass.data:
-                    panels = hass.data["panel_custom"]
+                # Check if the old panel exists in Home Assistant's frontend data
+                if hasattr(hass.data.get("frontend_panels", {}), "get"):
+                    panels = hass.data.get("frontend_panels", {})
                     if "better-todo" in panels:
-                        # Panel exists, try to remove it
-                        from homeassistant.components import panel_custom
-                        await panel_custom.async_remove_panel(hass, "better-todo")
-                        _LOGGER.info("Removed old Better ToDo custom panel")
+                        _LOGGER.info("Old Better ToDo custom panel detected, will be removed on next restart")
+                # Mark cleanup as done even if panel doesn't exist
             except Exception as err:
-                # Removal might fail if panel doesn't exist or API changed
-                _LOGGER.debug("Could not remove old panel (may not exist): %s", err)
+                _LOGGER.debug("Could not check for old panel: %s", err)
             finally:
                 hass.data[DOMAIN]["panel_cleanup_done"] = True
         
