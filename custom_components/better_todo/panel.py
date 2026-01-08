@@ -6,7 +6,7 @@ import logging
 from homeassistant.components import panel_custom
 from homeassistant.core import HomeAssistant
 
-from .const import DASHBOARD_ICON, DASHBOARD_TITLE, DASHBOARD_URL
+from .const import PANEL_ICON, PANEL_TITLE, PANEL_URL
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -23,16 +23,16 @@ async def async_register_panel(hass: HomeAssistant) -> None:
     await panel_custom.async_register_panel(
         hass,
         webcomponent_name="better-todo-panel",
-        frontend_url_path=DASHBOARD_URL,
-        sidebar_title=DASHBOARD_TITLE,
-        sidebar_icon=DASHBOARD_ICON,
+        frontend_url_path=PANEL_URL,
+        sidebar_title=PANEL_TITLE,
+        sidebar_icon=PANEL_ICON,
         module_url="/better_todo/js/better-todo-panel-component.js",
         embed_iframe=False,
         require_admin=False,
         config={},
     )
     
-    _LOGGER.info("Registered Better ToDo custom panel at /%s", DASHBOARD_URL)
+    _LOGGER.info("Registered Better ToDo custom panel at /%s", PANEL_URL)
 
 
 async def async_unregister_panel(hass: HomeAssistant) -> None:

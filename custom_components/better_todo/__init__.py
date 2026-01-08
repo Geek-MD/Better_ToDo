@@ -5,18 +5,15 @@ with support for recurring tasks, custom dashboards, and sidebar integration.
 
 Sidebar Integration:
 -------------------
-Better ToDo creates a Lovelace dashboard that appears in the Home Assistant sidebar.
-This is achieved through:
+Better ToDo creates both a custom panel and a Lovelace dashboard:
 
-1. Dashboard Storage: Creating a Lovelace dashboard in storage mode with
-   show_in_sidebar: True that contains custom cards for task management
-   and recurrence configuration.
+1. Custom Panel (/better-todo): Primary interface with sidebar navigation showing
+   all Better ToDo lists and a main content area for task management.
+   
+2. Lovelace Dashboard (/better-todo-dashboard): Alternative card-based view that
+   appears in Settings → Dashboards for easy access and customization.
 
-2. Resource Registration: Registering custom JavaScript cards that provide
-   the UI for the dashboard.
-
-The dashboard automatically appears in the sidebar when created, making it
-easily accessible like other Lovelace dashboards.
+Both interfaces provide full functionality and use the same Better ToDo entities.
 """
 from __future__ import annotations
 
@@ -194,18 +191,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     # Re-raise if it's a different ValueError
                     raise
         
-        # Lovelace dashboard creation disabled to prevent conflict with custom panel
-        # The custom panel above provides the primary Better ToDo interface
-        # Enabling this would create a dashboard at the same URL, overriding the panel
-        # if not hass.data[DOMAIN].get("dashboard_created"):
-        #     from .dashboard import async_create_or_update_dashboard
-        #     await async_create_or_update_dashboard(hass)
-        #     hass.data[DOMAIN]["dashboard_created"] = True
-        #     _LOGGER.info("Created/updated Better ToDo dashboard")
+        # Register Lovelace dashboard for Settings → Dashboards visibility
+        # Uses a different URL than the custom panel to avoid conflicts
+        # - Custom Panel: /better-todo (primary interface with sidebar)
+        # - Lovelace Dashboard: /better-todo-dashboard (appears in Settings → Dashboards)
+        if not hass.data[DOMAIN].get("dashboard_created"):
+            from .dashboard import async_create_or_update_dashboard
+            await async_create_or_update_dashboard(hass)
+            hass.data[DOMAIN]["dashboard_created"] = True
+            _LOGGER.info("Created/updated Better ToDo dashboard")
     
     # Better ToDo entities no longer inherit from TodoListEntity to prevent
     # them from appearing in the native "To-do lists" dashboard.
-    # All functionality is provided through the custom Better ToDo dashboard.
+    # All functionality is provided through the custom Better ToDo panel and dashboard.
 
     # Register services
     async def handle_set_task_recurrence(call: ServiceCall) -> None:

@@ -30,10 +30,15 @@ RECURRENCE_UNIT_YEARS = "years"
 RECURRENCE_END_TYPE_COUNT = "count"
 RECURRENCE_END_TYPE_DATE = "date"
 
-# Dashboard constants
-DASHBOARD_URL = "better-todo"
-DASHBOARD_TITLE = "Better ToDo"
-DASHBOARD_ICON = "mdi:checkbox-marked-circle-outline"
+# Panel constants (custom panel with sidebar interface)
+PANEL_URL = "better-todo"
+PANEL_TITLE = "Better ToDo"
+PANEL_ICON = "mdi:checkbox-marked-circle-outline"
+
+# Dashboard constants (Lovelace dashboard for Settings → Dashboards)
+DASHBOARD_URL = "better-todo-dashboard"
+DASHBOARD_TITLE = "Better ToDo Dashboard"
+DASHBOARD_ICON = "mdi:view-dashboard"
 
 # Task grouping constants
 GROUP_NO_DUE_DATE = "no_due_date"
