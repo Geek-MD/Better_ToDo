@@ -514,7 +514,24 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
+    # First unload the standard platforms
     unload_ok: bool = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
+    # Manually unload the todo entity since it's not in PLATFORMS
+    # Get the entity component for better_todo domain
+    if unload_ok:
+        try:
+            component = entity_component.EntityComponent(_LOGGER, ENTITY_DOMAIN, hass)
+            # Get the entity that was registered for this entry
+            if entry.entry_id in hass.data[DOMAIN]:
+                entity = hass.data[DOMAIN][entry.entry_id].get("entity")
+                if entity:
+                    # Remove the entity
+                    await component.async_remove_entity(entity.entity_id)
+                    _LOGGER.debug("Unloaded Better ToDo entity for entry %s", entry.entry_id)
+        except Exception as err:
+            _LOGGER.warning("Error unloading Better ToDo entity: %s", err)
+            unload_ok = False
 
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
