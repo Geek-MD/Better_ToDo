@@ -150,12 +150,12 @@ async def _async_reload_frontend_panels(hass: HomeAssistant) -> None:
 async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     """Create or update the Better ToDo dashboard.
     
-    Creates a dashboard that will be dynamically populated by better-todo-panel.js.
-    This approach uses DOM injection similar to View Assist, eliminating the need
-    for YAML card configuration and providing more reliable visualization.
+    Creates a Lovelace dashboard with custom Better ToDo cards that appears in the sidebar.
+    This follows the View Assist integration pattern of using a Lovelace dashboard
+    instead of a custom panel for better compatibility and reliability.
     
-    The dashboard panel is created programmatically using standard Lovelace
-    configuration with websocket API fallback for compatibility.
+    The dashboard is created programmatically using the websocket API with
+    show_in_sidebar: True to make it appear in the Home Assistant sidebar.
     """
     # Get all Better ToDo entries
     entries = hass.config_entries.async_entries(DOMAIN)
@@ -239,7 +239,7 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
                 CONF_TITLE: DASHBOARD_TITLE,
                 CONF_URL_PATH: DASHBOARD_URL,
                 CONF_MODE: "storage",
-                CONF_SHOW_IN_SIDEBAR: False,  # Don't show in sidebar - panel already provides sidebar access
+                CONF_SHOW_IN_SIDEBAR: True,  # Show in sidebar for easy access
                 CONF_REQUIRE_ADMIN: False,
             },
         )
@@ -293,7 +293,7 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
                             # Update existing entry
                             item.update({
                                 "require_admin": False,
-                                "show_in_sidebar": False,  # Don't show in sidebar - panel already provides sidebar access
+                                "show_in_sidebar": True,  # Show in sidebar for easy access
                                 "icon": DASHBOARD_ICON,
                                 "title": DASHBOARD_TITLE,
                                 "url_path": DASHBOARD_URL,
@@ -312,7 +312,7 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
                         items.append({
                             "id": dashboard_id,
                             "require_admin": False,
-                            "show_in_sidebar": False,  # Don't show in sidebar - panel already provides sidebar access
+                            "show_in_sidebar": True,  # Show in sidebar for easy access
                             "icon": DASHBOARD_ICON,
                             "title": DASHBOARD_TITLE,
                             "url_path": DASHBOARD_URL,
