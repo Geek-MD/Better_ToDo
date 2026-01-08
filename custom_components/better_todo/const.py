@@ -47,7 +47,7 @@ JSMODULES = [
     {
         "name": "Better ToDo Panel Component",
         "filename": "better-todo-panel-component.js",
-        "version": "0.10.2",
+        "version": "0.10.6",
     },
     {
         "name": "Better ToDo List Card",

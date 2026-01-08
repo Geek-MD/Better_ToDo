@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Resource registration changes in `const.py`: Added panel component to JSMODULES
 - The panel component file was already being referenced by `panel.py` but wasn't registered
 - JavaScript module registration follows the same pattern as other custom cards
-- Version set to 0.10.2 to match the component's internal version constant
+- Updated panel component JavaScript version constant to match integration version
 
 ## [0.10.5] - 2026-01-08
 
