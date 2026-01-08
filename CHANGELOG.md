@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.6] - 2026-01-08
+
+### Fixed
+- **Empty Panel Issue**: Fixed empty Better ToDo panel by registering panel component JavaScript
+  - Added `better-todo-panel-component.js` to JSMODULES list in `const.py`
+  - Panel JavaScript file is now properly loaded as a Lovelace resource
+  - Panel header and content now display correctly
+  - Previously, the panel was completely empty without even a header due to missing JavaScript registration
+
+### Technical Details
+- Resource registration changes in `const.py`: Added panel component to JSMODULES
+- The panel component file was already being referenced by `panel.py` but wasn't registered
+- JavaScript module registration follows the same pattern as other custom cards
+- Updated panel component JavaScript version constant to match integration version
+
 ## [0.10.5] - 2026-01-08
 
 ### Fixed
