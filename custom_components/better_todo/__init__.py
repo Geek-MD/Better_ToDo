@@ -6,7 +6,9 @@ with support for recurring tasks, custom dashboards, and sidebar integration.
 Sidebar Integration:
 -------------------
 Better ToDo creates a Lovelace dashboard that appears in the Home Assistant sidebar.
-This follows the View Assist integration pattern for better compatibility and reliability.
+This follows the View Assist integration pattern: using a Lovelace dashboard instead
+of a custom panel, which provides better compatibility with Home Assistant's frontend
+and more reliable rendering of custom cards.
 
 The dashboard at /better-todo provides a card-based interface for managing all
 Better ToDo lists with full functionality including task creation, editing, and deletion.

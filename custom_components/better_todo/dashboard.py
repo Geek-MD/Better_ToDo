@@ -154,8 +154,9 @@ async def async_create_or_update_dashboard(hass: HomeAssistant) -> None:
     This follows the View Assist integration pattern of using a Lovelace dashboard
     instead of a custom panel for better compatibility and reliability.
     
-    The dashboard is created programmatically using the websocket API with
-    show_in_sidebar: True to make it appear in the Home Assistant sidebar.
+    The dashboard is created programmatically using Home Assistant's websocket API
+    (via MockWSConnection) with a fallback to direct file storage if needed.
+    Dashboard configuration includes show_in_sidebar: True to make it appear in the sidebar.
     """
     # Get all Better ToDo entries
     entries = hass.config_entries.async_entries(DOMAIN)
