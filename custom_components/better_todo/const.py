@@ -38,7 +38,7 @@ PANEL_ICON = "mdi:checkbox-marked-circle-outline"
 # Dashboard constants (Lovelace dashboard for Settings → Dashboards)
 DASHBOARD_URL = "better-todo-dashboard"
 DASHBOARD_TITLE = "Better ToDo Dashboard"
-DASHBOARD_ICON = "mdi:checkbox-marked-circle-outline"
+DASHBOARD_ICON = "mdi:view-dashboard"
 
 # Task grouping constants
 GROUP_NO_DUE_DATE = "no_due_date"
