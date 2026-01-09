@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.9] - 2026-01-09
+
+### Fixed
+- **Options Flow TypeError**: Fixed `TypeError: BetterTodoOptionsFlow() takes no arguments`
+  - Added `__init__` method to `BetterTodoOptionsFlow` class to accept `config_entry` parameter
+  - Options flow now properly initializes with the config entry when users access integration options
+  - Resolves error "Error handling request from 172.67.68.101" when accessing options flow
+  - Previously the class inherited from `OptionsFlow` but didn't define `__init__` to accept required parameter
+
+### Technical Details
+- Config flow changes in `config_flow.py`: Added `__init__` method with proper type hints
+- Method signature: `def __init__(self, config_entry: config_entries.ConfigEntry) -> None`
+- Properly stores config_entry as instance variable for use in async_step_init
+- All changes validated with ruff, mypy, hassfest, and JavaScript syntax check
+
 ## [0.10.8] - 2026-01-08
 
 ### Fixed
