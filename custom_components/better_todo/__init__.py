@@ -5,15 +5,13 @@ with support for recurring tasks, custom dashboards, and sidebar integration.
 
 Sidebar Integration:
 -------------------
-Better ToDo creates both a custom panel and a Lovelace dashboard:
+Better ToDo creates a Lovelace dashboard that appears in the Home Assistant sidebar.
+This follows the View Assist integration pattern: using a Lovelace dashboard instead
+of a custom panel, which provides better compatibility with Home Assistant's frontend
+and more reliable rendering of custom cards.
 
-1. Custom Panel (/better-todo): Primary interface with sidebar navigation showing
-   all Better ToDo lists and a main content area for task management.
-   
-2. Lovelace Dashboard (/better-todo-dashboard): Alternative card-based view that
-   appears in Settings → Dashboards for easy access and customization.
-
-Both interfaces provide full functionality and use the same Better ToDo entities.
+The dashboard at /better-todo provides a card-based interface for managing all
+Better ToDo lists with full functionality including task creation, editing, and deletion.
 """
 from __future__ import annotations
 
@@ -161,7 +159,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
-    # Register JavaScript modules using view_assist pattern (only once for all entries)
+    # Register JavaScript modules and dashboard using View Assist pattern (only once for all entries)
     # Use async lock to prevent race conditions when multiple entries are loaded simultaneously
     async with _SETUP_LOCK:
         if not hass.data[DOMAIN].get("js_registered"):
@@ -171,40 +169,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.data[DOMAIN]["js_registered"] = js_registration
             _LOGGER.info("Registered Better ToDo JavaScript modules")
         
-        # Register custom panel with sidebar integration
-        # This creates a panel similar to the native To-do lists panel with a sidebar
-        # showing all Better ToDo lists and a main content area for task management
-        if not hass.data[DOMAIN].get("panel_registered"):
-            from .panel import async_register_panel
-            try:
-                await async_register_panel(hass)
-                hass.data[DOMAIN]["panel_registered"] = True
-                _LOGGER.info("Registered Better ToDo panel")
-            except ValueError as err:
-                # Panel already registered (e.g., by another config entry racing to register)
-                # Home Assistant's frontend raises ValueError when attempting to overwrite a panel
-                # Since we can't query if a panel exists beforehand, we catch this specific error
-                if "Overwriting panel" in str(err):
-                    _LOGGER.debug("Panel already registered by another entry: %s", err)
-                    hass.data[DOMAIN]["panel_registered"] = True
-                else:
-                    # Re-raise if it's a different ValueError
-                    raise
-        
-        # Register Lovelace dashboard for Settings → Dashboards visibility
-        # Uses a different URL than the custom panel to avoid conflicts
-        # - Custom Panel: /better-todo (primary interface with sidebar)
-        # - Lovelace Dashboard: /better-todo-dashboard (appears in Settings → Dashboards)
+        # Register Lovelace dashboard with sidebar visibility
+        # Following View Assist pattern: use only Lovelace dashboard (not custom panel)
+        # This appears in the sidebar at /better-todo with show_in_sidebar: True
         if not hass.data[DOMAIN].get("dashboard_created"):
             from .dashboard import async_create_or_update_dashboard
             await async_create_or_update_dashboard(hass)
             hass.data[DOMAIN]["dashboard_created"] = True
             _LOGGER.info("Created/updated Better ToDo dashboard")
     
-    # Better ToDo entities no longer inherit from TodoListEntity to prevent
-    # them from appearing in the native "To-do lists" dashboard.
-    # All functionality is provided through the custom Better ToDo panel and dashboard.
-
     # Register services
     async def handle_set_task_recurrence(call: ServiceCall) -> None:
         """Handle the set_task_recurrence service call."""
@@ -542,11 +515,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     
     # Remove dashboard and services if no more entries will remain
     if not remaining_entries:
-        # Remove the panel
-        from .panel import async_unregister_panel
-        await async_unregister_panel(hass)
-        _LOGGER.info("Unregistered Better ToDo panel - no more lists configured")
-        
         # Remove the dashboard
         from .dashboard import async_remove_dashboard
         await async_remove_dashboard(hass)
