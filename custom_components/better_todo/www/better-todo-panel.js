@@ -186,19 +186,19 @@ class BetterTodoPanel {
     const state = this.hass.states[entityId];
     if (!state) return null;
 
-    // Create a native todo-list card element
-    const card = document.createElement("hui-todo-list-card");
+    // Create a Better ToDo custom card element
+    const card = document.createElement("better-todo-list-card");
     
     // Set the configuration
     card.setConfig({
-      type: "todo-list",
+      type: "custom:better-todo-list-card",
       entity: entityId,
     });
 
     // Set hass
     card.hass = this.hass;
 
-    // Wrap in ha-card for proper styling
+    // Wrap for proper styling
     const wrapper = document.createElement("div");
     wrapper.style.cssText = "display: block;";
     wrapper.appendChild(card);
