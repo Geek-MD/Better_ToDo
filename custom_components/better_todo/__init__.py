@@ -1,17 +1,17 @@
 """The Better ToDo integration.
 
 This integration provides advanced ToDo list management for Home Assistant
-with support for recurring tasks, custom dashboards, and sidebar integration.
+with support for recurring tasks, custom panel, and sidebar integration.
 
 Sidebar Integration:
 -------------------
-Better ToDo creates a Lovelace dashboard that appears in the Home Assistant sidebar.
-This follows the View Assist integration pattern: using a Lovelace dashboard instead
-of a custom panel, which provides better compatibility with Home Assistant's frontend
-and more reliable rendering of custom cards.
+Better ToDo creates a custom panel that appears in the Home Assistant sidebar.
+The panel provides a two-column layout similar to HA's native "To-do lists" panel:
+- Left sidebar: List all Better ToDo lists with task counts and navigation
+- Main content area: Display tasks from the selected list with full CRUD operations
 
-The dashboard at /better-todo provides a card-based interface for managing all
-Better ToDo lists with full functionality including task creation, editing, and deletion.
+The panel at /better-todo uses the better-todo-panel-component.js custom element
+which provides inline task rendering and full functionality using Better ToDo services.
 """
 from __future__ import annotations
 
@@ -159,7 +159,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     entry.async_on_unload(entry.add_update_listener(async_update_options))
 
-    # Register JavaScript modules and dashboard using View Assist pattern (only once for all entries)
+    # Register JavaScript modules and panel (only once for all entries)
     # Use async lock to prevent race conditions when multiple entries are loaded simultaneously
     async with _SETUP_LOCK:
         if not hass.data[DOMAIN].get("js_registered"):
@@ -169,14 +169,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass.data[DOMAIN]["js_registered"] = js_registration
             _LOGGER.info("Registered Better ToDo JavaScript modules")
         
-        # Register Lovelace dashboard with sidebar visibility
-        # Following View Assist pattern: use only Lovelace dashboard (not custom panel)
-        # This appears in the sidebar at /better-todo with show_in_sidebar: True
-        if not hass.data[DOMAIN].get("dashboard_created"):
-            from .dashboard import async_create_or_update_dashboard
-            await async_create_or_update_dashboard(hass)
-            hass.data[DOMAIN]["dashboard_created"] = True
-            _LOGGER.info("Created/updated Better ToDo dashboard")
+        # Register custom panel with sidebar navigation
+        # The panel provides a two-column layout: sidebar with list navigation + main content area
+        # This is the expected structure as shown in screenshot-01.png
+        if not hass.data[DOMAIN].get("panel_registered"):
+            from .panel import async_register_panel
+            await async_register_panel(hass)
+            hass.data[DOMAIN]["panel_registered"] = True
+            _LOGGER.info("Registered Better ToDo custom panel")
     
     # Register services
     async def handle_set_task_recurrence(call: ServiceCall) -> None:
@@ -513,12 +513,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if e.entry_id != entry.entry_id
     ]
     
-    # Remove dashboard and services if no more entries will remain
+    # Remove panel and services if no more entries will remain
     if not remaining_entries:
-        # Remove the dashboard
-        from .dashboard import async_remove_dashboard
-        await async_remove_dashboard(hass)
-        _LOGGER.info("Removed Better ToDo dashboard - no more lists configured")
+        # Remove the custom panel
+        from .panel import async_unregister_panel
+        await async_unregister_panel(hass)
+        _LOGGER.info("Removed Better ToDo custom panel - no more lists configured")
         
         # Unregister Better ToDo custom services
         hass.services.async_remove(DOMAIN, SERVICE_SET_TASK_RECURRENCE)
