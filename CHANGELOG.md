@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2026-01-09
+
+### Fixed
+- **Panel Card Structure**: Fixed Better ToDo panel showing empty cards with "No tasks" messages
+  - Changed from native `hui-todo-list-card` to custom `better-todo-list-card` in panel injection
+  - Native HA cards don't work with Better ToDo's custom entity structure
+  - Panel now correctly displays Better ToDo entities with full functionality
+
+### Added
+- **Enhanced List Card**: Added complete task editing dialog to `better-todo-list-card`
+  - Full task creation/editing dialog with recurrence support
+  - Recurrence configuration: interval, unit (days/weeks/months/years)
+  - Recurrence end conditions: by count or by date
+  - Support for task name, description, due date, and completion status
+  - Multilingual support (English/Spanish) based on HA language setting
+  - Removed simple inline form in favor of comprehensive dialog
+
+### Changed
+- **better-todo-panel.js**: Updated `createTodoCard()` to use `better-todo-list-card` element
+- **better-todo-list-card.js**: Major enhancement from v0.9.0 to v0.10.0
+  - Added `_openTaskDialog()` method with complete form
+  - Added `_handleItemClick()` to open edit dialog on task click
+  - Added `_saveTask()` method with recurrence handling
+  - Removed obsolete methods: `_showAddItemForm()`, `_hideAddItemForm()`, `_addNewItem()`
+  - Removed inline form HTML and CSS
+  - Add button now opens full dialog instead of simple input
+
+### Technical Details
+- Updated card version in `const.py`: better-todo-list-card v0.9.0 → v0.10.0
+- All changes validated with ruff, mypy, hassfest, and JavaScript syntax check
+- Panel injection mechanism preserved, only card type changed
+- Better ToDo entities continue to use `better_todo` domain for isolation
+
 ## [0.10.9] - 2026-01-09
 
 ### Fixed
