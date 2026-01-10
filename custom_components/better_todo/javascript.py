@@ -18,7 +18,7 @@ from .const import DOMAIN, JSMODULES, URL_BASE
 
 _LOGGER = logging.getLogger(__name__)
 
-JS_URL = f"/{URL_BASE}/js"
+JS_URL = f"/{URL_BASE}/www"
 
 
 class JSModuleRegistration:
