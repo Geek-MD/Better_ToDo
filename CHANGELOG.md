@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.1] - 2026-01-09
+
+### Fixed
+- **Panel Structure**: Fixed Better ToDo panel to show proper two-column layout with sidebar navigation
+  - Changed from Lovelace dashboard to custom panel component
+  - Panel now shows left sidebar with list navigation (Shopping List, Tasks, etc.) using friendly names
+  - Main content area displays selected list's tasks using better-todo-list-card
+  - Full task editing functionality through integrated dialog
+  - Matches expected structure from screenshot-01.png (sidebar + main area)
+  - Fixed issue where entity IDs were shown instead of friendly names
+  - Tasks can now be edited by clicking on them (not just add and check)
+
+### Added
+- **Panel Registration**: Created panel.py module for custom panel management
+  - Uses panel_custom.async_register_panel for proper panel registration
+  - Panel component (better-todo-panel-component.js) provides sidebar navigation
+  - Integrated better-todo-list-card for full task management
+  - Panel appears in sidebar at /better-todo
+
+### Changed
+- **Architecture**: Switched from Lovelace dashboard back to custom panel approach
+  - Panel provides better structure for list navigation
+  - Sidebar shows all Better ToDo lists with friendly names and task counts
+  - Click on sidebar item to switch between lists
+  - Main area uses better-todo-list-card with full CRUD operations
+- **Module Registration**: Added better-todo-panel-component.js to JSMODULES list in const.py
+
+### Technical Details
+- Created panel.py with async_register_panel and async_unregister_panel functions
+- Updated __init__.py to register panel instead of dashboard
+- Panel registration protected with async lock to prevent race conditions
+- Panel component version 0.10.6 integrated with list card version 0.10.0
+- All changes validated with ruff, mypy, hassfest, and JavaScript syntax check
+
 ## [0.11.0] - 2026-01-09
 
 ### Fixed

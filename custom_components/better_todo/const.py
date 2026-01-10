@@ -30,7 +30,7 @@ RECURRENCE_UNIT_YEARS = "years"
 RECURRENCE_END_TYPE_COUNT = "count"
 RECURRENCE_END_TYPE_DATE = "date"
 
-# Dashboard constants (Lovelace dashboard with sidebar visibility)
+# Dashboard constants (Custom panel with sidebar visibility)
 DASHBOARD_URL = "better-todo"
 DASHBOARD_TITLE = "Better ToDo"
 DASHBOARD_ICON = "mdi:checkbox-marked-circle-outline"
@@ -44,6 +44,11 @@ GROUP_FORTHCOMING = "forthcoming"
 # Frontend resource constants
 URL_BASE = "better_todo"
 JSMODULES = [
+    {
+        "name": "Better ToDo Panel Component",
+        "filename": "better-todo-panel-component.js",
+        "version": "0.10.6",
+    },
     {
         "name": "Better ToDo List Card",
         "filename": "better-todo-list-card.js",
