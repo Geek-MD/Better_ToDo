@@ -5,24 +5,6 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.11.2] - 2026-01-10
-
-### Fixed
-- **Panel Loading Error**: Fixed "Unable to load custom panel" error when accessing Better ToDo from sidebar
-  - Root cause: Static path was registered as `/better_todo/js` but should be `/better_todo/www` to match physical directory structure
-  - Solution: Changed JS_URL in javascript.py from `/better_todo/js` to `/better_todo/www` for consistency
-  - Panel module_url already correctly pointed to `/better_todo/www/better-todo-panel-component.js`
-  - Panel now loads correctly without floating dialog errors
-  - Fixed issue reported: "Arregla el siguiente error... Se trata de un cuadro de diálogo flotante que aparece en HA cuando selecciono el panel Better ToDo en el sideboard"
-
-### Technical Details
-- Changed JS_URL in `javascript.py` line 21 from `/better_todo/js` to `/better_todo/www` to match directory name
-- Physical directory structure: `custom_components/better_todo/www/`
-- Virtual URL path: `/better_todo/www/` (now consistent with physical path)
-- All JavaScript modules (cards and panel) now served from consistent URL base
-- All changes validated with ruff, mypy, and JavaScript syntax check
-- No breaking changes - improves consistency and fixes loading error
-
 ## [0.11.1] - 2026-01-09
 
 ### Fixed
