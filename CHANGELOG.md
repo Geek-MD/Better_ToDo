@@ -19,7 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `/better_todo/js` → used by Lovelace resources (cards)
 - `/better_todo/www` → used by panel component (better-todo-panel-component.js)
 - Both paths serve files from `custom_components/better_todo/www/`
-- All changes validated with ruff and JavaScript syntax check
+- All changes validated with ruff, mypy, and JavaScript syntax check
+- Hassfest validation will run in CI
 - No breaking changes - combines working aspects of v0.11.0 and v0.11.1
 
 ## [0.11.1] - 2026-01-09
