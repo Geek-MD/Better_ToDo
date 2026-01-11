@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.2] - 2026-01-11
+
+### Fixed
+- **Panel Loading**: Fixed panel not loading in v0.11.1 by registering both static paths
+  - v0.11.0 loaded panel correctly but showed entity IDs instead of friendly names
+  - v0.11.1 fixed friendly names but panel failed to load due to missing static path
+  - Solution: Register both `/better_todo/js` (for Lovelace resources) and `/better_todo/www` (for panel component)
+  - Panel now loads correctly AND shows friendly names in sidebar navigation
+
+### Technical Details
+- Modified `javascript.py` to register two static paths pointing to the same `www/` directory
+- `/better_todo/js` → used by Lovelace resources (cards)
+- `/better_todo/www` → used by panel component (better-todo-panel-component.js)
+- Both paths serve files from `custom_components/better_todo/www/`
+- All changes validated with ruff, mypy, and JavaScript syntax check
+- Hassfest validation will run in CI
+- No breaking changes - combines working aspects of v0.11.0 and v0.11.1
+
 ## [0.11.1] - 2026-01-09
 
 ### Fixed
