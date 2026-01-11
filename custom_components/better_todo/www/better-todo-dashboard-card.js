@@ -276,7 +276,7 @@ class BetterTodoDashboardCard extends HTMLElement {
     const state = this._hass.states[this._selectedEntity];
     if (!state) return;
     
-    const items = state.attributes.todo_items || [];
+    const items = state.attributes.items || [];
     const item = items.find(i => i.uid === uid);
     
     if (item) {
@@ -639,11 +639,10 @@ class BetterTodoDashboardCard extends HTMLElement {
           
           // Get the latest state
           const state = this._hass.states[this._selectedEntity];
-          const items = state?.attributes?.todo_items || [];
+          const items = state?.attributes?.items || [];
           
-          // Find the newly created task (first one with matching summary that's not a header)
-          // Note: This assumes task summaries are reasonably unique
-          const newTask = items.find(i => i.summary === summary && !i.uid.startsWith('header_'));
+          // Find the newly created task (first one with matching summary)
+          const newTask = items.find(i => i.summary === summary);
           
           if (newTask) {
             const recurrenceData = {
@@ -704,16 +703,35 @@ class BetterTodoDashboardCard extends HTMLElement {
     
     this._cardElement.innerHTML = `
       <style>
+        ha-card {
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+        }
         .dashboard-container {
           display: flex;
-          height: 100%;
-          min-height: 400px;
+          flex: 1;
+          min-height: 500px;
+          width: 100%;
         }
         .lists-panel {
           width: 250px;
+          min-width: 250px;
           border-right: 1px solid var(--divider-color);
           overflow-y: auto;
-          padding: 16px 0;
+          display: flex;
+          flex-direction: column;
+        }
+        .lists-panel > div:first-child {
+          flex: 1;
+        }
+        .add-list-container {
+          margin-top: auto;
+          padding: 8px 16px;
+          border-top: 1px solid var(--divider-color);
+        }
+        .add-list-button {
+          width: 100%;
         }
         .list-item {
           padding: 12px 16px;
@@ -767,7 +785,9 @@ class BetterTodoDashboardCard extends HTMLElement {
       </style>
       <div class="dashboard-container">
         <div class="lists-panel">
-          ${listsHtml}
+          <div>
+            ${listsHtml}
+          </div>
         </div>
         <div class="tasks-panel">
           ${tasksHtml}
@@ -816,9 +836,106 @@ class BetterTodoDashboardCard extends HTMLElement {
    * Handle add new list button click
    */
   _handleAddNewList() {
-    // Navigate to Better ToDo integrations page to add a new list
-    const integrationsUrl = '/config/integrations/integration/better_todo';
-    window.location.href = integrationsUrl;
+    const language = this._hass.language || 'en';
+    const isSpanish = language.startsWith('es');
+    
+    // Create dialog
+    const dialog = document.createElement('ha-dialog');
+    dialog.heading = isSpanish ? 'Nueva lista' : 'New List';
+    
+    const content = document.createElement('div');
+    content.style.padding = '16px';
+    
+    // Build form HTML
+    content.innerHTML = `
+      <style>
+        .form-row {
+          margin-bottom: 16px;
+        }
+        .form-row label {
+          display: block;
+          margin-bottom: 4px;
+          font-weight: 500;
+        }
+        .form-row input[type="text"] {
+          width: 100%;
+          padding: 8px;
+          border: 1px solid var(--divider-color);
+          border-radius: 4px;
+          background-color: var(--card-background-color);
+          color: var(--primary-text-color);
+          font-family: inherit;
+          font-size: 14px;
+          box-sizing: border-box;
+        }
+        .form-row input[type="text"]:focus {
+          outline: none;
+          border-color: var(--primary-color);
+        }
+      </style>
+      <div class="form-row">
+        <label for="list-name">${isSpanish ? 'Nombre de la lista' : 'List Name'}</label>
+        <input type="text" id="list-name" placeholder="${isSpanish ? 'Ej: Tareas del hogar' : 'e.g. Home Tasks'}" required />
+      </div>
+    `;
+    
+    dialog.appendChild(content);
+    
+    // Add buttons
+    const cancelButton = document.createElement('ha-button');
+    cancelButton.slot = 'secondaryAction';
+    cancelButton.textContent = isSpanish ? 'Cancelar' : 'Cancel';
+    cancelButton.addEventListener('click', () => {
+      dialog.close();
+    });
+    
+    const saveButton = document.createElement('ha-button');
+    saveButton.slot = 'primaryAction';
+    saveButton.textContent = isSpanish ? 'Crear' : 'Create';
+    saveButton.addEventListener('click', async () => {
+      const nameInput = content.querySelector('#list-name');
+      const listName = nameInput.value.trim();
+      
+      if (!listName) {
+        alert(isSpanish ? 'Por favor ingresa un nombre para la lista' : 'Please enter a name for the list');
+        return;
+      }
+      
+      try {
+        // Call the config flow to add a new Better ToDo list
+        // This navigates to the integrations page with the add flow
+        const integrationsUrl = `/config/integrations/integration/better_todo`;
+        
+        // Store the list name in localStorage so it can be pre-filled
+        localStorage.setItem('better_todo_new_list_name', listName);
+        
+        // Navigate to add integration page
+        window.location.href = integrationsUrl;
+        
+        dialog.close();
+      } catch (err) {
+        console.error('Error creating list:', err);
+        alert(isSpanish ? 'Error al crear la lista' : 'Error creating list');
+      }
+    });
+    
+    dialog.appendChild(cancelButton);
+    dialog.appendChild(saveButton);
+    
+    // Show dialog
+    document.body.appendChild(dialog);
+    dialog.open = true;
+    
+    // Focus the input field
+    setTimeout(() => {
+      const nameInput = content.querySelector('#list-name');
+      nameInput?.focus();
+    }, 100);
+    
+    // Remove dialog when closed
+    dialog.addEventListener('closed', () => {
+      dialog.remove();
+    });
   }
 
   /**
@@ -832,24 +949,26 @@ class BetterTodoDashboardCard extends HTMLElement {
     
     const listsHtml = entities.map(entityId => {
       const state = this._hass.states[entityId];
-      const name = state.attributes.friendly_name || entityId;
-      const items = state.attributes.todo_items || [];
+      // Use friendly_name from attributes (not entity ID)
+      const name = state.attributes.friendly_name || state.attributes.name || entityId.split('.')[1].replace(/_/g, ' ');
+      // Use 'items' instead of 'todo_items' to avoid headers
+      const items = state.attributes.items || [];
       const activeCount = items.filter(item => item.status !== 'completed').length;
       const isSelected = entityId === this._selectedEntity;
       
       return `
-        <div class="list-item ${isSelected ? 'selected' : ''}" data-entity="${entityId}">
+        <div class="list-item ${isSelected ? 'selected' : ''}" data-entity="${this._escapeHtml(entityId)}">
           <ha-icon class="list-item-icon" icon="mdi:format-list-checks"></ha-icon>
-          <div class="list-item-name">${name}</div>
+          <div class="list-item-name">${this._escapeHtml(name)}</div>
           <div class="list-item-count">${activeCount}</div>
         </div>
       `;
     }).join('');
     
-    // Add button to create new list
+    // Add button to create new list at the bottom
     const addListButton = `
-      <div style="padding: 8px 16px; border-top: 1px solid var(--divider-color);">
-        <ha-button class="add-list-button" style="width: 100%;">
+      <div class="add-list-container">
+        <ha-button class="add-list-button">
           <ha-icon icon="mdi:plus" slot="icon"></ha-icon>
           ${isSpanish ? 'Nueva lista' : 'New list'}
         </ha-button>
@@ -857,6 +976,15 @@ class BetterTodoDashboardCard extends HTMLElement {
     `;
     
     return listsHtml + addListButton;
+  }
+  
+  /**
+   * Escape HTML to prevent XSS
+   */
+  _escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 
   /**
@@ -873,15 +1001,17 @@ class BetterTodoDashboardCard extends HTMLElement {
       return '<p>List not found</p>';
     }
     
-    const items = state.attributes.todo_items || [];
-    const title = state.attributes.friendly_name || 'Tasks';
+    // Use 'items' instead of 'todo_items' to get clean list without headers
+    const items = state.attributes.items || [];
+    // Get friendly name properly - it updates dynamically based on selected entity
+    const title = state.attributes.friendly_name || state.attributes.name || this._selectedEntity.split('.')[1].replace(/_/g, ' ');
     
     // Group items
     const groups = this._groupItems(items);
     
     return `
       <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-        <h1 style="margin: 0;">${title}</h1>
+        <h1 style="margin: 0;">${this._escapeHtml(title)}</h1>
         <ha-icon-button class="add-task-button">
           <ha-icon icon="mdi:plus"></ha-icon>
         </ha-icon-button>
@@ -923,17 +1053,17 @@ class BetterTodoDashboardCard extends HTMLElement {
   _renderItem(item) {
     const checked = item.status === 'completed' ? 'checked' : '';
     const dueDate = this._formatDueDate(item.due);
-    const dueHtml = dueDate ? `<div class="secondary">${dueDate}</div>` : '';
+    const dueHtml = dueDate ? `<div class="secondary">${this._escapeHtml(dueDate)}</div>` : '';
     
     return `
-      <ha-check-list-item data-uid="${item.uid}">
+      <ha-check-list-item data-uid="${this._escapeHtml(item.uid)}">
         <ha-checkbox 
           slot="start"
           ${checked}
-          data-uid="${item.uid}"
+          data-uid="${this._escapeHtml(item.uid)}"
         ></ha-checkbox>
         <div>
-          <div>${item.summary}</div>
+          <div>${this._escapeHtml(item.summary)}</div>
           ${dueHtml}
         </div>
       </ha-check-list-item>
@@ -962,7 +1092,7 @@ window.customCards.push({
 });
 
 console.info(
-  '%c BETTER-TODO-DASHBOARD-CARD %c v0.6.8 ',
+  '%c BETTER-TODO-DASHBOARD-CARD %c v1.0.0 ',
   'background-color: #555;color: #fff;font-weight: bold;',
   'background-color: #4caf50;color: #fff;font-weight: bold;'
 );
