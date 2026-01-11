@@ -47,13 +47,16 @@ class JSModuleRegistration:
         try:
             # Use www folder for JavaScript files (standard Home Assistant pattern)
             path = Path(self.hass.config.path(f"custom_components/{DOMAIN}/www"))
-            await self.hass.http.async_register_static_paths(
-                [StaticPathConfig(JS_URL, path, False)]
-            )
-            _LOGGER.debug("Registered resource path from %s", path)
+            # Register both /better_todo/js and /better_todo/www paths
+            # /js is used for Lovelace resources, /www is used for panel component
+            await self.hass.http.async_register_static_paths([
+                StaticPathConfig(JS_URL, path, False),
+                StaticPathConfig(f"/{URL_BASE}/www", path, False)
+            ])
+            _LOGGER.debug("Registered resource paths for %s", path)
         except RuntimeError:
             # Runtime error is likely this is already registered.
-            _LOGGER.debug("Resource path already registered")
+            _LOGGER.debug("Resource paths already registered")
 
     async def _async_wait_for_lovelace_resources(self) -> None:
         """Wait for lovelace resources to have loaded."""
