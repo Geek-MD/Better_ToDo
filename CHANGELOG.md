@@ -5,6 +5,51 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2026-01-12
+
+### Added
+- **Better ToDo Simple Card**: New card that replicates Home Assistant's Local Todo functionality
+  - Clean, simple interface with Active/Completed sections
+  - Quick-add input with Enter key support
+  - Checkbox to toggle task completion
+  - Click on tasks to edit them
+  - Shows due dates and descriptions
+  - Full XSS protection with HTML escaping
+  - Version 1.0.0
+  
+- **Documentation**: Three comprehensive guides for manual YAML testing
+  - `QUICK_YAML_TEST.md`: Minimal copy-paste example
+  - `EJEMPLO_YAML_PRUEBA.md`: Spanish testing guide with 4 YAML configurations
+  - `YAML_TESTING_EXAMPLE.md`: English testing guide with 5 YAML configurations
+
+### Fixed
+- **Better ToDo Dashboard Card**: Complete rewrite to fix multiple issues (v0.6.8 → v1.0.0)
+  - Fixed list names showing entity IDs instead of friendly names
+  - Fixed static content - now updates dynamically when switching between lists
+  - Fixed "New list" button position - now at bottom of sidebar column
+  - Fixed card width - now takes full available width in panel
+  - Fixed data source - uses `items` attribute instead of `todo_items` (no header items)
+  - Added XSS protection with HTML escaping for all user content
+  
+- **New List Dialog**: Added floating dialog for creating new lists
+  - Opens when clicking "New list" button
+  - Allows naming the list before creation
+  - Spanish/English translations
+  - Proper validation and error handling
+
+### Changed
+- **Card Versions**: Updated card resource versions in `const.py`
+  - `better-todo-simple-card.js`: v1.0.0 (new)
+  - `better-todo-dashboard-card.js`: v0.6.8 → v1.0.0 (updated)
+
+### Technical Details
+- Dashboard card now properly uses entity `friendly_name` attribute
+- Dashboard card title updates dynamically based on selected list
+- Fixed flexbox layout for proper sidebar and content panel positioning
+- All changes validated with ruff, mypy, hassfest, and JavaScript syntax check
+- Both cards follow HA custom card guidelines (shadow DOM, `setConfig()`, `hass` setter)
+- Both cards registered in `window.customCards` for picker integration
+
 ## [0.11.2] - 2026-01-11
 
 ### Fixed
