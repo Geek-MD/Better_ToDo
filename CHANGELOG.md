@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.12.0] - 2026-01-12
+## [0.11.3] - 2026-01-12
 
 ### Added
 - **Better ToDo Simple Card**: New card that replicates Home Assistant's Local Todo functionality
@@ -49,58 +49,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All changes validated with ruff, mypy, hassfest, and JavaScript syntax check
 - Both cards follow HA custom card guidelines (shadow DOM, `setConfig()`, `hass` setter)
 - Both cards registered in `window.customCards` for picker integration
-
-## [0.11.2] - 2026-01-11
-
-### Fixed
-- **Panel Loading**: Fixed panel not loading in v0.11.1 by registering both static paths
-  - v0.11.0 loaded panel correctly but showed entity IDs instead of friendly names
-  - v0.11.1 fixed friendly names but panel failed to load due to missing static path
-  - Solution: Register both `/better_todo/js` (for Lovelace resources) and `/better_todo/www` (for panel component)
-  - Panel now loads correctly AND shows friendly names in sidebar navigation
-
-### Technical Details
-- Modified `javascript.py` to register two static paths pointing to the same `www/` directory
-- `/better_todo/js` → used by Lovelace resources (cards)
-- `/better_todo/www` → used by panel component (better-todo-panel-component.js)
-- Both paths serve files from `custom_components/better_todo/www/`
-- All changes validated with ruff, mypy, and JavaScript syntax check
-- Hassfest validation will run in CI
-- No breaking changes - combines working aspects of v0.11.0 and v0.11.1
-
-## [0.11.1] - 2026-01-09
-
-### Fixed
-- **Panel Structure**: Fixed Better ToDo panel to show proper two-column layout with sidebar navigation
-  - Changed from Lovelace dashboard to custom panel component
-  - Panel now shows left sidebar with list navigation (Shopping List, Tasks, etc.) using friendly names
-  - Main content area displays selected list's tasks using better-todo-list-card
-  - Full task editing functionality through integrated dialog
-  - Matches expected structure from screenshot-01.png (sidebar + main area)
-  - Fixed issue where entity IDs were shown instead of friendly names
-  - Tasks can now be edited by clicking on them (not just add and check)
-
-### Added
-- **Panel Registration**: Created panel.py module for custom panel management
-  - Uses panel_custom.async_register_panel for proper panel registration
-  - Panel component (better-todo-panel-component.js) provides sidebar navigation
-  - Integrated better-todo-list-card for full task management
-  - Panel appears in sidebar at /better-todo
-
-### Changed
-- **Architecture**: Switched from Lovelace dashboard back to custom panel approach
-  - Panel provides better structure for list navigation
-  - Sidebar shows all Better ToDo lists with friendly names and task counts
-  - Click on sidebar item to switch between lists
-  - Main area uses better-todo-list-card with full CRUD operations
-- **Module Registration**: Added better-todo-panel-component.js to JSMODULES list in const.py
-
-### Technical Details
-- Created panel.py with async_register_panel and async_unregister_panel functions
-- Updated __init__.py to register panel instead of dashboard
-- Panel registration protected with async lock to prevent race conditions
-- Panel component version 0.10.6 integrated with list card version 0.10.0
-- All changes validated with ruff, mypy, hassfest, and JavaScript syntax check
 
 ## [0.11.0] - 2026-01-09
 
