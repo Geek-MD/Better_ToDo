@@ -52,6 +52,19 @@ function errorLog(message, ...args) {
   console.error(`[Better ToDo Panel ERROR] ${message}`, ...safeArgs);
 }
 
+/**
+ * Capitalize first letter of each word in a string
+ * @param {string} str - The string to capitalize
+ * @returns {string} - The capitalized string
+ */
+function capitalizeWords(str) {
+  if (!str) return str;
+  return str.split(' ').map(word => {
+    if (!word) return word;
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  }).join(' ');
+}
+
 class BetterTodoPanel extends HTMLElement {
   constructor() {
     super();
@@ -102,7 +115,7 @@ class BetterTodoPanel extends HTMLElement {
     
     debugLog(`Found ${entities.length} Better ToDo entities total`);
     
-    // Sort entities: descending alphabetical order with "Shopping List" always last
+    // Sort entities: ascending alphabetical order (A-Z) with "Shopping List" always last
     return entities.sort((a, b) => {
       const stateA = this._hass.states[a];
       const stateB = this._hass.states[b];
@@ -116,8 +129,8 @@ class BetterTodoPanel extends HTMLElement {
       if (isShoppingA && !isShoppingB) return 1;
       if (!isShoppingA && isShoppingB) return -1;
       
-      // For other lists, sort in descending alphabetical order (Z to A)
-      return nameB.localeCompare(nameA);
+      // For other lists, sort in ascending alphabetical order (A to Z)
+      return nameA.localeCompare(nameB);
     });
   }
 
@@ -307,6 +320,8 @@ class BetterTodoPanel extends HTMLElement {
     listsContainer.innerHTML = entities.map(entityId => {
       const state = this._hass.states[entityId];
       const name = state.attributes.friendly_name || entityId;
+      // Capitalize first letter of each word in the name
+      const displayName = capitalizeWords(name);
       // Use 'items' attribute which contains clean task list
       const items = state.attributes.items || [];
       const activeCount = items.filter(item => item.status !== 'completed').length;
@@ -314,7 +329,7 @@ class BetterTodoPanel extends HTMLElement {
       
       // Escape values for safe HTML attribute usage
       const safeEntityId = this._escapeHtml(entityId);
-      const safeName = this._escapeHtml(name);
+      const safeName = this._escapeHtml(displayName);
 
       return `
         <div class="list-item ${isSelected ? 'selected' : ''}" data-entity="${safeEntityId}">
@@ -655,10 +670,16 @@ class BetterTodoPanel extends HTMLElement {
     const checkboxes = this.querySelectorAll('.task-item ha-checkbox');
     checkboxes.forEach(checkbox => {
       checkbox.addEventListener('change', (e) => {
+        e.stopPropagation(); // Prevent event from bubbling to task item
         const taskItem = e.target.closest('.task-item');
         const uid = taskItem.dataset.uid;
         const isCompleted = e.target.checked;
         this._toggleTaskStatus(entityId, uid, isCompleted);
+      });
+      
+      // Also prevent click events on checkbox from bubbling
+      checkbox.addEventListener('click', (e) => {
+        e.stopPropagation();
       });
     });
 
@@ -666,8 +687,9 @@ class BetterTodoPanel extends HTMLElement {
     const taskItems = this.querySelectorAll('.task-item');
     taskItems.forEach(item => {
       item.addEventListener('click', (e) => {
-        // Don't trigger if clicking on checkbox
-        if (e.target.tagName !== 'HA-CHECKBOX') {
+        // Don't trigger if clicking on checkbox or within checkbox
+        const clickedCheckbox = e.target.closest('ha-checkbox');
+        if (!clickedCheckbox) {
           const uid = item.dataset.uid;
           const state = this._hass.states[entityId];
           const items = state.attributes.items || [];
