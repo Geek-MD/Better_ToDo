@@ -687,7 +687,7 @@ class BetterTodoPanel extends HTMLElement {
     const taskItems = this.querySelectorAll('.task-item');
     taskItems.forEach(item => {
       item.addEventListener('click', (e) => {
-        // Don't trigger if clicking on checkbox or within checkbox
+        // Only trigger if not clicking on checkbox or within checkbox area
         const clickedCheckbox = e.target.closest('ha-checkbox');
         if (!clickedCheckbox) {
           const uid = item.dataset.uid;
