@@ -12,7 +12,7 @@
  * so we use an inline card implementation instead of relying on external modules.
  */
 
-const BETTER_TODO_VERSION = "0.10.6";
+const BETTER_TODO_VERSION = "0.10.7";
 
 // Enable detailed logging for debugging
 // Set to false in production to avoid unnecessary console output

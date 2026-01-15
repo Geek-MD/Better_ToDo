@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.4] - 2026-01-15
+
+### Fixed
+- **Better ToDo Panel Component**: Fixed list ordering, name capitalization, and task completion behavior (v0.10.6 → v0.10.7)
+  - Fixed list sorting order: now displays lists in ascending alphabetical order (A-Z) with Shopping List always last
+  - Added automatic capitalization of first letter of each word in list names (e.g., "shopping list" → "Shopping List")
+  - Fixed checkbox click behavior: clicking checkbox now directly toggles task status without opening edit dialog
+  - Added event propagation handling (`stopPropagation()`) to prevent checkbox clicks from bubbling to task item
+  - Improved checkbox detection using `closest('ha-checkbox')` for more robust event handling
+
+### Technical Details
+- Added `capitalizeWords()` utility function for proper title-case formatting
+- Changed sort comparator from `nameB.localeCompare(nameA)` to `nameA.localeCompare(nameB)` for ascending order
+- Enhanced event listeners with stopPropagation for checkbox change and click events
+- All changes validated with ruff, mypy, hassfest, and JavaScript syntax check
+
 ## [0.11.3] - 2026-01-12
 
 ### Added
