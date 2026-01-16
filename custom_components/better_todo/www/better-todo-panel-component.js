@@ -115,7 +115,7 @@ class BetterTodoPanel extends HTMLElement {
     
     debugLog(`Found ${entities.length} Better ToDo entities total`);
     
-    // Sort entities: descending alphabetical order with "Shopping List" always last
+    // Sort entities: ascending alphabetical order (A-Z) with "Shopping List" always last
     return entities.sort((a, b) => {
       const stateA = this._hass.states[a];
       const stateB = this._hass.states[b];
