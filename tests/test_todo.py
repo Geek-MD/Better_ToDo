@@ -7,7 +7,6 @@ from pathlib import Path
 import pytest
 
 from ical.calendar_stream import IcsCalendarStream
-from ical.types.recur import Recur
 
 from custom_components.better_todo.todo import BetterTodoListEntity, _ha_item_to_ical, _EMPTY_ICS
 from custom_components.better_todo.const import ATTR_ITEM, ATTR_RRULE

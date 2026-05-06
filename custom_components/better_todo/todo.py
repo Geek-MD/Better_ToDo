@@ -43,7 +43,7 @@ from homeassistant.components.todo import (
     TodoListEntityFeature,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.entity_platform import (
     AddEntitiesCallback,
@@ -54,7 +54,6 @@ from homeassistant.util import dt as dt_util
 from .const import (
     ATTR_ITEM,
     ATTR_RRULE,
-    DOMAIN,
     SERVICE_SET_TASK_RECURRENCE,
 )
 from .store import BetterTodoListStore

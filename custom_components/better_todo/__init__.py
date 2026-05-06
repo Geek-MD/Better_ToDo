@@ -9,7 +9,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.util import slugify
 
-from .const import CONF_STORAGE_KEY, CONF_TODO_LIST_NAME, DOMAIN, STORAGE_PATH
+from .const import CONF_STORAGE_KEY, CONF_TODO_LIST_NAME, STORAGE_PATH
 from .store import BetterTodoListStore
 
 PLATFORMS: list[Platform] = [Platform.TODO]
