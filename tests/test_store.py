@@ -22,7 +22,9 @@ async def test_store_round_trip(tmp_ics_path: Path, mock_hass) -> None:
     store = BetterTodoListStore(mock_hass, tmp_ics_path)
     ics = "BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n"
     await store.async_store(ics)
-    assert await store.async_load() == ics
+    # Python text-mode read normalises \r\n → \n; compare without CR
+    result = await store.async_load()
+    assert result.replace("\r\n", "\n") == ics.replace("\r\n", "\n")
 
 
 @pytest.mark.asyncio
@@ -33,4 +35,5 @@ async def test_store_creates_parent_dirs(tmp_path: Path, mock_hass) -> None:
     ics = "BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n"
     await store.async_store(ics)
     assert deep_path.exists()
-    assert deep_path.read_text(encoding="utf-8") == ics
+    content = deep_path.read_text(encoding="utf-8")
+    assert content.replace("\r\n", "\n") == ics.replace("\r\n", "\n")

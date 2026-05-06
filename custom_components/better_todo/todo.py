@@ -24,6 +24,7 @@ from typing import Any
 import voluptuous as vol
 from ical.calendar import Calendar
 from ical.calendar_stream import IcsCalendarStream
+from ical.exceptions import CalendarError
 from ical.store import TodoStore
 from ical.todo import Todo
 
@@ -205,7 +206,7 @@ class BetterTodoListEntity(TodoListEntity):
 
         try:
             occurrences = list(todo.as_rrule() or [])  # type: ignore[arg-type]
-        except Exception:  # noqa: BLE001
+        except (CalendarError, ValueError):
             return None
 
         if not occurrences:
@@ -254,7 +255,7 @@ class BetterTodoListEntity(TodoListEntity):
             if todo.rrule:
                 try:
                     recurrence[todo.uid] = todo.rrule.as_rrule_str()
-                except Exception:  # noqa: BLE001
+                except (AttributeError, ValueError):
                     recurrence[todo.uid] = str(todo.rrule)
         return {"task_recurrence": recurrence} if recurrence else {}
 
@@ -378,7 +379,7 @@ class BetterTodoListEntity(TodoListEntity):
             if rrule_str:
                 try:
                     existing.rrule = Recur.from_rrule(rrule_str)
-                except Exception as exc:  # noqa: BLE001
+                except ValueError as exc:
                     _LOGGER.error(
                         "set_task_recurrence: invalid RRULE '%s': %s",
                         rrule_str,
