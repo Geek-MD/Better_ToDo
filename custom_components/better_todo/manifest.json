@@ -1,7 +1,7 @@
 {
   "domain": "better_todo",
   "name": "Better To-do",
-  "codeowners": [],
+  "codeowners": ["@Geek-MD"],
   "config_flow": true,
   "documentation": "https://github.com/Geek-MD/Better_ToDo",
   "iot_class": "local_polling",
