@@ -1,0 +1,32 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "todo_list_name": "To-do list name"
+        },
+        "description": "Please enter the name for your Better To-do list.",
+        "title": "Create a Better To-do list"
+      }
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_service%]"
+    }
+  },
+  "services": {
+    "set_task_recurrence": {
+      "name": "Set task recurrence",
+      "description": "Sets or clears an iCalendar RRULE recurrence rule on a specific task. When a recurring task is completed it automatically advances to the next due date.",
+      "fields": {
+        "item": {
+          "name": "Task UID",
+          "description": "The unique identifier (UID) of the task to update."
+        },
+        "rrule": {
+          "name": "RRULE",
+          "description": "iCalendar RRULE string (e.g. 'FREQ=WEEKLY;BYDAY=MO'). Omit or leave blank to remove recurrence."
+        }
+      }
+    }
+  }
+}

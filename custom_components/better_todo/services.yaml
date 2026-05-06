@@ -1,0 +1,16 @@
+set_task_recurrence:
+  target:
+    entity:
+      integration: better_todo
+      domain: todo
+  fields:
+    item:
+      required: true
+      example: "abc123-uid"
+      selector:
+        text:
+    rrule:
+      required: false
+      example: "FREQ=WEEKLY;BYDAY=MO"
+      selector:
+        text:
