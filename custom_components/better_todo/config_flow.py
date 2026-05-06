@@ -14,7 +14,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
 )
 
 
-class BetterTodoConfigFlow(ConfigFlow, domain=DOMAIN):
+class BetterTodoConfigFlow(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     """Handle the config flow for Better To-do."""
 
     VERSION = 1
