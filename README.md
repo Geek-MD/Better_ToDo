@@ -10,6 +10,8 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
 
+<img width="200" height="200" alt="image" src="https://github.com/Geek-MD/Better_ToDo/blob/main/custom_components/better_todo/brand/icon.png?raw=true" />
+
 # Better To-do
 
 A custom Home Assistant integration that provides a **local, file-based to-do list** with advanced task management features – most notably **recurring tasks** based on iCalendar RRULE intervals.
