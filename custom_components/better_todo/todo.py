@@ -121,7 +121,7 @@ async def async_setup_entry(
         unique_id=config_entry.entry_id,
     )
 
-    async_add_entities([entity], update_before_add=False)
+    async_add_entities([entity], update_before_add=True)
 
     # Register the custom recurrence service on the todo platform
     platform = async_get_current_platform()
@@ -176,6 +176,7 @@ class BetterTodoListEntity(TodoListEntity):
         self._calendar_lock = asyncio.Lock()
         self._attr_name = name
         self._attr_unique_id = unique_id
+        self._attr_todo_items = []
 
     # ------------------------------------------------------------------
     # State helpers

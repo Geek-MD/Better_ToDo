@@ -39,6 +39,7 @@ def _make_entity(tmp_path: Path, mock_hass) -> BetterTodoListEntity:
         unique_id="test-uid-001",
     )
     entity.hass = mock_hass
+    assert entity._attr_todo_items == []
     return entity
 
 
@@ -204,6 +205,7 @@ async def test_async_setup_entry_registers_entity_service_schema(
         entry_id="test-entry-id",
     )
     registered: dict[str, object] = {}
+    added_with_update_before_add: bool | None = None
 
     class FakePlatform:
         def async_register_entity_service(self, name, schema, method):
@@ -214,6 +216,8 @@ async def test_async_setup_entry_registers_entity_service_schema(
     added_entities: list[BetterTodoListEntity] = []
 
     def _add_entities(entities, update_before_add=False):
+        nonlocal added_with_update_before_add
+        added_with_update_before_add = update_before_add
         added_entities.extend(entities)
 
     monkeypatch.setattr(
@@ -224,6 +228,7 @@ async def test_async_setup_entry_registers_entity_service_schema(
     await async_setup_entry(mock_hass, config_entry, _add_entities)
 
     assert len(added_entities) == 1
+    assert added_with_update_before_add is True
     assert registered["name"] == "set_task_recurrence"
     assert registered["method"] == "_async_set_task_recurrence"
     assert isinstance(registered["schema"], dict)
