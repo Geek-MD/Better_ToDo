@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-05-07
+
+### Added
+- **Default Shopping List**: Better To-do now includes a built-in default list named **Shopping List**, inspired by Home Assistant's Shopping List integration behavior.
+- **Independent setup list**: the default **Shopping List** is independent from user-created lists; the config flow still requires users to define a list name on first setup.
+- **Additional translations**: added support for **Spanish (`es`)**, **Portuguese (`pt`)**, **French (`fr`)**, and **German (`de`)** while keeping **English (`en`)** as the default.
+
 ## [0.1.0] - 2026-05-06
 
 ### Added
