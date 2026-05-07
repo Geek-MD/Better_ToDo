@@ -19,7 +19,7 @@ async def test_async_setup_registers_panel_once(mock_hass, monkeypatch: pytest.M
     """Component async_setup registers static assets and panel a single time."""
     calls = {"panel": 0, "static": 0}
 
-    def _register_panel(*args, **kwargs):
+    async def _register_panel(*args, **kwargs):
         calls["panel"] += 1
 
     async def _register_static_paths(paths):
@@ -57,7 +57,7 @@ async def test_async_setup_entry_registers_runtime_data(
 
     panel_calls = 0
 
-    def _register_panel(*args, **kwargs):
+    async def _register_panel(*args, **kwargs):
         nonlocal panel_calls
         panel_calls += 1
 

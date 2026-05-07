@@ -139,7 +139,11 @@ def _register_ha_stubs() -> None:
 
     # --- homeassistant.components.panel_custom ---
     panel_custom_mod = types.ModuleType("homeassistant.components.panel_custom")
-    panel_custom_mod.async_register_panel = lambda *args, **kwargs: None
+
+    async def _async_register_panel(*args, **kwargs):
+        return None
+
+    panel_custom_mod.async_register_panel = _async_register_panel
     sys.modules.setdefault("homeassistant.components.panel_custom", panel_custom_mod)
 
     # --- homeassistant.components.http ---
