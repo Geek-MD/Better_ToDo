@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-05-07
+
+### Fixed
+- Ensure new Better To-do entities initialize with a valid first state so they do not remain `unknown` after setup.
+- Refresh entities before add (`update_before_add=True`) so newly created lists appear correctly in Home Assistant Tasks.
+
 ## [0.1.1] - 2026-05-07
 
 ### Fixed
