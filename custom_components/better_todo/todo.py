@@ -176,7 +176,7 @@ class BetterTodoListEntity(TodoListEntity):
         self._calendar_lock = asyncio.Lock()
         self._attr_name = name
         self._attr_unique_id = unique_id
-        self._attr_todo_items = []
+        self._attr_todo_items: list[TodoItem] = []
 
     # ------------------------------------------------------------------
     # State helpers
