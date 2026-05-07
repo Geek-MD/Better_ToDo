@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-05-07
+
+### Added
+- Added translations for **Spanish** (`es`), **French** (`fr`), **Portuguese** (`pt`) and **German** (`de`).
+- Added `data_description` hints to `strings.json` and `translations/en.json` for richer config-flow UX.
+
+### Fixed
+- Added `http` to `dependencies` in `manifest.json` to satisfy Hassfest validation.
+- Added `CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)` so Hassfest no longer warns about a missing schema on `async_setup`.
+
+## [0.2.0] - 2026-05-07
+
+### Added
+- Added a native **Better To-do panel** (`/better-todo`) with a layout aligned to the standard To-do card style.
+- Added in-panel dialogs to create/edit tasks with due date, description, and RRULE recurrence field.
+- Added automatic registration of frontend static assets and panel metadata during integration setup.
+
 ## [0.1.2] - 2026-05-07
 
 ### Fixed

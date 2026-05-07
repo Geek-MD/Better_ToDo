@@ -132,8 +132,26 @@ def _register_ha_stubs() -> None:
     todo_mod.TodoItemStatus = TodoItemStatus
     todo_mod.TodoListEntity = TodoListEntity
     todo_mod.TodoListEntityFeature = TodoListEntityFeature
-    sys.modules.setdefault("homeassistant.components", types.ModuleType("homeassistant.components"))
+    sys.modules.setdefault(
+        "homeassistant.components", types.ModuleType("homeassistant.components")
+    )
     sys.modules.setdefault("homeassistant.components.todo", todo_mod)
+
+    # --- homeassistant.components.panel_custom ---
+    panel_custom_mod = types.ModuleType("homeassistant.components.panel_custom")
+    panel_custom_mod.async_register_panel = lambda *args, **kwargs: None
+    sys.modules.setdefault("homeassistant.components.panel_custom", panel_custom_mod)
+
+    # --- homeassistant.components.http ---
+    @dataclasses.dataclass
+    class StaticPathConfig:
+        url_path: str
+        path: str
+        cache_headers: bool = True
+
+    http_mod = types.ModuleType("homeassistant.components.http")
+    http_mod.StaticPathConfig = StaticPathConfig
+    sys.modules.setdefault("homeassistant.components.http", http_mod)
 
     # --- homeassistant.core ---
     ha_core = types.ModuleType("homeassistant.core")
@@ -162,6 +180,7 @@ def _register_ha_stubs() -> None:
     # --- homeassistant.helpers.config_validation ---
     ha_cv = types.ModuleType("homeassistant.helpers.config_validation")
     ha_cv.string = str
+    ha_cv.config_entry_only_config_schema = lambda domain: {}
     sys.modules.setdefault("homeassistant.helpers.config_validation", ha_cv)
 
     # --- homeassistant (root) ---
@@ -187,10 +206,16 @@ def mock_hass():
     """Return a minimal mock HomeAssistant instance."""
     hass = MagicMock()
     hass.config.path = lambda *parts: str(Path(*parts))
+    hass.data = {}
 
     async def _executor(func, *args, **kwargs):
         return func(*args, **kwargs)
 
     hass.async_add_executor_job = _executor
-    return hass
+    hass.http = MagicMock()
 
+    async def _register_static_paths(*args, **kwargs):
+        return None
+
+    hass.http.async_register_static_paths = _register_static_paths
+    return hass

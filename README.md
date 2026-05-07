@@ -26,10 +26,12 @@ It is built on the same foundation as the built-in [Local To-do](https://www.hom
 - **Recurring tasks (RRULE)** – attach any iCalendar RRULE string to a task (e.g. `FREQ=WEEKLY;BYDAY=MO`, `FREQ=DAILY`, `FREQ=MONTHLY;BYMONTHDAY=1`). When the task is marked done it rolls forward to the next occurrence automatically.
 - **`better_todo.set_task_recurrence` service** – set or clear the RRULE on a task by its UID from an automation, script, or *Developer Tools → Actions*.
 - **`task_recurrence` attribute** – the entity exposes a `{uid: rrule_string}` dictionary so custom Lovelace cards and automations can read per-task recurrence rules.
+- **Native Better To-do panel** – includes a dedicated panel (`/better-todo`) with a visual structure similar to the default To-do card and custom task dialogs.
 - **Local iCalendar storage** – each list is persisted as a `.ics` file in the Home Assistant `.storage` directory; no cloud, no external services.
 - **Config-flow setup** – configure entirely through the UI; no YAML needed.
 - **Multiple lists** – add as many Better To-do lists as you need, each stored in its own file.
 - **HACS-compatible**.
+- **Multilingual** – UI translated into English, Spanish, French, Portuguese and German.
 
 ---
 
@@ -67,6 +69,16 @@ It is built on the same foundation as the built-in [Local To-do](https://www.hom
 4. Click **Submit**. The integration creates a new `todo.<name>` entity backed by a `.ics` file in `.storage/`.
 
 You can add multiple lists by repeating the process.
+
+---
+
+## Better To-do panel
+
+After installing the integration, a sidebar panel named **Better To-do** is available.
+
+- URL path: `/better-todo`
+- Uses a card-like task layout similar to the standard Home Assistant To-do card
+- Supports custom dialogs to create and edit tasks (summary, due date, description, RRULE)
 
 ---
 
