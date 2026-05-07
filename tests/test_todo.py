@@ -3,15 +3,21 @@ from __future__ import annotations
 
 import datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+import voluptuous as vol
 
 from ical.calendar_stream import IcsCalendarStream
 
-from custom_components.better_todo.todo import BetterTodoListEntity, _ha_item_to_ical, _EMPTY_ICS
+from custom_components.better_todo.todo import (
+    BetterTodoListEntity,
+    _EMPTY_ICS,
+    _ha_item_to_ical,
+    async_setup_entry,
+)
 from custom_components.better_todo.const import ATTR_ITEM, ATTR_RRULE
 from homeassistant.components.todo import TodoItem, TodoItemStatus
-from homeassistant.core import ServiceCall
 
 
 # ---------------------------------------------------------------------------
@@ -124,8 +130,9 @@ async def test_set_task_recurrence_service(tmp_path: Path, mock_hass) -> None:
     await entity.async_update()
     uid = entity._attr_todo_items[0].uid
 
-    call = ServiceCall({ATTR_ITEM: uid, ATTR_RRULE: "FREQ=WEEKLY;BYDAY=MO"})
-    await entity._async_set_task_recurrence(call)
+    await entity._async_set_task_recurrence(
+        {ATTR_ITEM: uid, ATTR_RRULE: "FREQ=WEEKLY;BYDAY=MO"}
+    )
 
     attrs = entity.extra_state_attributes
     assert uid in attrs.get("task_recurrence", {})
@@ -143,7 +150,7 @@ async def test_recurring_task_auto_advances(tmp_path: Path, mock_hass) -> None:
     uid = entity._attr_todo_items[0].uid
 
     await entity._async_set_task_recurrence(
-        ServiceCall({ATTR_ITEM: uid, ATTR_RRULE: "FREQ=DAILY;COUNT=10"})
+        {ATTR_ITEM: uid, ATTR_RRULE: "FREQ=DAILY;COUNT=10"}
     )
 
     updated = TodoItem(uid=uid, summary="Daily standup", status=TodoItemStatus.COMPLETED)
@@ -173,12 +180,53 @@ async def test_remove_recurrence(tmp_path: Path, mock_hass) -> None:
     uid = entity._attr_todo_items[0].uid
 
     await entity._async_set_task_recurrence(
-        ServiceCall({ATTR_ITEM: uid, ATTR_RRULE: "FREQ=WEEKLY"})
+        {ATTR_ITEM: uid, ATTR_RRULE: "FREQ=WEEKLY"}
     )
     await entity._async_set_task_recurrence(
-        ServiceCall({ATTR_ITEM: uid, ATTR_RRULE: ""})
+        {ATTR_ITEM: uid, ATTR_RRULE: ""}
     )
 
     attrs = entity.extra_state_attributes
     assert uid not in attrs.get("task_recurrence", {})
 
+
+@pytest.mark.asyncio
+async def test_async_setup_entry_registers_entity_service_schema(
+    tmp_path: Path, mock_hass, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Entity service registration uses a plain entity-service field schema."""
+    from custom_components.better_todo.store import BetterTodoListStore
+
+    store = BetterTodoListStore(mock_hass, tmp_path / "setup.ics")
+    config_entry = SimpleNamespace(
+        runtime_data=store,
+        title="Test List",
+        entry_id="test-entry-id",
+    )
+    registered: dict[str, object] = {}
+
+    class FakePlatform:
+        def async_register_entity_service(self, name, schema, method):
+            registered["name"] = name
+            registered["schema"] = schema
+            registered["method"] = method
+
+    added_entities: list[BetterTodoListEntity] = []
+
+    def _add_entities(entities, update_before_add=False):
+        added_entities.extend(entities)
+
+    monkeypatch.setattr(
+        "custom_components.better_todo.todo.async_get_current_platform",
+        lambda: FakePlatform(),
+    )
+
+    await async_setup_entry(mock_hass, config_entry, _add_entities)
+
+    assert len(added_entities) == 1
+    assert registered["name"] == "set_task_recurrence"
+    assert registered["method"] == "_async_set_task_recurrence"
+    assert isinstance(registered["schema"], dict)
+    schema = registered["schema"]
+    assert vol.Required(ATTR_ITEM) in schema
+    assert vol.Optional(ATTR_RRULE) in schema

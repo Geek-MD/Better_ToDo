@@ -16,6 +16,7 @@ Key design decisions
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Mapping
 import dataclasses
 import datetime
 import logging
@@ -126,12 +127,10 @@ async def async_setup_entry(
     platform = async_get_current_platform()
     platform.async_register_entity_service(
         SERVICE_SET_TASK_RECURRENCE,
-        vol.Schema(
-            {
-                vol.Required(ATTR_ITEM): cv.string,
-                vol.Optional(ATTR_RRULE): vol.Any(None, cv.string),
-            }
-        ),
+        {
+            vol.Required(ATTR_ITEM): cv.string,
+            vol.Optional(ATTR_RRULE): vol.Any(None, cv.string),
+        },
         "_async_set_task_recurrence",
     )
 
@@ -355,17 +354,20 @@ class BetterTodoListEntity(TodoListEntity):
     # Custom service: set_task_recurrence
     # ------------------------------------------------------------------
 
-    async def _async_set_task_recurrence(self, call: ServiceCall) -> None:
+    async def _async_set_task_recurrence(
+        self, service_data: Mapping[str, Any] | ServiceCall
+    ) -> None:
         """Handle the ``better_todo.set_task_recurrence`` service call.
 
         Parameters
         ----------
-        call.data[ATTR_ITEM]:  UID of the task to update.
-        call.data[ATTR_RRULE]: RRULE string (e.g. 'FREQ=WEEKLY;BYDAY=MO') or
-                               ``None`` / empty string to remove recurrence.
+        service_data[ATTR_ITEM]:  UID of the task to update.
+        service_data[ATTR_RRULE]: RRULE string (e.g. 'FREQ=WEEKLY;BYDAY=MO') or
+                                  ``None`` / empty string to remove recurrence.
         """
-        uid: str = call.data[ATTR_ITEM]
-        rrule_str: str | None = call.data.get(ATTR_RRULE) or None
+        data = service_data.data if isinstance(service_data, ServiceCall) else service_data
+        uid: str = data[ATTR_ITEM]
+        rrule_str: str | None = data.get(ATTR_RRULE) or None
 
         async with self._calendar_lock:
             existing = self._find_ical_todo(uid)
