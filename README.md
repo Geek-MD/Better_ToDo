@@ -80,6 +80,16 @@ After installing the integration, a sidebar panel named **Better To-do** is avai
 - Uses a card-like task layout similar to the standard Home Assistant To-do card
 - Supports custom dialogs to create and edit tasks (summary, due date, description, RRULE)
 
+## Screenshots
+
+**Task list view**
+
+![](<Captura de pantalla 2026-05-07 a la(s) 12.31.50.png>)
+
+**Task edit dialog**
+
+![](<Captura de pantalla 2026-05-07 a la(s) 12.32.22.png>)
+
 ---
 
 ## Entities
