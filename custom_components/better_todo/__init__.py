@@ -10,6 +10,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import config_validation as cv
 from homeassistant.util import slugify
 
 from .const import (
@@ -29,6 +30,8 @@ from .store import BetterTodoListStore
 PLATFORMS: list[Platform] = [Platform.TODO]
 _PANEL_REGISTERED = "panel_registered"
 _STATIC_REGISTERED = "static_registered"
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 type BetterTodoConfigEntry = ConfigEntry[BetterTodoListStore]
 
