@@ -153,12 +153,10 @@ async def async_setup_entry(
     platform = async_get_current_platform()
     platform.async_register_entity_service(
         SERVICE_SET_TASK_RECURRENCE,
-        vol.Schema(
-            {
-                vol.Required(ATTR_ITEM): cv.string,
-                vol.Optional(ATTR_RRULE): vol.Any(None, cv.string),
-            }
-        ),
+        {
+            vol.Required(ATTR_ITEM): cv.string,
+            vol.Optional(ATTR_RRULE): vol.Any(None, cv.string),
+        },
         "_async_set_task_recurrence",
     )
 
