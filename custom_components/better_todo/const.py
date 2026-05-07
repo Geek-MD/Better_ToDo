@@ -13,3 +13,11 @@ SERVICE_SET_TASK_RECURRENCE = "set_task_recurrence"
 # Service field names
 ATTR_ITEM = "item"
 ATTR_RRULE = "rrule"
+
+# Custom panel constants
+PANEL_URL_PATH = "better-todo"
+PANEL_COMPONENT_NAME = "better-todo-panel"
+PANEL_TITLE = "Better To-do"
+PANEL_ICON = "mdi:format-list-checks"
+STATIC_URL_PATH = "/better_todo_static"
+FRONTEND_MODULE = "better-todo-panel.js"

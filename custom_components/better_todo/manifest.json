@@ -8,8 +8,11 @@
   "documentation": "https://github.com/Geek-MD/Better_ToDo",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/Geek-MD/Better_ToDo/issues",
+  "dependencies": [
+    "panel_custom"
+  ],
   "requirements": [
     "ical==13.2.2"
   ],
-  "version": "0.1.2"
+  "version": "0.2.0"
 }
