@@ -27,7 +27,7 @@ async def test_async_setup_registers_panel_once(mock_hass, monkeypatch: pytest.M
         assert len(paths) == 1
 
     monkeypatch.setattr(
-        "custom_components.better_todo.__init__.panel_custom.async_register_panel",
+        "custom_components.better_todo.panel_custom.async_register_panel",
         _register_panel,
     )
     mock_hass.http.async_register_static_paths = _register_static_paths
@@ -62,7 +62,7 @@ async def test_async_setup_entry_registers_runtime_data(
         panel_calls += 1
 
     monkeypatch.setattr(
-        "custom_components.better_todo.__init__.panel_custom.async_register_panel",
+        "custom_components.better_todo.panel_custom.async_register_panel",
         _register_panel,
     )
 
