@@ -19,6 +19,7 @@ import asyncio
 import dataclasses
 import datetime
 import logging
+from pathlib import Path
 from typing import Any
 
 import voluptuous as vol
@@ -54,7 +55,11 @@ from homeassistant.util import dt as dt_util
 from .const import (
     ATTR_ITEM,
     ATTR_RRULE,
+    DATA_DEFAULT_LIST_ADDED,
+    DEFAULT_SHOPPING_LIST_KEY,
+    DEFAULT_SHOPPING_LIST_NAME,
     SERVICE_SET_TASK_RECURRENCE,
+    STORAGE_PATH,
 )
 from .store import BetterTodoListStore
 
@@ -120,7 +125,29 @@ async def async_setup_entry(
         unique_id=config_entry.entry_id,
     )
 
-    async_add_entities([entity], update_before_add=False)
+    entities = [entity]
+
+    domain_data = hass.data.setdefault(config_entry.domain, {})
+    if not domain_data.get(DATA_DEFAULT_LIST_ADDED):
+        shopping_store = BetterTodoListStore(
+            hass,
+            Path(hass.config.path(STORAGE_PATH.format(key=DEFAULT_SHOPPING_LIST_KEY))),
+        )
+        shopping_ics_content = await shopping_store.async_load()
+        shopping_calendar = await hass.async_add_executor_job(
+            IcsCalendarStream.calendar_from_ics, shopping_ics_content or _EMPTY_ICS
+        )
+        entities.append(
+            BetterTodoListEntity(
+                store=shopping_store,
+                calendar=shopping_calendar,
+                name=DEFAULT_SHOPPING_LIST_NAME,
+                unique_id=f"{config_entry.domain}_{DEFAULT_SHOPPING_LIST_KEY}",
+            )
+        )
+        domain_data[DATA_DEFAULT_LIST_ADDED] = True
+
+    async_add_entities(entities, update_before_add=False)
 
     # Register the custom recurrence service on the todo platform
     platform = async_get_current_platform()

@@ -26,9 +26,11 @@ It is built on the same foundation as the built-in [Local To-do](https://www.hom
 - **Recurring tasks (RRULE)** – attach any iCalendar RRULE string to a task (e.g. `FREQ=WEEKLY;BYDAY=MO`, `FREQ=DAILY`, `FREQ=MONTHLY;BYMONTHDAY=1`). When the task is marked done it rolls forward to the next occurrence automatically.
 - **`better_todo.set_task_recurrence` service** – set or clear the RRULE on a task by its UID from an automation, script, or *Developer Tools → Actions*.
 - **`task_recurrence` attribute** – the entity exposes a `{uid: rrule_string}` dictionary so custom Lovelace cards and automations can read per-task recurrence rules.
+- **Default `Shopping List`** – a built-in list available by default, separate from your custom lists.
 - **Local iCalendar storage** – each list is persisted as a `.ics` file in the Home Assistant `.storage` directory; no cloud, no external services.
 - **Config-flow setup** – configure entirely through the UI; no YAML needed.
 - **Multiple lists** – add as many Better To-do lists as you need, each stored in its own file.
+- **Multilingual UI** – English (default), Spanish, Portuguese, French, and German.
 - **HACS-compatible**.
 
 ---
@@ -64,7 +66,9 @@ It is built on the same foundation as the built-in [Local To-do](https://www.hom
 1. Go to **Settings → Devices & Services → Add Integration**.
 2. Search for **Better To-do**.
 3. Enter a **name** for your to-do list (e.g. `Shopping`, `Chores`).
-4. Click **Submit**. The integration creates a new `todo.<name>` entity backed by a `.ics` file in `.storage/`.
+4. Click **Submit**. The integration creates your named `todo.<name>` entity backed by a `.ics` file in `.storage/`.
+
+The integration also provides a default list named **Shopping List**. This default list is separate from the list name you enter during setup.
 
 You can add multiple lists by repeating the process.
 

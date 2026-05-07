@@ -1,0 +1,32 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "data": {
+          "todo_list_name": "Nom de la liste de tâches"
+        },
+        "description": "Veuillez saisir le nom de votre liste Better To-do.",
+        "title": "Créer une liste Better To-do"
+      }
+    },
+    "abort": {
+      "already_configured": "Cette liste de tâches est déjà configurée."
+    }
+  },
+  "services": {
+    "set_task_recurrence": {
+      "name": "Définir la récurrence d'une tâche",
+      "description": "Définit ou supprime une règle de récurrence RRULE iCalendar sur une tâche spécifique. Lorsqu'une tâche récurrente est terminée, elle avance automatiquement à la prochaine date d'échéance.",
+      "fields": {
+        "item": {
+          "name": "UID de la tâche",
+          "description": "L'identifiant unique (UID) de la tâche à mettre à jour."
+        },
+        "rrule": {
+          "name": "RRULE",
+          "description": "Chaîne RRULE iCalendar (par ex. 'FREQ=WEEKLY;BYDAY=MO'). Omettez ou laissez vide pour supprimer la récurrence."
+        }
+      }
+    }
+  }
+}

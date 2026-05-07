@@ -3,13 +3,24 @@ from __future__ import annotations
 
 import datetime
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from ical.calendar_stream import IcsCalendarStream
 
-from custom_components.better_todo.todo import BetterTodoListEntity, _ha_item_to_ical, _EMPTY_ICS
-from custom_components.better_todo.const import ATTR_ITEM, ATTR_RRULE
+from custom_components.better_todo.const import (
+    ATTR_ITEM,
+    ATTR_RRULE,
+    CONF_STORAGE_KEY,
+    DEFAULT_SHOPPING_LIST_NAME,
+)
+from custom_components.better_todo.todo import (
+    BetterTodoListEntity,
+    _EMPTY_ICS,
+    _ha_item_to_ical,
+    async_setup_entry,
+)
 from homeassistant.components.todo import TodoItem, TodoItemStatus
 from homeassistant.core import ServiceCall
 
@@ -182,3 +193,36 @@ async def test_remove_recurrence(tmp_path: Path, mock_hass) -> None:
     attrs = entity.extra_state_attributes
     assert uid not in attrs.get("task_recurrence", {})
 
+
+@pytest.mark.asyncio
+async def test_setup_entry_adds_default_shopping_list_once(mock_hass) -> None:
+    """Setting up entries always includes one default Shopping List entity."""
+    mock_hass.data = {}
+    added_entities: list[list[BetterTodoListEntity]] = []
+
+    def _add_entities(entities, update_before_add=False) -> None:  # noqa: ANN001, ARG001
+        added_entities.append(list(entities))
+
+    entry_one = SimpleNamespace(
+        runtime_data=_make_entity(Path("/tmp"), mock_hass)._store,
+        title="My Tasks",
+        entry_id="entry-1",
+        domain="better_todo",
+        data={CONF_STORAGE_KEY: "my_tasks"},
+    )
+    await async_setup_entry(mock_hass, entry_one, _add_entities)
+
+    entry_two = SimpleNamespace(
+        runtime_data=_make_entity(Path("/tmp"), mock_hass)._store,
+        title="Work",
+        entry_id="entry-2",
+        domain="better_todo",
+        data={CONF_STORAGE_KEY: "work"},
+    )
+    await async_setup_entry(mock_hass, entry_two, _add_entities)
+
+    first_names = [entity._attr_name for entity in added_entities[0]]
+    second_names = [entity._attr_name for entity in added_entities[1]]
+    assert "My Tasks" in first_names
+    assert DEFAULT_SHOPPING_LIST_NAME in first_names
+    assert second_names == ["Work"]
