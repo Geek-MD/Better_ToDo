@@ -47,8 +47,8 @@ async def test_async_setup_entry_registers_runtime_data(
     """Entry setup loads store, registers panel, and forwards TODO platform."""
     forwarded: list[object] = []
     mock_hass.config.path = lambda rel_path: str(tmp_path / rel_path)
-    async def _forward_entry_setups(entry, platforms):
-        forwarded.append((entry, platforms))
+    async def _forward_entry_setups(entry, _platforms):
+        forwarded.append((entry, _platforms))
         return True
 
     mock_hass.config_entries = SimpleNamespace(

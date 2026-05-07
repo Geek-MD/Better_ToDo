@@ -53,6 +53,34 @@ class BetterTodoPanel extends HTMLElement {
     return parsed.toLocaleDateString();
   }
 
+  _wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  async _findCreatedItemUid(existingUids, summary, due, description) {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const refreshedItems =
+        this._hass.states?.[this._selectedEntityId]?.attributes?.todo_items || [];
+      const candidates = refreshedItems.filter(
+        (todo) =>
+          !existingUids.has(todo.uid) &&
+          todo.summary === summary &&
+          (todo.due || null) === due &&
+          (todo.description || null) === description,
+      );
+
+      if (candidates.length === 1 && candidates[0]?.uid) {
+        return candidates[0].uid;
+      }
+      if (candidates.length > 1) {
+        return null;
+      }
+      await this._wait(200);
+    }
+
+    return null;
+  }
+
   async _toggleItem(item) {
     if (!this._selectedEntityId || !this._hass) {
       return;
@@ -129,12 +157,32 @@ class BetterTodoPanel extends HTMLElement {
         rrule,
       });
     } else {
+      const existingUids = new Set(this._items.map((todo) => todo.uid));
       await this._hass.callService("todo", "add_item", {
         entity_id: this._selectedEntityId,
         item: summary,
         due_date: due,
         description,
       });
+
+      if (rrule) {
+        const createdItemUid = await this._findCreatedItemUid(
+          existingUids,
+          summary,
+          due,
+          description,
+        );
+        if (createdItemUid) {
+          await this._hass.callService("better_todo", "set_task_recurrence", {
+            entity_id: this._selectedEntityId,
+            item: createdItemUid,
+            rrule,
+          });
+        } else {
+          // If matching is ambiguous or delayed, keep the item and allow manual edit.
+          console.warn("Better To-do: could not reliably identify new task to set RRULE");
+        }
+      }
     }
 
     this._closeDialog();
@@ -351,7 +399,7 @@ class BetterTodoPanel extends HTMLElement {
                 )
                 .join("")}
             </select>
-            <button id="addTaskBtn">Añadir tarea</button>
+            <button id="addTaskBtn">Add task</button>
           </div>
           <div class="items">
             ${
@@ -377,14 +425,14 @@ class BetterTodoPanel extends HTMLElement {
                             </div>
                           </div>
                           <div class="actions">
-                            <button class="icon-btn" data-edit-uid="${item.uid}">Editar</button>
-                            <button class="icon-btn" data-delete-uid="${item.uid}">Borrar</button>
+                            <button class="icon-btn" data-edit-uid="${item.uid}">Edit</button>
+                            <button class="icon-btn" data-delete-uid="${item.uid}">Delete</button>
                           </div>
                         </div>`,
                     )
                     .join("")
-                : `<div class="item"><div></div><div class="meta"><div class="title">No hay tareas en ${
-                    selectedState?.attributes?.friendly_name || "la lista"
+                : `<div class="item"><div></div><div class="meta"><div class="title">No tasks in ${
+                    selectedState?.attributes?.friendly_name || "the list"
                   }</div></div><div></div></div>`
             }
           </div>
@@ -392,14 +440,14 @@ class BetterTodoPanel extends HTMLElement {
       </div>
       <dialog id="taskDialog">
         <div class="dialog-body">
-          <h3>${this._editingUid ? "Editar tarea" : "Nueva tarea"}</h3>
-          <input id="taskSummary" placeholder="Título" />
+          <h3>${this._editingUid ? "Edit task" : "New task"}</h3>
+          <input id="taskSummary" placeholder="Title" />
           <input id="taskDue" type="date" />
-          <textarea id="taskDescription" placeholder="Descripción"></textarea>
-          <input id="taskRrule" placeholder="RRULE (ej: FREQ=WEEKLY;BYDAY=MO)" />
+          <textarea id="taskDescription" placeholder="Description"></textarea>
+          <input id="taskRrule" placeholder="RRULE (e.g.: FREQ=WEEKLY;BYDAY=MO)" />
           <div class="dialog-actions">
-            <button class="secondary" id="cancelDialogBtn">Cancelar</button>
-            <button class="primary" id="saveDialogBtn">Guardar</button>
+            <button class="secondary" id="cancelDialogBtn">Cancel</button>
+            <button class="primary" id="saveDialogBtn">Save</button>
           </div>
         </div>
       </dialog>
