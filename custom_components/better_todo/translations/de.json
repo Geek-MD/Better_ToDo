@@ -1,0 +1,35 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Better To-do-Liste erstellen",
+        "description": "Bitte gib den Namen für deine Better To-do-Liste ein.",
+        "data": {
+          "todo_list_name": "Name der Aufgabenliste"
+        },
+        "data_description": {
+          "todo_list_name": "Ein eindeutiger Name für diese Liste. Er wird als Entitätsname und zur Identifizierung der Speicherdatei verwendet."
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Diese Aufgabenliste ist bereits konfiguriert."
+    }
+  },
+  "services": {
+    "set_task_recurrence": {
+      "name": "Aufgabenwiederholung festlegen",
+      "description": "Setzt oder löscht eine iCalendar-RRULE-Wiederholungsregel für eine bestimmte Aufgabe. Wenn eine wiederkehrende Aufgabe abgeschlossen wird, rückt sie automatisch auf das nächste Fälligkeitsdatum vor.",
+      "fields": {
+        "item": {
+          "name": "Aufgaben-UID",
+          "description": "Der eindeutige Bezeichner (UID) der zu aktualisierenden Aufgabe. Zu finden im Attribut task_recurrence oder in den Entwickler-Werkzeugen."
+        },
+        "rrule": {
+          "name": "RRULE",
+          "description": "iCalendar-RRULE-Zeichenkette (z. B. 'FREQ=WEEKLY;BYDAY=MO'). Leer lassen oder weglassen, um die Wiederholung zu entfernen."
+        }
+      }
+    }
+  }
+}

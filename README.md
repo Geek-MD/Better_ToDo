@@ -31,6 +31,7 @@ It is built on the same foundation as the built-in [Local To-do](https://www.hom
 - **Config-flow setup** – configure entirely through the UI; no YAML needed.
 - **Multiple lists** – add as many Better To-do lists as you need, each stored in its own file.
 - **HACS-compatible**.
+- **Multilingual** – UI translated into English, Spanish, French, Portuguese and German.
 
 ---
 

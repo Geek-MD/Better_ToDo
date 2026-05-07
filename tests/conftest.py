@@ -180,6 +180,7 @@ def _register_ha_stubs() -> None:
     # --- homeassistant.helpers.config_validation ---
     ha_cv = types.ModuleType("homeassistant.helpers.config_validation")
     ha_cv.string = str
+    ha_cv.config_entry_only_config_schema = lambda domain: {}
     sys.modules.setdefault("homeassistant.helpers.config_validation", ha_cv)
 
     # --- homeassistant (root) ---

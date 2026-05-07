@@ -2,11 +2,14 @@
   "config": {
     "step": {
       "user": {
+        "title": "Create a Better To-do list",
+        "description": "Please enter the name for your Better To-do list.",
         "data": {
           "todo_list_name": "To-do list name"
         },
-        "description": "Please enter the name for your Better To-do list.",
-        "title": "Create a Better To-do list"
+        "data_description": {
+          "todo_list_name": "A unique name for this list. It will be used as the entity name and to identify the storage file."
+        }
       }
     },
     "abort": {
@@ -20,7 +23,7 @@
       "fields": {
         "item": {
           "name": "Task UID",
-          "description": "The unique identifier (UID) of the task to update."
+          "description": "The unique identifier (UID) of the task to update. Find it in the task_recurrence attribute or via Developer Tools."
         },
         "rrule": {
           "name": "RRULE",
