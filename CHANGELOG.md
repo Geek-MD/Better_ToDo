@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-05-08
+
+### Fixed
+- **`set_task_recurrence` service schema**: replaced the `vol.Schema`-wrapped validator with a plain `dict` schema for the entity service so that Home Assistant can correctly introspect and validate the service fields.
+
 ## [0.2.0] - 2026-05-07
 
 ### Added
