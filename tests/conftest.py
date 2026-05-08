@@ -120,6 +120,9 @@ def _register_ha_stubs() -> None:
         _attr_name = None
         _attr_unique_id = None
 
+        async def async_added_to_hass(self) -> None:
+            pass
+
         async def async_update_ha_state(self, force_refresh=False):
             if force_refresh:
                 await self.async_update()

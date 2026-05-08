@@ -177,7 +177,6 @@ _EMPTY_ICS = (
 class BetterTodoListEntity(TodoListEntity):
     """A to-do list backed by a local .ics file with RRULE support."""
 
-    _attr_has_entity_name = True
     _attr_should_poll = False
     _attr_supported_features = (
         TodoListEntityFeature.CREATE_TODO_ITEM
@@ -202,6 +201,14 @@ class BetterTodoListEntity(TodoListEntity):
         self._calendar_lock = asyncio.Lock()
         self._attr_name = name
         self._attr_unique_id = unique_id
+
+    # ------------------------------------------------------------------
+    # HA lifecycle
+    # ------------------------------------------------------------------
+
+    async def async_added_to_hass(self) -> None:
+        """Populate todo items from the in-memory calendar when first added."""
+        await self.async_update()
 
     # ------------------------------------------------------------------
     # State helpers
