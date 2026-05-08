@@ -78,6 +78,18 @@ def test_ha_item_to_ical_with_due_date() -> None:
 
 
 @pytest.mark.asyncio
+async def test_async_added_to_hass_initialises_todo_items(tmp_path: Path, mock_hass) -> None:
+    """async_added_to_hass must populate _attr_todo_items so the panel sees the entity."""
+    entity = _make_entity(tmp_path, mock_hass)
+    # Before async_added_to_hass the items must be None (nothing has run yet)
+    assert entity._attr_todo_items is None
+    await entity.async_added_to_hass()
+    # After async_added_to_hass items must be a list (possibly empty) – never None
+    assert entity._attr_todo_items is not None
+    assert isinstance(entity._attr_todo_items, list)
+
+
+@pytest.mark.asyncio
 async def test_create_todo_item(tmp_path: Path, mock_hass) -> None:
     """Creating a task adds it to the entity's todo list."""
     entity = _make_entity(tmp_path, mock_hass)
