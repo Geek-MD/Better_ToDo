@@ -14,3 +14,31 @@ set_task_recurrence:
       example: "FREQ=WEEKLY;BYDAY=MO"
       selector:
         text:
+
+set_task_details:
+  target:
+    entity:
+      integration: better_todo
+      domain: todo
+  fields:
+    item:
+      required: true
+      example: "abc123-uid"
+      selector:
+        text:
+    quantity:
+      required: false
+      example: "2 kg"
+      selector:
+        text:
+    category:
+      required: false
+      example: "Meat"
+      selector:
+        text:
+    notes:
+      required: false
+      example: "Pick up at the butcher"
+      selector:
+        text:
+          multiline: true

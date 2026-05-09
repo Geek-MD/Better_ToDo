@@ -27,6 +27,28 @@
           "description": "iCalendar-RRULE-String (z. B. 'FREQ=WEEKLY;BYDAY=MO'). Weglassen oder leer lassen, um die Wiederholung zu entfernen."
         }
       }
+    },
+    "set_task_details": {
+      "name": "Aufgabendetails festlegen",
+      "description": "Setzt Menge, Kategorie und/oder Notizen für eine bestimmte Aufgabe. Die Angaben werden im Beschreibungsfeld gespeichert und sind im Standard-HA-Aufgabenbereich sichtbar.",
+      "fields": {
+        "item": {
+          "name": "Aufgaben-UID",
+          "description": "Die eindeutige Kennung (UID) der zu aktualisierenden Aufgabe."
+        },
+        "quantity": {
+          "name": "Menge",
+          "description": "Freitextangabe zur Menge (z. B. '2 kg'). Weglassen, um den vorhandenen Wert beizubehalten."
+        },
+        "category": {
+          "name": "Kategorie",
+          "description": "Kategoriebezeichnung für die Aufgabe (z. B. 'Fleisch'). Weglassen, um den vorhandenen Wert beizubehalten."
+        },
+        "notes": {
+          "name": "Notizen",
+          "description": "Optionale Freitextnotizen zur Aufgabe. Weglassen, um vorhandene Notizen beizubehalten."
+        }
+      }
     }
   }
 }

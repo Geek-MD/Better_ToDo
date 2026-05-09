@@ -27,6 +27,28 @@
           "description": "Cadena RRULE de iCalendar (por ejemplo, 'FREQ=WEEKLY;BYDAY=MO'). Omite o deja en blanco para eliminar la recurrencia."
         }
       }
+    },
+    "set_task_details": {
+      "name": "Definir detalles de tarea",
+      "description": "Define la cantidad, categoría y/o notas de una tarea específica, almacenados en el campo descripción para que sean visibles en el panel de Tareas estándar de HA.",
+      "fields": {
+        "item": {
+          "name": "UID de tarea",
+          "description": "El identificador único (UID) de la tarea a actualizar."
+        },
+        "quantity": {
+          "name": "Cantidad",
+          "description": "Cadena de texto libre con la cantidad (por ejemplo, '2 kg'). Omite para conservar el valor existente."
+        },
+        "category": {
+          "name": "Categoría",
+          "description": "Etiqueta de categoría para la tarea (por ejemplo, 'Carnes'). Omite para conservar el valor existente."
+        },
+        "notes": {
+          "name": "Notas",
+          "description": "Notas de texto libre opcionales para adjuntar a la tarea. Omite para conservar las notas existentes."
+        }
+      }
     }
   }
 }

@@ -27,6 +27,28 @@
           "description": "Chaîne RRULE iCalendar (par ex. 'FREQ=WEEKLY;BYDAY=MO'). Omettez ou laissez vide pour supprimer la récurrence."
         }
       }
+    },
+    "set_task_details": {
+      "name": "Définir les détails d'une tâche",
+      "description": "Définit la quantité, la catégorie et/ou les notes d'une tâche spécifique, stockées dans le champ description pour qu'elles soient visibles dans le panneau de tâches standard de HA.",
+      "fields": {
+        "item": {
+          "name": "UID de la tâche",
+          "description": "L'identifiant unique (UID) de la tâche à mettre à jour."
+        },
+        "quantity": {
+          "name": "Quantité",
+          "description": "Chaîne de texte libre indiquant la quantité (par ex. '2 kg'). Omettez pour conserver la valeur existante."
+        },
+        "category": {
+          "name": "Catégorie",
+          "description": "Étiquette de catégorie pour la tâche (par ex. 'Viande'). Omettez pour conserver la valeur existante."
+        },
+        "notes": {
+          "name": "Notes",
+          "description": "Notes de texte libre optionnelles à joindre à la tâche. Omettez pour conserver les notes existantes."
+        }
+      }
     }
   }
 }

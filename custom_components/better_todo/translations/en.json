@@ -27,6 +27,28 @@
           "description": "iCalendar RRULE string (e.g. 'FREQ=WEEKLY;BYDAY=MO'). Omit or leave blank to remove recurrence."
         }
       }
+    },
+    "set_task_details": {
+      "name": "Set task details",
+      "description": "Sets quantity, category and/or notes on a specific task, stored inside the description field so they are visible in the standard HA Tasks panel.",
+      "fields": {
+        "item": {
+          "name": "Task UID",
+          "description": "The unique identifier (UID) of the task to update."
+        },
+        "quantity": {
+          "name": "Quantity",
+          "description": "Free-text quantity string (e.g. '2 kg'). Omit to leave the existing value unchanged."
+        },
+        "category": {
+          "name": "Category",
+          "description": "Category label for the task (e.g. 'Meat'). Omit to leave the existing value unchanged."
+        },
+        "notes": {
+          "name": "Notes",
+          "description": "Optional free-text notes to attach to the task. Omit to leave the existing notes unchanged."
+        }
+      }
     }
   }
 }

@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-05-09
+
+### Added
+- **`better_todo.set_task_details` service** – sets quantity, category, and/or free-text notes on any task by its UID.  The data is encoded into the standard `description` field using a human-readable format (`Quantity: …` / `Category: …` lines followed by optional notes), so the information is immediately visible in the built-in HA Tasks panel without any custom card.
+- **`task_details` state attribute** – the entity now also exposes a `task_details` dictionary (`{uid: {quantity, category}}`) alongside the existing `task_recurrence` attribute, making quantity and category accessible to automations and scripts.
+- **Description encode/decode helpers** – internal `_encode_description` / `_decode_description` functions that keep the structured metadata and free-text notes independent, so callers can update individual fields without overwriting others.
+- **Updated translations** – all five supported locales (en, es, fr, de, pt) now include translated strings for the new service and its fields.
+
 ## [0.2.2] - 2026-05-08
 
 ### Fixed
