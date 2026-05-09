@@ -53,11 +53,17 @@ from homeassistant.helpers.entity_platform import (
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    ATTR_CATEGORY,
     ATTR_ITEM,
+    ATTR_NOTES,
+    ATTR_QUANTITY,
     ATTR_RRULE,
     DATA_DEFAULT_LIST_ADDED,
     DEFAULT_SHOPPING_LIST_KEY,
     DEFAULT_SHOPPING_LIST_NAME,
+    DESC_CATEGORY_PREFIX,
+    DESC_QUANTITY_PREFIX,
+    SERVICE_SET_TASK_DETAILS,
     SERVICE_SET_TASK_RECURRENCE,
     STORAGE_PATH,
 )
@@ -97,6 +103,71 @@ def _ha_item_to_ical(item: TodoItem) -> Todo:
     todo.due = item.due
     todo.description = item.description
     return todo
+
+
+# ---------------------------------------------------------------------------
+# Description field helpers (quantity / category / notes encoding)
+# ---------------------------------------------------------------------------
+
+def _encode_description(
+    quantity: str | None,
+    category: str | None,
+    notes: str | None,
+) -> str | None:
+    """Build a description string encoding quantity, category and optional notes.
+
+    The result is human-readable in the HA Tasks panel::
+
+        Quantity: 2 kg
+        Category: Meat
+
+        Notes go here on a separate paragraph.
+    """
+    parts: list[str] = []
+    if quantity:
+        parts.append(f"{DESC_QUANTITY_PREFIX}{quantity.strip()}")
+    if category:
+        parts.append(f"{DESC_CATEGORY_PREFIX}{category.strip()}")
+    metadata = "\n".join(parts)
+    notes_stripped = notes.strip() if notes else ""
+    if metadata and notes_stripped:
+        return f"{metadata}\n\n{notes_stripped}"
+    return metadata or notes_stripped or None
+
+
+def _decode_description(
+    description: str | None,
+) -> tuple[str | None, str | None, str | None]:
+    """Parse a description into ``(quantity, category, notes)``.
+
+    Lines starting with ``Quantity: `` or ``Category: `` at the beginning of
+    the description are treated as structured metadata; everything else (after
+    any blank separator) is returned as notes.
+    """
+    if not description:
+        return None, None, None
+
+    quantity: str | None = None
+    category: str | None = None
+    notes_lines: list[str] = []
+    in_metadata = True
+
+    for line in description.splitlines():
+        if in_metadata:
+            if line.startswith(DESC_QUANTITY_PREFIX):
+                quantity = line[len(DESC_QUANTITY_PREFIX):].strip()
+            elif line.startswith(DESC_CATEGORY_PREFIX):
+                category = line[len(DESC_CATEGORY_PREFIX):].strip()
+            elif line.strip() == "":
+                in_metadata = False
+            else:
+                in_metadata = False
+                notes_lines.append(line)
+        else:
+            notes_lines.append(line)
+
+    notes = "\n".join(notes_lines).strip() or None
+    return quantity, category, notes
 
 
 # ---------------------------------------------------------------------------
@@ -158,6 +229,16 @@ async def async_setup_entry(
             vol.Optional(ATTR_RRULE): vol.Any(None, cv.string),
         },
         "_async_set_task_recurrence",
+    )
+    platform.async_register_entity_service(
+        SERVICE_SET_TASK_DETAILS,
+        {
+            vol.Required(ATTR_ITEM): cv.string,
+            vol.Optional(ATTR_QUANTITY): vol.Any(None, cv.string),
+            vol.Optional(ATTR_CATEGORY): vol.Any(None, cv.string),
+            vol.Optional(ATTR_NOTES): vol.Any(None, cv.string),
+        },
+        "_async_set_task_details",
     )
 
 
@@ -280,15 +361,29 @@ class BetterTodoListEntity(TodoListEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Expose RRULE recurrence info for each task (keyed by UID)."""
+        """Expose per-task recurrence info and quantity/category details."""
         recurrence: dict[str, str] = {}
+        details: dict[str, dict[str, str]] = {}
         for todo in self._calendar.todos:
             if todo.rrule:
                 try:
                     recurrence[todo.uid] = todo.rrule.as_rrule_str()
                 except (AttributeError, ValueError):
                     recurrence[todo.uid] = str(todo.rrule)
-        return {"task_recurrence": recurrence} if recurrence else {}
+            quantity, category, _ = _decode_description(todo.description)
+            if quantity is not None or category is not None:
+                entry: dict[str, str] = {}
+                if quantity is not None:
+                    entry["quantity"] = quantity
+                if category is not None:
+                    entry["category"] = category
+                details[todo.uid] = entry
+        attrs: dict[str, Any] = {}
+        if recurrence:
+            attrs["task_recurrence"] = recurrence
+        if details:
+            attrs["task_details"] = details
+        return attrs
 
     # ------------------------------------------------------------------
     # CRUD operations
@@ -381,6 +476,51 @@ class BetterTodoListEntity(TodoListEntity):
             for t in todos:
                 self._calendar.todos.append(t)
             await self._async_save()
+        await self.async_update_ha_state(force_refresh=True)
+
+    # ------------------------------------------------------------------
+    # Custom service: set_task_details
+    # ------------------------------------------------------------------
+
+    async def _async_set_task_details(self, call: ServiceCall) -> None:
+        """Handle the ``better_todo.set_task_details`` service call.
+
+        Parameters
+        ----------
+        call.data[ATTR_ITEM]:     UID of the task to update.
+        call.data[ATTR_QUANTITY]: Free-text quantity string (e.g. '2 kg').
+                                  Omit or ``None`` to leave unchanged.
+        call.data[ATTR_CATEGORY]: Category label (e.g. 'Meat').
+                                  Omit or ``None`` to leave unchanged.
+        call.data[ATTR_NOTES]:    Optional free-text notes to store alongside
+                                  the structured metadata.
+                                  Omit or ``None`` to leave unchanged.
+        """
+        uid: str = call.data[ATTR_ITEM]
+        new_quantity: str | None = call.data.get(ATTR_QUANTITY) or None
+        new_category: str | None = call.data.get(ATTR_CATEGORY) or None
+        new_notes: str | None = call.data.get(ATTR_NOTES) or None
+
+        async with self._calendar_lock:
+            existing = self._find_ical_todo(uid)
+            if existing is None:
+                _LOGGER.warning(
+                    "set_task_details: task UID '%s' not found", uid
+                )
+                return
+
+            # Read back whatever was already stored so callers can update
+            # individual fields without wiping the others.
+            old_quantity, old_category, old_notes = _decode_description(
+                existing.description
+            )
+            quantity = new_quantity if new_quantity is not None else old_quantity
+            category = new_category if new_category is not None else old_category
+            notes = new_notes if new_notes is not None else old_notes
+
+            existing.description = _encode_description(quantity, category, notes)
+            await self._async_save()
+
         await self.async_update_ha_state(force_refresh=True)
 
     # ------------------------------------------------------------------

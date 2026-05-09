@@ -12,12 +12,17 @@ from ical.calendar_stream import IcsCalendarStream
 from custom_components.better_todo.const import (
     ATTR_ITEM,
     ATTR_RRULE,
+    ATTR_QUANTITY,
+    ATTR_CATEGORY,
+    ATTR_NOTES,
     CONF_STORAGE_KEY,
     DEFAULT_SHOPPING_LIST_NAME,
 )
 from custom_components.better_todo.todo import (
     BetterTodoListEntity,
     _EMPTY_ICS,
+    _encode_description,
+    _decode_description,
     _ha_item_to_ical,
     async_setup_entry,
 )
@@ -238,3 +243,176 @@ async def test_setup_entry_adds_default_shopping_list_once(mock_hass) -> None:
     assert "My Tasks" in first_names
     assert DEFAULT_SHOPPING_LIST_NAME in first_names
     assert second_names == ["Work"]
+
+
+# ---------------------------------------------------------------------------
+# Description encode/decode helper tests
+# ---------------------------------------------------------------------------
+
+
+def test_encode_description_quantity_and_category() -> None:
+    """Encoding quantity and category produces the expected format."""
+    result = _encode_description("2 kg", "Meat", None)
+    assert result == "Quantity: 2 kg\nCategory: Meat"
+
+
+def test_encode_description_with_notes() -> None:
+    """Notes are appended after a blank line."""
+    result = _encode_description("500 g", "Dairy", "Pick up at the corner shop")
+    assert result == "Quantity: 500 g\nCategory: Dairy\n\nPick up at the corner shop"
+
+
+def test_encode_description_notes_only() -> None:
+    """When only notes are provided the result is just the notes string."""
+    result = _encode_description(None, None, "Remember to check expiry date")
+    assert result == "Remember to check expiry date"
+
+
+def test_encode_description_all_none_returns_none() -> None:
+    """Encoding nothing returns None."""
+    assert _encode_description(None, None, None) is None
+
+
+def test_decode_description_quantity_and_category() -> None:
+    """Decoding a fully-encoded description returns all fields."""
+    desc = "Quantity: 2 kg\nCategory: Meat\n\nPick up at the butcher"
+    qty, cat, notes = _decode_description(desc)
+    assert qty == "2 kg"
+    assert cat == "Meat"
+    assert notes == "Pick up at the butcher"
+
+
+def test_decode_description_metadata_only() -> None:
+    """Decoding metadata-only description leaves notes as None."""
+    desc = "Quantity: 1 L\nCategory: Beverages"
+    qty, cat, notes = _decode_description(desc)
+    assert qty == "1 L"
+    assert cat == "Beverages"
+    assert notes is None
+
+
+def test_decode_description_none_input() -> None:
+    """Decoding None returns a triple of None."""
+    assert _decode_description(None) == (None, None, None)
+
+
+def test_decode_description_plain_notes() -> None:
+    """A plain description with no markers is treated as notes."""
+    desc = "Just a plain note"
+    qty, cat, notes = _decode_description(desc)
+    assert qty is None
+    assert cat is None
+    assert notes == "Just a plain note"
+
+
+def test_encode_decode_roundtrip() -> None:
+    """Encoding then decoding preserves all fields."""
+    qty_in, cat_in, notes_in = "3 units", "Electronics", "Handle with care"
+    encoded = _encode_description(qty_in, cat_in, notes_in)
+    qty_out, cat_out, notes_out = _decode_description(encoded)
+    assert qty_out == qty_in
+    assert cat_out == cat_in
+    assert notes_out == notes_in
+
+
+# ---------------------------------------------------------------------------
+# set_task_details service tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_set_task_details_quantity_and_category(tmp_path: Path, mock_hass) -> None:
+    """set_task_details sets quantity and category on the description field."""
+    entity = _make_entity(tmp_path, mock_hass)
+    item = TodoItem(summary="Buy groceries", status=TodoItemStatus.NEEDS_ACTION)
+    await entity.async_create_todo_item(item)
+    await entity.async_update()
+    uid = entity._attr_todo_items[0].uid
+
+    call = ServiceCall({ATTR_ITEM: uid, ATTR_QUANTITY: "2 kg", ATTR_CATEGORY: "Meat"})
+    await entity._async_set_task_details(call)
+    await entity.async_update()
+
+    task = next(t for t in entity._attr_todo_items if t.uid == uid)
+    assert task.description is not None
+    assert "Quantity: 2 kg" in task.description
+    assert "Category: Meat" in task.description
+
+
+@pytest.mark.asyncio
+async def test_set_task_details_exposed_in_attributes(tmp_path: Path, mock_hass) -> None:
+    """set_task_details makes quantity/category available via extra_state_attributes."""
+    entity = _make_entity(tmp_path, mock_hass)
+    item = TodoItem(summary="Pick up parcel", status=TodoItemStatus.NEEDS_ACTION)
+    await entity.async_create_todo_item(item)
+    await entity.async_update()
+    uid = entity._attr_todo_items[0].uid
+
+    call = ServiceCall({ATTR_ITEM: uid, ATTR_QUANTITY: "1", ATTR_CATEGORY: "Logistics"})
+    await entity._async_set_task_details(call)
+
+    attrs = entity.extra_state_attributes
+    details = attrs.get("task_details", {})
+    assert uid in details
+    assert details[uid]["quantity"] == "1"
+    assert details[uid]["category"] == "Logistics"
+
+
+@pytest.mark.asyncio
+async def test_set_task_details_preserves_unchanged_fields(tmp_path: Path, mock_hass) -> None:
+    """Calling set_task_details with one field does not wipe the others."""
+    entity = _make_entity(tmp_path, mock_hass)
+    item = TodoItem(summary="Monthly budget", status=TodoItemStatus.NEEDS_ACTION)
+    await entity.async_create_todo_item(item)
+    await entity.async_update()
+    uid = entity._attr_todo_items[0].uid
+
+    # First call: set both quantity and category
+    await entity._async_set_task_details(
+        ServiceCall({ATTR_ITEM: uid, ATTR_QUANTITY: "5", ATTR_CATEGORY: "Finance"})
+    )
+    # Second call: update only the category
+    await entity._async_set_task_details(
+        ServiceCall({ATTR_ITEM: uid, ATTR_CATEGORY: "Accounting"})
+    )
+
+    attrs = entity.extra_state_attributes
+    details = attrs.get("task_details", {})
+    assert details[uid]["quantity"] == "5"        # preserved
+    assert details[uid]["category"] == "Accounting"  # updated
+
+
+@pytest.mark.asyncio
+async def test_set_task_details_with_notes(tmp_path: Path, mock_hass) -> None:
+    """Notes are stored alongside structured metadata."""
+    entity = _make_entity(tmp_path, mock_hass)
+    item = TodoItem(summary="Team lunch", status=TodoItemStatus.NEEDS_ACTION)
+    await entity.async_create_todo_item(item)
+    await entity.async_update()
+    uid = entity._attr_todo_items[0].uid
+
+    call = ServiceCall(
+        {ATTR_ITEM: uid, ATTR_CATEGORY: "Work", ATTR_NOTES: "Book the usual place"}
+    )
+    await entity._async_set_task_details(call)
+    await entity.async_update()
+
+    task = next(t for t in entity._attr_todo_items if t.uid == uid)
+    assert task.description is not None
+    assert "Category: Work" in task.description
+    assert "Book the usual place" in task.description
+
+
+@pytest.mark.asyncio
+async def test_set_task_details_unknown_uid_logs_warning(
+    tmp_path: Path, mock_hass, caplog
+) -> None:
+    """set_task_details logs a warning when the UID does not exist."""
+    import logging
+
+    entity = _make_entity(tmp_path, mock_hass)
+    call = ServiceCall({ATTR_ITEM: "nonexistent-uid", ATTR_QUANTITY: "1"})
+    with caplog.at_level(logging.WARNING):
+        await entity._async_set_task_details(call)
+    assert "nonexistent-uid" in caplog.text
+

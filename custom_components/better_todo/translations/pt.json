@@ -27,6 +27,28 @@
           "description": "String RRULE do iCalendar (ex.: 'FREQ=WEEKLY;BYDAY=MO'). Omita ou deixe em branco para remover a recorrência."
         }
       }
+    },
+    "set_task_details": {
+      "name": "Definir detalhes da tarefa",
+      "description": "Define a quantidade, categoria e/ou notas de uma tarefa específica, armazenados no campo descrição para que sejam visíveis no painel de Tarefas padrão do HA.",
+      "fields": {
+        "item": {
+          "name": "UID da tarefa",
+          "description": "O identificador único (UID) da tarefa a ser atualizada."
+        },
+        "quantity": {
+          "name": "Quantidade",
+          "description": "Texto livre indicando a quantidade (ex.: '2 kg'). Omita para manter o valor existente."
+        },
+        "category": {
+          "name": "Categoria",
+          "description": "Rótulo de categoria para a tarefa (ex.: 'Carnes'). Omita para manter o valor existente."
+        },
+        "notes": {
+          "name": "Notas",
+          "description": "Notas de texto livre opcionais para anexar à tarefa. Omita para manter as notas existentes."
+        }
+      }
     }
   }
 }
