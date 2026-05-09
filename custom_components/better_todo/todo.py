@@ -155,9 +155,9 @@ def _decode_description(
     for line in description.splitlines():
         if in_metadata:
             if line.startswith(DESC_QUANTITY_PREFIX):
-                quantity = line[len(DESC_QUANTITY_PREFIX):]
+                quantity = line[len(DESC_QUANTITY_PREFIX):].strip()
             elif line.startswith(DESC_CATEGORY_PREFIX):
-                category = line[len(DESC_CATEGORY_PREFIX):]
+                category = line[len(DESC_CATEGORY_PREFIX):].strip()
             elif line.strip() == "":
                 in_metadata = False
             else:
