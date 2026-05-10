@@ -365,6 +365,7 @@ class BetterTodoListEntity(TodoListEntity):
 
     _attr_should_poll = False
     _attr_supported_features = _FULL_FEATURES
+    _attr_name: str | None
 
     def __init__(
         self,
