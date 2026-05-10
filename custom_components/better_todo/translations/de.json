@@ -1,4 +1,11 @@
 {
+  "entity": {
+    "todo": {
+      "shopping_list": {
+        "name": "Einkaufsliste"
+      }
+    }
+  },
   "config": {
     "step": {
       "user": {

@@ -17,7 +17,6 @@ from custom_components.better_todo.const import (
     ATTR_CATEGORY,
     ATTR_NOTES,
     CONF_STORAGE_KEY,
-    DEFAULT_SHOPPING_LIST_NAME,
 )
 from custom_components.better_todo.todo import (
     BetterTodoListEntity,
@@ -243,7 +242,9 @@ async def test_setup_entry_adds_default_shopping_list_once(mock_hass) -> None:
     first_names = [entity._attr_name for entity in added_entities[0]]
     second_names = [entity._attr_name for entity in added_entities[1]]
     assert "My Tasks" in first_names
-    assert DEFAULT_SHOPPING_LIST_NAME in first_names
+    assert any(
+        isinstance(e, ShoppingListTodoListEntity) for e in added_entities[0]
+    ), "First setup must include a ShoppingListTodoListEntity"
     assert second_names == ["Work"]
 
 
@@ -543,7 +544,7 @@ def test_setup_entry_shopping_list_uses_shopping_entity(mock_hass) -> None:
 
     all_entities = added_entities[0]
     shopping = next(
-        (e for e in all_entities if e._attr_name == DEFAULT_SHOPPING_LIST_NAME), None
+        (e for e in all_entities if isinstance(e, ShoppingListTodoListEntity)), None
     )
     assert shopping is not None, "Default Shopping List entity must be created"
     assert isinstance(shopping, ShoppingListTodoListEntity), (
