@@ -28,7 +28,7 @@ It is built on the same foundation as the built-in [Local To-do](https://www.hom
 - **`task_recurrence` attribute** – the entity exposes a `{uid: rrule_string}` dictionary so custom Lovelace cards and automations can read per-task recurrence rules.
 - **`better_todo.set_task_details` service** – attach structured metadata tags (`quantity`, `unit`, `category`, `repeat`, plus free-text notes) to any task. Data is encoded in the standard `description` field and is immediately visible in the HA Tasks panel without a custom card.
 - **`task_details` attribute** – the entity exposes a `{uid: {quantity, unit, category, repeat}}` dictionary so automations and scripts can read per-task metadata.
-- **Default `Shopping List`** – a `todo.shopping_list` entity is created automatically on first setup, separate from any custom lists you create. Shopping List items support only a **description** field (no due date), matching typical shopping-list behaviour.
+- **Default `Shopping List`** – a `todo.shopping_list` entity is created automatically on first setup, separate from any custom lists you create. Shopping List items support only a **description** field (no due date), matching typical shopping-list behaviour. Its visible name is localized using your Home Assistant language (e.g. Spanish: *Lista de la compra*).
 - **Local iCalendar storage** – each list is persisted as a `.ics` file in the Home Assistant `.storage` directory; no cloud, no external services.
 - **Config-flow setup** – configure entirely through the UI; no YAML needed.
 - **Multiple lists** – add as many Better To-do lists as you need, each stored in its own file.

@@ -537,7 +537,7 @@ def test_shopping_list_entity_uses_translation_key_for_name(tmp_path: Path, mock
 
     assert entity._attr_translation_key == "shopping_list"
     assert entity._attr_name is None
-    assert entity._attr_has_entity_name is False
+    assert entity._attr_has_entity_name is True
 
 
 def test_setup_entry_shopping_list_uses_shopping_entity(mock_hass) -> None:

@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.2] - 2026-05-10
+
+### Fixed
+- **Shopping List translated name restored**: the built-in Shopping List entity now resolves its friendly name from translations in Home Assistant (for example, *Lista de la compra* in Spanish) instead of falling back to a lowercase/non-localized label like `shopping list`.
+
 ## [0.4.1] - 2026-05-10
 
 ### Added
