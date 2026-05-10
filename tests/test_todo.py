@@ -521,6 +521,25 @@ def test_shopping_list_entity_has_no_due_date_features(tmp_path: Path, mock_hass
     )
 
 
+def test_shopping_list_entity_uses_translation_key_for_name(tmp_path: Path, mock_hass) -> None:
+    """ShoppingListTodoListEntity must rely on translation key for friendly name."""
+    from custom_components.better_todo.store import BetterTodoListStore
+
+    path = tmp_path / "shopping.ics"
+    store = BetterTodoListStore(mock_hass, path)
+    calendar = IcsCalendarStream.calendar_from_ics(_EMPTY_ICS)
+    entity = ShoppingListTodoListEntity(
+        store=store,
+        calendar=calendar,
+        name="Shopping List",
+        unique_id="shopping-uid-translation",
+    )
+
+    assert entity._attr_translation_key == "shopping_list"
+    assert entity._attr_name is None
+    assert entity._attr_has_entity_name is False
+
+
 def test_setup_entry_shopping_list_uses_shopping_entity(mock_hass) -> None:
     """The default Shopping List entity must be a ShoppingListTodoListEntity."""
     import asyncio
