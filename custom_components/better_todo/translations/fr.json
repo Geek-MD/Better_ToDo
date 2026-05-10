@@ -30,7 +30,7 @@
     },
     "set_task_details": {
       "name": "Définir les détails d'une tâche",
-      "description": "Définit la quantité, la catégorie et/ou les notes d'une tâche spécifique, stockées dans le champ description pour qu'elles soient visibles dans le panneau de tâches standard de HA.",
+      "description": "Définit des étiquettes de description pour une tâche spécifique. Les étiquettes sont stockées dans le champ description (ex. [quantity:2] [unit:kg] [category:Viande] [repeat:FREQ=WEEKLY;BYDAY=MO]) pour être visibles dans le panneau de tâches standard de HA.",
       "fields": {
         "item": {
           "name": "UID de la tâche",
@@ -38,15 +38,19 @@
         },
         "quantity": {
           "name": "Quantité",
-          "description": "Chaîne de texte libre indiquant la quantité (par ex. '2 kg'). Omettez pour conserver la valeur existante."
+          "description": "Valeur pour l'étiquette [quantity:*] (ex. \"2\"). Vous pouvez aussi utiliser \"2 kg\" ; l'unité est séparée automatiquement quand possible. Omettez pour conserver la valeur existante."
         },
         "category": {
           "name": "Catégorie",
-          "description": "Étiquette de catégorie pour la tâche (par ex. 'Viande'). Omettez pour conserver la valeur existante."
+          "description": "Valeur pour l'étiquette [category:*] (ex. \"Viande\"). Omettez pour conserver la valeur existante."
         },
         "notes": {
           "name": "Notes",
-          "description": "Notes de texte libre optionnelles à joindre à la tâche. Omettez pour conserver les notes existantes."
+          "description": "Notes de texte libre optionnelles après le bloc d'étiquettes dans la description. Aide description : utilisez des étiquettes comme [quantity:*] [unit:*] [category:*] [repeat:*]. Omettez pour conserver les notes existantes."
+        },
+        "unit": {
+          "name": "Unité",
+          "description": "Valeur pour l'étiquette [unit:*] (ex. \"kg\"). Omettez pour conserver la valeur existante."
         }
       }
     }

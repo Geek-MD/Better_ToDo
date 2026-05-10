@@ -30,7 +30,7 @@
     },
     "set_task_details": {
       "name": "Definir detalhes da tarefa",
-      "description": "Define a quantidade, categoria e/ou notas de uma tarefa específica, armazenados no campo descrição para que sejam visíveis no painel de Tarefas padrão do HA.",
+      "description": "Define tags de descrição para uma tarefa específica. Os tags são armazenados no campo descrição (ex.: [quantity:2] [unit:kg] [category:Carnes] [repeat:FREQ=WEEKLY;BYDAY=MO]) para ficarem visíveis no painel de Tarefas padrão do HA.",
       "fields": {
         "item": {
           "name": "UID da tarefa",
@@ -38,15 +38,19 @@
         },
         "quantity": {
           "name": "Quantidade",
-          "description": "Texto livre indicando a quantidade (ex.: '2 kg'). Omita para manter o valor existente."
+          "description": "Valor para a tag [quantity:*] (ex.: \"2\"). Você também pode usar \"2 kg\"; a unidade é separada automaticamente quando possível. Omita para manter o valor existente."
         },
         "category": {
           "name": "Categoria",
-          "description": "Rótulo de categoria para a tarefa (ex.: 'Carnes'). Omita para manter o valor existente."
+          "description": "Valor para a tag [category:*] (ex.: \"Carnes\"). Omita para manter o valor existente."
         },
         "notes": {
           "name": "Notas",
-          "description": "Notas de texto livre opcionais para anexar à tarefa. Omita para manter as notas existentes."
+          "description": "Notas opcionais em texto livre após o bloco de tags na descrição. Ajuda da descrição: use tags como [quantity:*] [unit:*] [category:*] [repeat:*]. Omita para manter as notas existentes."
+        },
+        "unit": {
+          "name": "Unidade",
+          "description": "Valor para a tag [unit:*] (ex.: \"kg\"). Omita para manter o valor existente."
         }
       }
     }

@@ -30,7 +30,7 @@
     },
     "set_task_details": {
       "name": "Definir detalles de tarea",
-      "description": "Define la cantidad, categoría y/o notas de una tarea específica, almacenados en el campo descripción para que sean visibles en el panel de Tareas estándar de HA.",
+      "description": "Define etiquetas en la descripción de una tarea específica. Las etiquetas se guardan en el campo descripción (p. ej. [quantity:2] [unit:kg] [category:Carnes] [repeat:FREQ=WEEKLY;BYDAY=MO]) para que sean visibles en el panel de Tareas estándar de HA.",
       "fields": {
         "item": {
           "name": "UID de tarea",
@@ -38,15 +38,19 @@
         },
         "quantity": {
           "name": "Cantidad",
-          "description": "Cadena de texto libre con la cantidad (por ejemplo, '2 kg'). Omite para conservar el valor existente."
+          "description": "Valor para la etiqueta [quantity:*] (por ejemplo, '2'). También puedes usar '2 kg'; la unidad se separa automáticamente cuando es posible. Omite para conservar el valor existente."
+        },
+        "unit": {
+          "name": "Unidad",
+          "description": "Valor para la etiqueta [unit:*] (por ejemplo, 'kg'). Omite para conservar el valor existente."
         },
         "category": {
           "name": "Categoría",
-          "description": "Etiqueta de categoría para la tarea (por ejemplo, 'Carnes'). Omite para conservar el valor existente."
+          "description": "Valor para la etiqueta [category:*] (por ejemplo, 'Carnes'). Omite para conservar el valor existente."
         },
         "notes": {
           "name": "Notas",
-          "description": "Notas de texto libre opcionales para adjuntar a la tarea. Omite para conservar las notas existentes."
+          "description": "Notas de texto libre opcionales después del bloque de etiquetas en descripción. Ayuda de descripción: usa etiquetas como [quantity:*] [unit:*] [category:*] [repeat:*]. Omite para conservar las notas existentes."
         }
       }
     }

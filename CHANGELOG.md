@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-05-10
+
+### Added
+- **Description tags system**: task descriptions now support a tag-based metadata block designed for future extensions, using tags such as `[quantity:*]`, `[unit:*]`, `[category:*]`, and `[repeat:*]`.
+- **`unit` support in `better_todo.set_task_details`**: the service now accepts a dedicated `unit` field and keeps quantity/unit split for better machine readability.
+- **Recurrence tag sync**: `better_todo.set_task_recurrence` now also updates the `[repeat:*]` tag in the task description so recurrence is visible in the same tag system.
+- **Description field help texts updated**: service strings/translations now include explicit guidance for the tag format in description-related fields.
+
 ## [0.3.1] - 2026-05-10
 
 ### Fixed
