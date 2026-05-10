@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-05-10
+
+### Fixed
+- **Shopping List due date removed**: items in the default Shopping List no longer expose a deadline / due date field.  A new `ShoppingListTodoListEntity` subclass is used for the Shopping List; it advertises only `CREATE`, `DELETE`, `UPDATE`, `MOVE`, and `SET_DESCRIPTION` features, so the HA UI never offers a date picker for shopping items.
+
 ## [0.3.0] - 2026-05-09
 
 ### Added
