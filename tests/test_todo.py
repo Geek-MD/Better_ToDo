@@ -20,6 +20,7 @@ from custom_components.better_todo.const import (
 )
 from custom_components.better_todo.todo import (
     BetterTodoListEntity,
+    ShoppingListTodoListEntity,
     _EMPTY_ICS,
     _encode_description,
     _decode_description,
@@ -415,4 +416,67 @@ async def test_set_task_details_unknown_uid_logs_warning(
     with caplog.at_level(logging.WARNING):
         await entity._async_set_task_details(call)
     assert "nonexistent-uid" in caplog.text
+
+
+# ---------------------------------------------------------------------------
+# Shopping List entity feature tests
+# ---------------------------------------------------------------------------
+
+
+def test_shopping_list_entity_has_no_due_date_features(tmp_path: Path, mock_hass) -> None:
+    """ShoppingListTodoListEntity must not advertise due-date features."""
+    from custom_components.better_todo.store import BetterTodoListStore
+    from homeassistant.components.todo import TodoListEntityFeature
+
+    path = tmp_path / "shopping.ics"
+    store = BetterTodoListStore(mock_hass, path)
+    calendar = IcsCalendarStream.calendar_from_ics(_EMPTY_ICS)
+    entity = ShoppingListTodoListEntity(
+        store=store,
+        calendar=calendar,
+        name="Shopping List",
+        unique_id="shopping-uid-001",
+    )
+
+    features = entity._attr_supported_features
+    assert not (features & TodoListEntityFeature.SET_DUE_DATE_ON_ITEM), (
+        "Shopping List must not support SET_DUE_DATE_ON_ITEM"
+    )
+    assert not (features & TodoListEntityFeature.SET_DUE_DATETIME_ON_ITEM), (
+        "Shopping List must not support SET_DUE_DATETIME_ON_ITEM"
+    )
+    assert features & TodoListEntityFeature.SET_DESCRIPTION_ON_ITEM, (
+        "Shopping List must still support SET_DESCRIPTION_ON_ITEM"
+    )
+
+
+def test_setup_entry_shopping_list_uses_shopping_entity(mock_hass) -> None:
+    """The default Shopping List entity must be a ShoppingListTodoListEntity."""
+    import asyncio
+
+    mock_hass.data = {}
+    added_entities: list[list[BetterTodoListEntity]] = []
+
+    def _add_entities(entities, update_before_add=False) -> None:  # noqa: ANN001, ARG001
+        added_entities.append(list(entities))
+
+    entry = SimpleNamespace(
+        runtime_data=_make_entity(Path("/tmp"), mock_hass)._store,
+        title="My Tasks",
+        entry_id="entry-shopping-test",
+        domain="better_todo",
+        data={CONF_STORAGE_KEY: "my_tasks"},
+    )
+    asyncio.get_event_loop().run_until_complete(
+        async_setup_entry(mock_hass, entry, _add_entities)
+    )
+
+    all_entities = added_entities[0]
+    shopping = next(
+        (e for e in all_entities if e._attr_name == DEFAULT_SHOPPING_LIST_NAME), None
+    )
+    assert shopping is not None, "Default Shopping List entity must be created"
+    assert isinstance(shopping, ShoppingListTodoListEntity), (
+        "Default Shopping List must be a ShoppingListTodoListEntity"
+    )
 

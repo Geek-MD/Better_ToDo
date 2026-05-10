@@ -209,7 +209,7 @@ async def async_setup_entry(
             IcsCalendarStream.calendar_from_ics, shopping_ics_content or _EMPTY_ICS
         )
         entities.append(
-            BetterTodoListEntity(
+            ShoppingListTodoListEntity(
                 store=shopping_store,
                 calendar=shopping_calendar,
                 name=DEFAULT_SHOPPING_LIST_NAME,
@@ -255,19 +255,30 @@ _EMPTY_ICS = (
 # Entity
 # ---------------------------------------------------------------------------
 
+_FULL_FEATURES = (
+    TodoListEntityFeature.CREATE_TODO_ITEM
+    | TodoListEntityFeature.DELETE_TODO_ITEM
+    | TodoListEntityFeature.UPDATE_TODO_ITEM
+    | TodoListEntityFeature.MOVE_TODO_ITEM
+    | TodoListEntityFeature.SET_DUE_DATE_ON_ITEM
+    | TodoListEntityFeature.SET_DUE_DATETIME_ON_ITEM
+    | TodoListEntityFeature.SET_DESCRIPTION_ON_ITEM
+)
+
+_SHOPPING_LIST_FEATURES = (
+    TodoListEntityFeature.CREATE_TODO_ITEM
+    | TodoListEntityFeature.DELETE_TODO_ITEM
+    | TodoListEntityFeature.UPDATE_TODO_ITEM
+    | TodoListEntityFeature.MOVE_TODO_ITEM
+    | TodoListEntityFeature.SET_DESCRIPTION_ON_ITEM
+)
+
+
 class BetterTodoListEntity(TodoListEntity):
     """A to-do list backed by a local .ics file with RRULE support."""
 
     _attr_should_poll = False
-    _attr_supported_features = (
-        TodoListEntityFeature.CREATE_TODO_ITEM
-        | TodoListEntityFeature.DELETE_TODO_ITEM
-        | TodoListEntityFeature.UPDATE_TODO_ITEM
-        | TodoListEntityFeature.MOVE_TODO_ITEM
-        | TodoListEntityFeature.SET_DUE_DATE_ON_ITEM
-        | TodoListEntityFeature.SET_DUE_DATETIME_ON_ITEM
-        | TodoListEntityFeature.SET_DESCRIPTION_ON_ITEM
-    )
+    _attr_supported_features = _FULL_FEATURES
 
     def __init__(
         self,
@@ -574,3 +585,13 @@ class BetterTodoListEntity(TodoListEntity):
             IcsCalendarStream.calendar_to_ics, self._calendar
         )
         await self._store.async_store(content)
+
+
+# ---------------------------------------------------------------------------
+# Shopping List entity (description only – no due date)
+# ---------------------------------------------------------------------------
+
+class ShoppingListTodoListEntity(BetterTodoListEntity):
+    """Shopping List variant: items have only a description, no due date."""
+
+    _attr_supported_features = _SHOPPING_LIST_FEATURES
