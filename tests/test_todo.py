@@ -17,7 +17,6 @@ from custom_components.better_todo.const import (
     ATTR_CATEGORY,
     ATTR_NOTES,
     CONF_STORAGE_KEY,
-    DEFAULT_SHOPPING_LIST_NAME,
 )
 from custom_components.better_todo.todo import (
     BetterTodoListEntity,
@@ -243,7 +242,9 @@ async def test_setup_entry_adds_default_shopping_list_once(mock_hass) -> None:
     first_names = [entity._attr_name for entity in added_entities[0]]
     second_names = [entity._attr_name for entity in added_entities[1]]
     assert "My Tasks" in first_names
-    assert DEFAULT_SHOPPING_LIST_NAME in first_names
+    assert any(
+        isinstance(e, ShoppingListTodoListEntity) for e in added_entities[0]
+    ), "First setup must include a ShoppingListTodoListEntity"
     assert second_names == ["Work"]
 
 
@@ -520,6 +521,25 @@ def test_shopping_list_entity_has_no_due_date_features(tmp_path: Path, mock_hass
     )
 
 
+def test_shopping_list_entity_uses_translation_key_for_name(tmp_path: Path, mock_hass) -> None:
+    """ShoppingListTodoListEntity must rely on translation key for friendly name."""
+    from custom_components.better_todo.store import BetterTodoListStore
+
+    path = tmp_path / "shopping.ics"
+    store = BetterTodoListStore(mock_hass, path)
+    calendar = IcsCalendarStream.calendar_from_ics(_EMPTY_ICS)
+    entity = ShoppingListTodoListEntity(
+        store=store,
+        calendar=calendar,
+        name="Shopping List",
+        unique_id="shopping-uid-translation",
+    )
+
+    assert entity._attr_translation_key == "shopping_list"
+    assert entity._attr_name is None
+    assert entity._attr_has_entity_name is False
+
+
 def test_setup_entry_shopping_list_uses_shopping_entity(mock_hass) -> None:
     """The default Shopping List entity must be a ShoppingListTodoListEntity."""
     import asyncio
@@ -543,7 +563,7 @@ def test_setup_entry_shopping_list_uses_shopping_entity(mock_hass) -> None:
 
     all_entities = added_entities[0]
     shopping = next(
-        (e for e in all_entities if e._attr_name == DEFAULT_SHOPPING_LIST_NAME), None
+        (e for e in all_entities if isinstance(e, ShoppingListTodoListEntity)), None
     )
     assert shopping is not None, "Default Shopping List entity must be created"
     assert isinstance(shopping, ShoppingListTodoListEntity), (

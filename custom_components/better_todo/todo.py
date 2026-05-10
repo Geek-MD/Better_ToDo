@@ -365,6 +365,7 @@ class BetterTodoListEntity(TodoListEntity):
 
     _attr_should_poll = False
     _attr_supported_features = _FULL_FEATURES
+    _attr_name: str | None
 
     def __init__(
         self,
@@ -717,3 +718,17 @@ class ShoppingListTodoListEntity(BetterTodoListEntity):
     """Shopping List variant: items have only a description, no due date."""
 
     _attr_supported_features = _SHOPPING_LIST_FEATURES
+    _attr_translation_key = "shopping_list"
+
+    def __init__(
+        self,
+        store: BetterTodoListStore,
+        calendar: Calendar,
+        name: str,
+        unique_id: str,
+    ) -> None:
+        """Initialize the Shopping List entity with a translated name."""
+        super().__init__(store, calendar, name, unique_id)
+        # Let HA resolve the friendly name from translations instead of using
+        # the hard-coded DEFAULT_SHOPPING_LIST_NAME constant.
+        self._attr_name = None
