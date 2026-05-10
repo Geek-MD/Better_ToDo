@@ -26,7 +26,9 @@ It is built on the same foundation as the built-in [Local To-do](https://www.hom
 - **Recurring tasks (RRULE)** – attach any iCalendar RRULE string to a task (e.g. `FREQ=WEEKLY;BYDAY=MO`, `FREQ=DAILY`, `FREQ=MONTHLY;BYMONTHDAY=1`). When the task is marked done it rolls forward to the next occurrence automatically.
 - **`better_todo.set_task_recurrence` service** – set or clear the RRULE on a task by its UID from an automation, script, or *Developer Tools → Actions*.
 - **`task_recurrence` attribute** – the entity exposes a `{uid: rrule_string}` dictionary so custom Lovelace cards and automations can read per-task recurrence rules.
-- **Default `Shopping List`** – a `todo.shopping_list` entity is created automatically on first setup, separate from any custom lists you create.
+- **`better_todo.set_task_details` service** – attach structured metadata (quantity, category, free-text notes) to any task. Data is encoded in the standard `description` field in a human-readable format and is immediately visible in the HA Tasks panel without a custom card.
+- **`task_details` attribute** – the entity exposes a `{uid: {quantity, category}}` dictionary so automations and scripts can read per-task shopping metadata.
+- **Default `Shopping List`** – a `todo.shopping_list` entity is created automatically on first setup, separate from any custom lists you create. Shopping List items support only a **description** field (no due date), matching typical shopping-list behaviour.
 - **Local iCalendar storage** – each list is persisted as a `.ics` file in the Home Assistant `.storage` directory; no cloud, no external services.
 - **Config-flow setup** – configure entirely through the UI; no YAML needed.
 - **Multiple lists** – add as many Better To-do lists as you need, each stored in its own file.
@@ -79,12 +81,24 @@ You can add multiple custom lists by repeating the setup process. Removing an in
 | Entity | Domain | Description |
 |--------|--------|-------------|
 | `todo.<name>` | `todo` | The to-do list. Displays all tasks, supports create / update / delete / reorder from the UI. |
+| `todo.shopping_list` | `todo` | Built-in Shopping List created automatically on first setup. Items support only a **description** (no due date). |
 
 ### State attributes
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
 | `task_recurrence` | `dict` | Maps each task UID to its RRULE string. Only present when at least one task has a recurrence rule set. |
+| `task_details` | `dict` | Maps each task UID to a `{quantity, category}` dict. Only present when at least one task has structured details set via `set_task_details`. |
+
+---
+
+## Shopping List
+
+The built-in **Shopping List** (`todo.shopping_list`) is automatically created on the first setup and is completely independent from any custom lists you add later. It is designed for day-to-day grocery and shopping management:
+
+- Items have a **description** field only — no due date is offered in the UI.
+- All CRUD operations (create, update, delete, reorder) and the `set_task_details` service work the same as on any other list.
+- The `set_task_recurrence` service is also available if needed, but recurring shopping items are uncommon.
 
 ---
 
@@ -155,6 +169,39 @@ Sets or clears the iCalendar RRULE recurrence rule on a specific task.
 | `rrule` | ❌ | RRULE string (e.g. `FREQ=WEEKLY;BYDAY=MO`). Omit or leave blank to remove recurrence. |
 
 **Target**: a `todo` entity from the `better_todo` integration.
+
+### `better_todo.set_task_details`
+
+Attaches structured metadata (quantity, category, and/or free-text notes) to a specific task. The data is encoded in the task's `description` field in a human-readable format.
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `item` | ✅ | The UID of the task to update. |
+| `quantity` | ❌ | Free-text quantity string (e.g. `2 kg`, `500 g`). Omit to leave the existing value unchanged. |
+| `category` | ❌ | Category label (e.g. `Dairy`, `Meat`). Omit to leave the existing value unchanged. |
+| `notes` | ❌ | Free-text notes to store alongside the structured metadata. Omit to leave the existing value unchanged. |
+
+**Target**: a `todo` entity from the `better_todo` integration.
+
+```yaml
+action: better_todo.set_task_details
+target:
+  entity_id: todo.shopping_list
+data:
+  item: "abc123-uid-of-the-task"
+  quantity: "2 kg"
+  category: "Meat"
+  notes: "Pick up at the corner shop"
+```
+
+The resulting `description` stored in the task will be:
+
+```
+Quantity: 2 kg
+Category: Meat
+
+Pick up at the corner shop
+```
 
 ---
 
