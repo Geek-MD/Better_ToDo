@@ -19,6 +19,7 @@ import asyncio
 import dataclasses
 import datetime
 import logging
+import re
 from pathlib import Path
 from typing import Any
 
@@ -58,11 +59,16 @@ from .const import (
     ATTR_NOTES,
     ATTR_QUANTITY,
     ATTR_RRULE,
+    ATTR_UNIT,
     DATA_DEFAULT_LIST_ADDED,
     DEFAULT_SHOPPING_LIST_KEY,
     DEFAULT_SHOPPING_LIST_NAME,
     DESC_CATEGORY_PREFIX,
     DESC_QUANTITY_PREFIX,
+    DESC_TAG_CATEGORY,
+    DESC_TAG_QUANTITY,
+    DESC_TAG_REPEAT,
+    DESC_TAG_UNIT,
     SERVICE_SET_TASK_DETAILS,
     SERVICE_SET_TASK_RECURRENCE,
     STORAGE_PATH,
@@ -106,58 +112,89 @@ def _ha_item_to_ical(item: TodoItem) -> Todo:
 
 
 # ---------------------------------------------------------------------------
-# Description field helpers (quantity / category / notes encoding)
+# Description field helpers (tag-based metadata encoding)
 # ---------------------------------------------------------------------------
 
-def _encode_description(
-    quantity: str | None,
-    category: str | None,
-    notes: str | None,
-) -> str | None:
-    """Build a description string encoding quantity, category and optional notes.
-
-    The result is human-readable in the HA Tasks panel::
-
-        Quantity: 2 kg
-        Category: Meat
-
-        Notes go here on a separate paragraph.
-    """
-    parts: list[str] = []
-    if quantity:
-        parts.append(f"{DESC_QUANTITY_PREFIX}{quantity.strip()}")
-    if category:
-        parts.append(f"{DESC_CATEGORY_PREFIX}{category.strip()}")
-    metadata = "\n".join(parts)
-    notes_stripped = notes.strip() if notes else ""
-    if metadata and notes_stripped:
-        return f"{metadata}\n\n{notes_stripped}"
-    return metadata or notes_stripped or None
+_DESC_TAG_RE = re.compile(r"\[(?P<tag>[a-z_]+):(?P<value>[^\]]+)\]")
 
 
-def _decode_description(
+def _split_quantity_and_unit(quantity: str | None) -> tuple[str | None, str | None]:
+    """Split a free-text quantity into quantity and optional unit."""
+    if not quantity:
+        return None, None
+    parts = quantity.strip().split(maxsplit=1)
+    if not parts:
+        return None, None
+    if len(parts) == 1:
+        return parts[0], None
+    return parts[0], parts[1].strip() or None
+
+
+def _join_quantity_and_unit(quantity: str | None, unit: str | None) -> str | None:
+    """Join quantity and unit for legacy quantity consumers."""
+    quantity_str = quantity.strip() if quantity else ""
+    unit_str = unit.strip() if unit else ""
+    if quantity_str and unit_str:
+        return f"{quantity_str} {unit_str}"
+    return quantity_str or None
+
+
+def _try_parse_tag_line(line: str) -> dict[str, str] | None:
+    """Parse a line containing only ``[tag:value]`` tokens."""
+    matches = list(_DESC_TAG_RE.finditer(line))
+    if not matches:
+        return None
+    consumed = _DESC_TAG_RE.sub("", line).strip()
+    if consumed:
+        return None
+    parsed: dict[str, str] = {}
+    for match in matches:
+        tag = match.group("tag").strip().lower()
+        value = match.group("value").strip()
+        if tag and value:
+            parsed[tag] = value
+    return parsed or None
+
+
+def _decode_description_structured(
     description: str | None,
-) -> tuple[str | None, str | None, str | None]:
-    """Parse a description into ``(quantity, category, notes)``.
-
-    Lines starting with ``Quantity: `` or ``Category: `` at the beginning of
-    the description are treated as structured metadata; everything else (after
-    any blank separator) is returned as notes.
-    """
+) -> tuple[str | None, str | None, str | None, str | None, str | None]:
+    """Parse description into ``(quantity, unit, category, repeat, notes)``."""
     if not description:
-        return None, None, None
+        return None, None, None, None, None
 
     quantity: str | None = None
+    unit: str | None = None
     category: str | None = None
+    repeat: str | None = None
     notes_lines: list[str] = []
     in_metadata = True
 
     for line in description.splitlines():
         if in_metadata:
+            parsed_tags = _try_parse_tag_line(line.strip())
+            if parsed_tags is not None:
+                if quantity is None and parsed_tags.get(DESC_TAG_QUANTITY):
+                    quantity = parsed_tags[DESC_TAG_QUANTITY]
+                if unit is None and parsed_tags.get(DESC_TAG_UNIT):
+                    unit = parsed_tags[DESC_TAG_UNIT]
+                if category is None and parsed_tags.get(DESC_TAG_CATEGORY):
+                    category = parsed_tags[DESC_TAG_CATEGORY]
+                if repeat is None and parsed_tags.get(DESC_TAG_REPEAT):
+                    repeat = parsed_tags[DESC_TAG_REPEAT]
+                continue
+
             if line.startswith(DESC_QUANTITY_PREFIX):
-                quantity = line[len(DESC_QUANTITY_PREFIX):].strip()
+                quantity_legacy, unit_legacy = _split_quantity_and_unit(
+                    line[len(DESC_QUANTITY_PREFIX):].strip()
+                )
+                if quantity is None:
+                    quantity = quantity_legacy
+                if unit is None:
+                    unit = unit_legacy
             elif line.startswith(DESC_CATEGORY_PREFIX):
-                category = line[len(DESC_CATEGORY_PREFIX):].strip()
+                if category is None:
+                    category = line[len(DESC_CATEGORY_PREFIX):].strip() or None
             elif line.strip() == "":
                 in_metadata = False
             else:
@@ -167,7 +204,55 @@ def _decode_description(
             notes_lines.append(line)
 
     notes = "\n".join(notes_lines).strip() or None
-    return quantity, category, notes
+    return quantity, unit, category, repeat, notes
+
+
+def _encode_description(
+    quantity: str | None,
+    category: str | None,
+    notes: str | None,
+    *,
+    unit: str | None = None,
+    repeat: str | None = None,
+) -> str | None:
+    """Build a description string encoding tag metadata and optional notes.
+
+    The result is human-readable in the HA Tasks panel::
+
+        [quantity:2] [unit:kg] [category:Meat] [repeat:FREQ=WEEKLY;BYDAY=MO]
+
+        Notes go here on a separate paragraph.
+    """
+    tags: list[str] = []
+
+    quantity_value = quantity.strip() if quantity else ""
+    unit_value = unit.strip() if unit else ""
+    if quantity_value:
+        tags.append(f"[{DESC_TAG_QUANTITY}:{quantity_value}]")
+    if unit_value:
+        tags.append(f"[{DESC_TAG_UNIT}:{unit_value}]")
+
+    category_value = category.strip() if category else ""
+    if category_value:
+        tags.append(f"[{DESC_TAG_CATEGORY}:{category_value}]")
+
+    repeat_value = repeat.strip() if repeat else ""
+    if repeat_value:
+        tags.append(f"[{DESC_TAG_REPEAT}:{repeat_value}]")
+
+    metadata = " ".join(tags)
+    notes_stripped = notes.strip() if notes else ""
+    if metadata and notes_stripped:
+        return f"{metadata}\n\n{notes_stripped}"
+    return metadata or notes_stripped or None
+
+
+def _decode_description(
+    description: str | None,
+) -> tuple[str | None, str | None, str | None]:
+    """Legacy-compatible parser returning ``(quantity, category, notes)``."""
+    quantity, unit, category, _repeat, notes = _decode_description_structured(description)
+    return _join_quantity_and_unit(quantity, unit), category, notes
 
 
 # ---------------------------------------------------------------------------
@@ -235,6 +320,7 @@ async def async_setup_entry(
         {
             vol.Required(ATTR_ITEM): cv.string,
             vol.Optional(ATTR_QUANTITY): vol.Any(None, cv.string),
+            vol.Optional(ATTR_UNIT): vol.Any(None, cv.string),
             vol.Optional(ATTR_CATEGORY): vol.Any(None, cv.string),
             vol.Optional(ATTR_NOTES): vol.Any(None, cv.string),
         },
@@ -372,7 +458,7 @@ class BetterTodoListEntity(TodoListEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Expose per-task recurrence info and quantity/category details."""
+        """Expose per-task recurrence info and description-tag details."""
         recurrence: dict[str, str] = {}
         details: dict[str, dict[str, str]] = {}
         for todo in self._calendar.todos:
@@ -381,13 +467,20 @@ class BetterTodoListEntity(TodoListEntity):
                     recurrence[todo.uid] = todo.rrule.as_rrule_str()
                 except (AttributeError, ValueError):
                     recurrence[todo.uid] = str(todo.rrule)
-            quantity, category, _ = _decode_description(todo.description)
-            if quantity is not None or category is not None:
+            quantity, unit, category, repeat, _ = _decode_description_structured(
+                todo.description
+            )
+            if quantity is not None or unit is not None or category is not None or repeat is not None:
                 entry: dict[str, str] = {}
-                if quantity is not None:
-                    entry["quantity"] = quantity
+                quantity_joined = _join_quantity_and_unit(quantity, unit)
+                if quantity_joined is not None:
+                    entry["quantity"] = quantity_joined
+                if unit is not None:
+                    entry["unit"] = unit
                 if category is not None:
                     entry["category"] = category
+                if repeat is not None:
+                    entry["repeat"] = repeat
                 details[todo.uid] = entry
         attrs: dict[str, Any] = {}
         if recurrence:
@@ -501,6 +594,8 @@ class BetterTodoListEntity(TodoListEntity):
         call.data[ATTR_ITEM]:     UID of the task to update.
         call.data[ATTR_QUANTITY]: Free-text quantity string (e.g. '2 kg').
                                   Omit or ``None`` to leave unchanged.
+        call.data[ATTR_UNIT]:     Optional unit string (e.g. 'kg').
+                                  Omit or ``None`` to leave unchanged.
         call.data[ATTR_CATEGORY]: Category label (e.g. 'Meat').
                                   Omit or ``None`` to leave unchanged.
         call.data[ATTR_NOTES]:    Optional free-text notes to store alongside
@@ -509,6 +604,7 @@ class BetterTodoListEntity(TodoListEntity):
         """
         uid: str = call.data[ATTR_ITEM]
         new_quantity: str | None = call.data.get(ATTR_QUANTITY) or None
+        new_unit: str | None = call.data.get(ATTR_UNIT) or None
         new_category: str | None = call.data.get(ATTR_CATEGORY) or None
         new_notes: str | None = call.data.get(ATTR_NOTES) or None
 
@@ -522,14 +618,29 @@ class BetterTodoListEntity(TodoListEntity):
 
             # Read back whatever was already stored so callers can update
             # individual fields without wiping the others.
-            old_quantity, old_category, old_notes = _decode_description(
+            old_quantity, old_unit, old_category, old_repeat, old_notes = (
+                _decode_description_structured(
                 existing.description
+                )
             )
-            quantity = new_quantity if new_quantity is not None else old_quantity
+
+            parsed_new_quantity, parsed_new_unit = _split_quantity_and_unit(new_quantity)
+            quantity = (
+                parsed_new_quantity if parsed_new_quantity is not None else old_quantity
+            )
+            unit = new_unit if new_unit is not None else (
+                parsed_new_unit if parsed_new_unit is not None else old_unit
+            )
             category = new_category if new_category is not None else old_category
             notes = new_notes if new_notes is not None else old_notes
 
-            existing.description = _encode_description(quantity, category, notes)
+            existing.description = _encode_description(
+                quantity,
+                category,
+                notes,
+                unit=unit,
+                repeat=old_repeat,
+            )
             await self._async_save()
 
         await self.async_update_ha_state(force_refresh=True)
@@ -570,6 +681,17 @@ class BetterTodoListEntity(TodoListEntity):
                     return
             else:
                 existing.rrule = None
+
+            quantity, unit, category, _repeat, notes = _decode_description_structured(
+                existing.description
+            )
+            existing.description = _encode_description(
+                quantity,
+                category,
+                notes,
+                unit=unit,
+                repeat=rrule_str,
+            )
 
             await self._async_save()
 

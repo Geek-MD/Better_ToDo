@@ -13,6 +13,7 @@ from custom_components.better_todo.const import (
     ATTR_ITEM,
     ATTR_RRULE,
     ATTR_QUANTITY,
+    ATTR_UNIT,
     ATTR_CATEGORY,
     ATTR_NOTES,
     CONF_STORAGE_KEY,
@@ -254,13 +255,29 @@ async def test_setup_entry_adds_default_shopping_list_once(mock_hass) -> None:
 def test_encode_description_quantity_and_category() -> None:
     """Encoding quantity and category produces the expected format."""
     result = _encode_description("2 kg", "Meat", None)
-    assert result == "Quantity: 2 kg\nCategory: Meat"
+    assert result == "[quantity:2 kg] [category:Meat]"
 
 
 def test_encode_description_with_notes() -> None:
     """Notes are appended after a blank line."""
     result = _encode_description("500 g", "Dairy", "Pick up at the corner shop")
-    assert result == "Quantity: 500 g\nCategory: Dairy\n\nPick up at the corner shop"
+    assert result == "[quantity:500 g] [category:Dairy]\n\nPick up at the corner shop"
+
+
+def test_encode_description_with_unit_and_repeat() -> None:
+    """Unit and repeat tags are encoded when provided."""
+    result = _encode_description(
+        "2",
+        "Meat",
+        "Pick up at the corner shop",
+        unit="kg",
+        repeat="FREQ=WEEKLY;BYDAY=MO",
+    )
+    assert (
+        result
+        == "[quantity:2] [unit:kg] [category:Meat] [repeat:FREQ=WEEKLY;BYDAY=MO]\n\n"
+        "Pick up at the corner shop"
+    )
 
 
 def test_encode_description_notes_only() -> None:
@@ -276,7 +293,7 @@ def test_encode_description_all_none_returns_none() -> None:
 
 def test_decode_description_quantity_and_category() -> None:
     """Decoding a fully-encoded description returns all fields."""
-    desc = "Quantity: 2 kg\nCategory: Meat\n\nPick up at the butcher"
+    desc = "[quantity:2] [unit:kg] [category:Meat]\n\nPick up at the butcher"
     qty, cat, notes = _decode_description(desc)
     assert qty == "2 kg"
     assert cat == "Meat"
@@ -285,11 +302,20 @@ def test_decode_description_quantity_and_category() -> None:
 
 def test_decode_description_metadata_only() -> None:
     """Decoding metadata-only description leaves notes as None."""
-    desc = "Quantity: 1 L\nCategory: Beverages"
+    desc = "[quantity:1] [unit:L] [category:Beverages]"
     qty, cat, notes = _decode_description(desc)
     assert qty == "1 L"
     assert cat == "Beverages"
     assert notes is None
+
+
+def test_decode_description_legacy_format() -> None:
+    """Legacy Quantity/Category lines remain supported."""
+    desc = "Quantity: 2 kg\nCategory: Meat\n\nLegacy note"
+    qty, cat, notes = _decode_description(desc)
+    assert qty == "2 kg"
+    assert cat == "Meat"
+    assert notes == "Legacy note"
 
 
 def test_decode_description_none_input() -> None:
@@ -336,8 +362,9 @@ async def test_set_task_details_quantity_and_category(tmp_path: Path, mock_hass)
 
     task = next(t for t in entity._attr_todo_items if t.uid == uid)
     assert task.description is not None
-    assert "Quantity: 2 kg" in task.description
-    assert "Category: Meat" in task.description
+    assert "[quantity:2]" in task.description
+    assert "[unit:kg]" in task.description
+    assert "[category:Meat]" in task.description
 
 
 @pytest.mark.asyncio
@@ -357,6 +384,31 @@ async def test_set_task_details_exposed_in_attributes(tmp_path: Path, mock_hass)
     assert uid in details
     assert details[uid]["quantity"] == "1"
     assert details[uid]["category"] == "Logistics"
+
+
+@pytest.mark.asyncio
+async def test_set_task_details_explicit_unit(tmp_path: Path, mock_hass) -> None:
+    """set_task_details supports explicit unit and exposes it in attributes."""
+    entity = _make_entity(tmp_path, mock_hass)
+    item = TodoItem(summary="Buy flour", status=TodoItemStatus.NEEDS_ACTION)
+    await entity.async_create_todo_item(item)
+    await entity.async_update()
+    uid = entity._attr_todo_items[0].uid
+
+    call = ServiceCall(
+        {ATTR_ITEM: uid, ATTR_QUANTITY: "2", ATTR_UNIT: "kg", ATTR_CATEGORY: "Bakery"}
+    )
+    await entity._async_set_task_details(call)
+    await entity.async_update()
+
+    task = next(t for t in entity._attr_todo_items if t.uid == uid)
+    assert task.description is not None
+    assert "[quantity:2]" in task.description
+    assert "[unit:kg]" in task.description
+    attrs = entity.extra_state_attributes
+    details = attrs.get("task_details", {})
+    assert details[uid]["quantity"] == "2 kg"
+    assert details[uid]["unit"] == "kg"
 
 
 @pytest.mark.asyncio
@@ -400,8 +452,26 @@ async def test_set_task_details_with_notes(tmp_path: Path, mock_hass) -> None:
 
     task = next(t for t in entity._attr_todo_items if t.uid == uid)
     assert task.description is not None
-    assert "Category: Work" in task.description
+    assert "[category:Work]" in task.description
     assert "Book the usual place" in task.description
+
+
+@pytest.mark.asyncio
+async def test_set_task_recurrence_updates_repeat_tag(tmp_path: Path, mock_hass) -> None:
+    """set_task_recurrence syncs [repeat:*] in task description."""
+    entity = _make_entity(tmp_path, mock_hass)
+    item = TodoItem(summary="Weekly standup", status=TodoItemStatus.NEEDS_ACTION)
+    await entity.async_create_todo_item(item)
+    await entity.async_update()
+    uid = entity._attr_todo_items[0].uid
+
+    await entity._async_set_task_recurrence(
+        ServiceCall({ATTR_ITEM: uid, ATTR_RRULE: "FREQ=WEEKLY;BYDAY=MO"})
+    )
+    await entity.async_update()
+    task = next(t for t in entity._attr_todo_items if t.uid == uid)
+    assert task.description is not None
+    assert "[repeat:FREQ=WEEKLY;BYDAY=MO]" in task.description
 
 
 @pytest.mark.asyncio
@@ -479,4 +549,3 @@ def test_setup_entry_shopping_list_uses_shopping_entity(mock_hass) -> None:
     assert isinstance(shopping, ShoppingListTodoListEntity), (
         "Default Shopping List must be a ShoppingListTodoListEntity"
     )
-

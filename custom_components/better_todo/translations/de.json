@@ -30,7 +30,7 @@
     },
     "set_task_details": {
       "name": "Aufgabendetails festlegen",
-      "description": "Setzt Menge, Kategorie und/oder Notizen für eine bestimmte Aufgabe. Die Angaben werden im Beschreibungsfeld gespeichert und sind im Standard-HA-Aufgabenbereich sichtbar.",
+      "description": "Setzt Beschreibungs-Tags für eine bestimmte Aufgabe. Die Tags werden im Beschreibungsfeld gespeichert (z. B. [quantity:2] [unit:kg] [category:Fleisch] [repeat:FREQ=WEEKLY;BYDAY=MO]) und sind im Standard-HA-Aufgabenbereich sichtbar.",
       "fields": {
         "item": {
           "name": "Aufgaben-UID",
@@ -38,15 +38,19 @@
         },
         "quantity": {
           "name": "Menge",
-          "description": "Freitextangabe zur Menge (z. B. '2 kg'). Weglassen, um den vorhandenen Wert beizubehalten."
+          "description": "Wert für das Tag [quantity:*] (z. B. \"2\"). Du kannst auch \"2 kg\" verwenden; die Einheit wird wenn möglich automatisch getrennt. Weglassen, um den vorhandenen Wert beizubehalten."
         },
         "category": {
           "name": "Kategorie",
-          "description": "Kategoriebezeichnung für die Aufgabe (z. B. 'Fleisch'). Weglassen, um den vorhandenen Wert beizubehalten."
+          "description": "Wert für das Tag [category:*] (z. B. \"Fleisch\"). Weglassen, um den vorhandenen Wert beizubehalten."
         },
         "notes": {
           "name": "Notizen",
-          "description": "Optionale Freitextnotizen zur Aufgabe. Weglassen, um vorhandene Notizen beizubehalten."
+          "description": "Optionale Freitextnotizen nach dem Tag-Block in der Beschreibung. Beschreibungshilfe: Tags wie [quantity:*] [unit:*] [category:*] [repeat:*] verwenden. Weglassen, um vorhandene Notizen beizubehalten."
+        },
+        "unit": {
+          "name": "Einheit",
+          "description": "Wert für das Tag [unit:*] (z. B. \"kg\"). Weglassen, um den vorhandenen Wert beizubehalten."
         }
       }
     }

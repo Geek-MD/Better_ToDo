@@ -18,10 +18,16 @@ SERVICE_SET_TASK_DETAILS = "set_task_details"
 ATTR_ITEM = "item"
 ATTR_RRULE = "rrule"
 ATTR_QUANTITY = "quantity"
+ATTR_UNIT = "unit"
 ATTR_CATEGORY = "category"
 ATTR_NOTES = "notes"
 
-# Prefixes used to encode quantity/category inside the description field.
-# Human-readable so they display nicely in the HA Tasks panel.
+# Legacy prefixes used in v0.3.x description encoding.
 DESC_QUANTITY_PREFIX = "Quantity: "
 DESC_CATEGORY_PREFIX = "Category: "
+
+# v0.4.0 description tag names.
+DESC_TAG_QUANTITY = "quantity"
+DESC_TAG_UNIT = "unit"
+DESC_TAG_CATEGORY = "category"
+DESC_TAG_REPEAT = "repeat"
