@@ -718,6 +718,7 @@ class ShoppingListTodoListEntity(BetterTodoListEntity):
     """Shopping List variant: items have only a description, no due date."""
 
     _attr_supported_features = _SHOPPING_LIST_FEATURES
+    _attr_has_entity_name = True
     _attr_translation_key = "shopping_list"
 
     def __init__(
