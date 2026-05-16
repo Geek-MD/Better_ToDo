@@ -12,7 +12,7 @@ import dataclasses
 import sys
 import types
 from pathlib import Path
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -135,8 +135,40 @@ def _register_ha_stubs() -> None:
     todo_mod.TodoItemStatus = TodoItemStatus
     todo_mod.TodoListEntity = TodoListEntity
     todo_mod.TodoListEntityFeature = TodoListEntityFeature
-    sys.modules.setdefault("homeassistant.components", types.ModuleType("homeassistant.components"))
+    components_root = sys.modules.setdefault(
+        "homeassistant.components", types.ModuleType("homeassistant.components")
+    )
     sys.modules.setdefault("homeassistant.components.todo", todo_mod)
+    components_root.todo = todo_mod
+
+    # --- homeassistant.components.frontend ---
+    ha_frontend = types.ModuleType("homeassistant.components.frontend")
+    ha_frontend.add_extra_js_url = lambda hass, url, es5=False: None
+    sys.modules.setdefault("homeassistant.components.frontend", ha_frontend)
+    components_root.frontend = ha_frontend
+
+    # --- homeassistant.components.panel_custom ---
+    ha_panel_custom = types.ModuleType("homeassistant.components.panel_custom")
+
+    async def _async_register_panel(**kwargs):
+        return None
+
+    ha_panel_custom.async_register_panel = _async_register_panel
+    sys.modules.setdefault("homeassistant.components.panel_custom", ha_panel_custom)
+    components_root.panel_custom = ha_panel_custom
+
+    # --- homeassistant.components.http ---
+    ha_http = types.ModuleType("homeassistant.components.http")
+
+    @dataclasses.dataclass
+    class StaticPathConfig:
+        url_path: str
+        path: str
+        cache_headers: bool
+
+    ha_http.StaticPathConfig = StaticPathConfig
+    sys.modules.setdefault("homeassistant.components.http", ha_http)
+    components_root.http = ha_http
 
     # --- homeassistant.core ---
     ha_core = types.ModuleType("homeassistant.core")
@@ -167,6 +199,10 @@ def _register_ha_stubs() -> None:
     ha_cv.string = str
     sys.modules.setdefault("homeassistant.helpers.config_validation", ha_cv)
 
+    ha_typing = types.ModuleType("homeassistant.helpers.typing")
+    ha_typing.ConfigType = dict
+    sys.modules.setdefault("homeassistant.helpers.typing", ha_typing)
+
     # --- homeassistant (root) ---
     sys.modules.setdefault("homeassistant", types.ModuleType("homeassistant"))
 
@@ -189,11 +225,14 @@ def tmp_ics_path(tmp_path: Path) -> Path:
 def mock_hass():
     """Return a minimal mock HomeAssistant instance."""
     hass = MagicMock()
+    hass.data = {}
     hass.config.path = lambda *parts: str(Path(*parts))
+    hass.http.async_register_static_paths = AsyncMock()
+    hass.config_entries.async_forward_entry_setups = AsyncMock(return_value=True)
+    hass.config_entries.async_unload_platforms = AsyncMock(return_value=True)
 
     async def _executor(func, *args, **kwargs):
         return func(*args, **kwargs)
 
     hass.async_add_executor_job = _executor
     return hass
-

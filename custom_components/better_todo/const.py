@@ -9,6 +9,15 @@ STORAGE_PATH = ".storage/better_todo.{key}.ics"
 DEFAULT_SHOPPING_LIST_NAME = "Shopping List"
 DEFAULT_SHOPPING_LIST_KEY = "default_shopping_list"
 DATA_DEFAULT_LIST_ADDED = "default_list_added"
+DATA_FRONTEND_REGISTERED = "frontend_registered"
+
+FRONTEND_STATIC_PATH = "/better_todo_static"
+FRONTEND_CARD_MODULE = "better-todo-card.js"
+FRONTEND_PANEL_MODULE = "better-todo-panel.js"
+PANEL_URL_PATH = "better-todo"
+PANEL_WEB_COMPONENT = "better-todo-panel"
+PANEL_TITLE = "Better To-do"
+PANEL_ICON = "mdi:clipboard-check-outline"
 
 # Custom service names
 SERVICE_SET_TASK_RECURRENCE = "set_task_recurrence"
