@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.0a] - 2026-05-16
+## [0.5.0a1] - 2026-05-16
 
 ### Added
 - **Custom panel skeleton**: Better To-do now registers a sidebar panel at `/better-todo` with a title bar reading *Better ToDo*. The panel mirrors the structural layout of the built-in HA To-do panel (`ha-two-pane-top-app-bar-fixed`) with a left pane and a right content area, both empty in this first iteration. The action-menu slot is present in the markup but hidden until needed. The panel is implemented in plain JavaScript using LitElement accessed from HA's already-loaded frontend bundle (no external CDN dependency).
