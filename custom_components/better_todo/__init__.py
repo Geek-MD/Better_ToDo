@@ -3,12 +3,14 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import voluptuous as vol
 from homeassistant.components import frontend, panel_custom
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import slugify
 
@@ -31,6 +33,10 @@ from .store import BetterTodoListStore
 PLATFORMS: list[Platform] = [Platform.TODO]
 
 type BetterTodoConfigEntry = ConfigEntry[BetterTodoListStore]
+if hasattr(cv, "config_entry_only_config_schema"):
+    CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+else:
+    CONFIG_SCHEMA = vol.Schema({})
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
