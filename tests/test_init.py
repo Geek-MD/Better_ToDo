@@ -38,7 +38,7 @@ async def test_async_setup_registers_static_path_and_panel(mock_hass):
     # Panel registered
     mock_register.assert_called_once()
     kwargs = mock_register.call_args.kwargs
-    assert kwargs["component_name"] == "better-todo-panel"
+    assert kwargs["webcomponent_name"] == "better-todo-panel"
     assert kwargs["frontend_url_path"] == "better-todo"
     assert kwargs["sidebar_title"] == "Better ToDo"
     assert kwargs["js_url"] == "/better_todo_static/better-todo-panel.js"

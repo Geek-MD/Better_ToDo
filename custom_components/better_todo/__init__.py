@@ -35,10 +35,10 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     )
     await panel_custom.async_register_panel(
         hass,
-        component_name="better-todo-panel",
+        frontend_url_path="better-todo",
+        webcomponent_name="better-todo-panel",
         sidebar_title="Better ToDo",
         sidebar_icon="mdi:check-circle-outline",
-        frontend_url_path="better-todo",
         require_admin=False,
         config={},
         js_url="/better_todo_static/better-todo-panel.js",

@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0a3] - 2026-05-16
+
+### Fixed
+- **Panel and todo entities not loading**: `async_setup` was calling `panel_custom.async_register_panel` with `component_name=` instead of the correct `webcomponent_name=` parameter. This caused a `TypeError` that aborted integration setup entirely, preventing both the sidebar panel and all todo entities from being registered.
+
 ## [0.5.0a2] - 2026-05-16
 
 ### Fixed
