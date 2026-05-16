@@ -47,7 +47,9 @@ class BetterTodoCard extends HTMLElement {
   }
 
   set panel(value) {
-    this._panel = Boolean(value);
+    const b = Boolean(value);
+    if (this._panel === b) return;
+    this._panel = b;
     this.render();
   }
 
@@ -63,7 +65,6 @@ class BetterTodoCard extends HTMLElement {
     if (nextVersion && nextVersion !== this._lastVersion) {
       this._lastVersion = nextVersion;
       void this.refreshItems();
-      this.render();
     }
   }
 
@@ -86,9 +87,22 @@ class BetterTodoCard extends HTMLElement {
       return;
     }
 
+    const hadError = Boolean(this._error);
     try {
       this._error = "";
-      this._items = await this._client.fetchItems();
+      const newItems = await this._client.fetchItems();
+      // Skip re-render when items and error state are both unchanged – this
+      // prevents the DOM from being rebuilt on every HA state-update heartbeat
+      // when nothing actually changed in the list.  The length guard short-
+      // circuits before the full serialisation in the common case.
+      if (
+        !hadError &&
+        newItems.length === this._items.length &&
+        JSON.stringify(newItems) === JSON.stringify(this._items)
+      ) {
+        return;
+      }
+      this._items = newItems;
     } catch (err) {
       this._error = err instanceof Error ? err.message : String(err);
     }
