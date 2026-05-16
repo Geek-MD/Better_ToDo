@@ -82,6 +82,17 @@ def _register_ha_stubs() -> None:
     ha_util_dt.get_default_time_zone = lambda: datetime.timezone.utc
     sys.modules.setdefault("homeassistant.util.dt", ha_util_dt)
 
+    # --- homeassistant.components.panel_custom ---
+    ha_panel_custom = types.ModuleType("homeassistant.components.panel_custom")
+
+    async def _async_register_panel(*_a, **_kw):
+        pass
+
+    ha_panel_custom.async_register_panel = _async_register_panel
+    sys.modules.setdefault(
+        "homeassistant.components.panel_custom", ha_panel_custom
+    )
+
     # --- homeassistant.components.todo ---
     class TodoItemStatus(str, enum.Enum):
         NEEDS_ACTION = "needs_action"
@@ -135,8 +146,23 @@ def _register_ha_stubs() -> None:
     todo_mod.TodoItemStatus = TodoItemStatus
     todo_mod.TodoListEntity = TodoListEntity
     todo_mod.TodoListEntityFeature = TodoListEntityFeature
-    sys.modules.setdefault("homeassistant.components", types.ModuleType("homeassistant.components"))
+
+    # --- homeassistant.components.http ---
+    http_mod = types.ModuleType("homeassistant.components.http")
+
+    class StaticPathConfig:
+        def __init__(self, url_path: str, path: str, cache_headers: bool = True):
+            self.url_path = url_path
+            self.path = path
+            self.cache_headers = cache_headers
+
+    http_mod.StaticPathConfig = StaticPathConfig
+
+    components_mod = types.ModuleType("homeassistant.components")
+    components_mod.panel_custom = ha_panel_custom
+    sys.modules.setdefault("homeassistant.components", components_mod)
     sys.modules.setdefault("homeassistant.components.todo", todo_mod)
+    sys.modules.setdefault("homeassistant.components.http", http_mod)
 
     # --- homeassistant.core ---
     ha_core = types.ModuleType("homeassistant.core")
@@ -165,6 +191,7 @@ def _register_ha_stubs() -> None:
     # --- homeassistant.helpers.config_validation ---
     ha_cv = types.ModuleType("homeassistant.helpers.config_validation")
     ha_cv.string = str
+    ha_cv.empty_config_schema = lambda domain: {}
     sys.modules.setdefault("homeassistant.helpers.config_validation", ha_cv)
 
     # --- homeassistant (root) ---
