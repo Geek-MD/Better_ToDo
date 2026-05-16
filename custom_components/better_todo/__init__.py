@@ -2,7 +2,11 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
+import voluptuous as vol
+
+from homeassistant.components import panel_custom
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
@@ -14,7 +18,29 @@ from .store import BetterTodoListStore
 
 PLATFORMS: list[Platform] = [Platform.TODO]
 
+CONFIG_SCHEMA = vol.Schema({}, extra=vol.ALLOW_EXTRA)  # required by hassfest when async_setup is defined
+
 type BetterTodoConfigEntry = ConfigEntry[BetterTodoListStore]
+
+
+async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
+    """Set up the Better To-do integration (panel + static assets)."""
+    hass.http.register_static_path(
+        "/better_todo_static",
+        str(Path(__file__).parent / "frontend"),
+        cache_headers=False,
+    )
+    await panel_custom.async_register_panel(
+        hass,
+        component_name="better-todo-panel",
+        sidebar_title="Better ToDo",
+        sidebar_icon="mdi:check-circle-outline",
+        frontend_url_path="better-todo",
+        require_admin=False,
+        config={},
+        js_url="/better_todo_static/better-todo-panel.js",
+    )
+    return True
 
 
 async def async_setup_entry(
