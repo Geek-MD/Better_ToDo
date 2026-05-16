@@ -11,6 +11,7 @@ import pytest
 async def test_async_setup_registers_static_path_and_panel(mock_hass):
     """async_setup must register the static path and the sidebar panel."""
     mock_http = MagicMock()
+    mock_http.async_register_static_paths = AsyncMock()
     mock_hass.http = mock_http
 
     # Patch panel_custom.async_register_panel through the already-imported
@@ -25,12 +26,14 @@ async def test_async_setup_registers_static_path_and_panel(mock_hass):
 
     assert result is True
 
-    # Static path registered
-    mock_http.register_static_path.assert_called_once()
-    path_args = mock_http.register_static_path.call_args
-    assert path_args[0][0] == "/better_todo_static"
-    frontend_dir = Path(path_args[0][1])
-    assert frontend_dir.is_dir()
+    # Static path registered via async_register_static_paths
+    mock_http.async_register_static_paths.assert_called_once()
+    call_args = mock_http.async_register_static_paths.call_args
+    static_configs = call_args[0][0]
+    assert len(static_configs) == 1
+    static_config = static_configs[0]
+    assert static_config.url_path == "/better_todo_static"
+    assert Path(static_config.path).is_dir()
 
     # Panel registered
     mock_register.assert_called_once()
