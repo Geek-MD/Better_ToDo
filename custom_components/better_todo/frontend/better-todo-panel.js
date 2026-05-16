@@ -9,11 +9,13 @@ class BetterTodoPanel extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this._entityId = "";
     this._rendered = false;
+    this._entityListSignature = "";
   }
 
   set hass(hass) {
     this._hass = hass;
     const entities = getBetterTodoEntities(hass);
+    const nextListSignature = entities.map((entity) => entity.entity_id).join(",");
     const requestedEntity = new URLSearchParams(window.location.search).get("entity_id");
     const storedEntity = window.localStorage.getItem(STORAGE_KEY);
     const activeEntity =
@@ -32,11 +34,13 @@ class BetterTodoPanel extends HTMLElement {
       }
     }
 
-    if (!this._rendered || entityChanged) {
+    if (!this._rendered || entityChanged || this._entityListSignature !== nextListSignature) {
+      this._entityListSignature = nextListSignature;
       this.render();
       return;
     }
 
+    this._syncLeftPane(entities);
     this._syncRightPane();
   }
 
@@ -61,6 +65,7 @@ class BetterTodoPanel extends HTMLElement {
 
     this._rendered = true;
     const entities = getBetterTodoEntities(this._hass);
+    this._entityListSignature = entities.map((entity) => entity.entity_id).join(",");
     const entityState = this._entityId ? this._hass?.states?.[this._entityId] : undefined;
     const showPane = !this._narrow;
 
@@ -180,6 +185,32 @@ class BetterTodoPanel extends HTMLElement {
     });
 
     this._syncRightPane();
+  }
+
+  _syncLeftPane(entities) {
+    const byId = new Map(entities.map((entity) => [entity.entity_id, entity]));
+    this.shadowRoot.querySelectorAll("[data-entity]").forEach((button) => {
+      const entityId = button.getAttribute("data-entity");
+      if (!entityId) {
+        return;
+      }
+
+      button.classList.toggle("active", entityId === this._entityId);
+      const entity = byId.get(entityId);
+      if (!entity) {
+        return;
+      }
+
+      const nameEl = button.querySelector(".entity-name");
+      if (nameEl) {
+        nameEl.textContent = getEntityName(entity);
+      }
+
+      const metaEl = button.querySelector(".entity-meta");
+      if (metaEl) {
+        metaEl.textContent = `${String(entity.state || 0)} pending`;
+      }
+    });
   }
 
   _syncRightPane() {
