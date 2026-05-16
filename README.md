@@ -23,7 +23,7 @@ It is built on the same foundation as the built-in [Local To-do](https://www.hom
 ## Features
 
 - **Full to-do list entity** – integrates natively with the Home Assistant [To-do list dashboard card](https://www.home-assistant.io/dashboards/todo-list/) and all built-in `todo.*` services.
-- **Custom Better To-do panel** – adds a dedicated sidebar panel with the same two-pane structure as Home Assistant's native To-do panel: list selector on the left, active workspace on the right.
+- **Custom Better To-do panel** – adds a dedicated sidebar panel that replicates the structure and visual behaviour of Home Assistant's native To-do panel: responsive two-pane layout with a list selector on the left (using `ha-list-item` + `ha-state-icon`) and an active workspace on the right. On narrow screens the list selector moves to a dropdown inside the title bar. A floating action button (FAB) opens the add-task form directly.
 - **Custom Better To-do card** – auto-registers a Lovelace card with inline support for recurrence, quantity, unit, category, notes, completion, deletion, and reordering.
 - **Recurring tasks (RRULE)** – attach any iCalendar RRULE string to a task (e.g. `FREQ=WEEKLY;BYDAY=MO`, `FREQ=DAILY`, `FREQ=MONTHLY;BYMONTHDAY=1`). When the task is marked done it rolls forward to the next occurrence automatically.
 - **`better_todo.set_task_recurrence` service** – set or clear the RRULE on a task by its UID from an automation, script, or *Developer Tools → Actions*.
