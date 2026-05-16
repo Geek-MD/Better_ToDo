@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **"Add item" entry in the action dropdown**: the three-dots button in the toolbar now contains a functional *Add item* option (with the same `mdi:plus` icon) so users can open the add-task form from the toolbar in addition to the FAB.
 
+## [0.5.3] - 2026-05-16
 
 ### Changed
 - **Panel fully rewritten to match Home Assistant's native To-do panel structure** (`ha-panel-todo`):
