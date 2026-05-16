@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] - 2026-05-16
+
+### Changed
+- **Panel fully rewritten to match Home Assistant's native To-do panel structure** (`ha-panel-todo`):
+  - The DOM is now built **once** and updated incrementally; `better-todo-card` is never destroyed between `hass` updates, eliminating the persistent flicker and task-disappearing issue in the right pane.
+  - `ResizeObserver` replaces the `narrow` boolean for two-pane breakpoint detection (pane shown when width > 750 px, matching HA panel).
+  - `MediaQueryList` added for mobile-mode detection (≤ 450 px wide or ≤ 500 px tall), matching HA panel.
+  - Left pane now uses `ha-list-item` + `ha-state-icon` for entity items, providing the same look and icon rendering as the native HA To-do panel.
+  - Title slot now shows a `ha-dropdown` with the entity selector in narrow/mobile mode (matching HA panel), and the plain "Better ToDo" label in wide mode.
+  - Action menu (`ha-dropdown` + `ha-icon-button` with vertical-dots icon) added to the toolbar slot.
+  - **Floating Action Button (FAB)** added — pressing it opens the add-task form in the workspace card.
+  - CSS tokens updated to use HA design-system variables (`--ha-font-size-l`, `--ha-box-shadow-l`, `--safe-area-inset-*`) matching HA panel styles.
+
+### Added
+- **`openAddForm()` public method on `better-todo-card`** — allows the panel FAB and other external callers to programmatically open the add-task form and auto-focus the summary field.
+
 ## [0.5.2] - 2026-05-16
 
 ### Fixed

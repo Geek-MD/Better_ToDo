@@ -71,6 +71,16 @@ class BetterTodoCard extends HTMLElement {
     return Math.max(6, Math.ceil((this._items?.length || 0) / 2) + 4);
   }
 
+  /** Public API used by better-todo-panel FAB to open the add-task form. */
+  openAddForm() {
+    this._showAddForm = true;
+    this._editingUid = "";
+    this.render();
+    requestAnimationFrame(() => {
+      this.shadowRoot?.querySelector('input[name="summary"]')?.focus();
+    });
+  }
+
   async refreshItems() {
     if (!this._entityId || !this._hass) {
       return;
