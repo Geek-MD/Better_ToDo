@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-05-16
+
+### Added
+- **Custom Better To-do panel**: the integration now registers its own sidebar panel with the same split layout concept as Home Assistant's native To-do panel, including a left list selector and a full Better To-do workspace on the right.
+- **Custom Better To-do dashboard card**: Better To-do now auto-registers a custom Lovelace card that supports task creation, editing, completion, deletion, reordering, recurrence, structured metadata, and notes from one UI.
+- **Static frontend asset registration**: the integration now serves its frontend modules directly from the integration and registers the card module globally in Home Assistant so it is available as a dashboard resource after setup.
+
 ## [0.4.2] - 2026-05-10
 
 ### Fixed

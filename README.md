@@ -23,6 +23,8 @@ It is built on the same foundation as the built-in [Local To-do](https://www.hom
 ## Features
 
 - **Full to-do list entity** – integrates natively with the Home Assistant [To-do list dashboard card](https://www.home-assistant.io/dashboards/todo-list/) and all built-in `todo.*` services.
+- **Custom Better To-do panel** – adds a dedicated sidebar panel with the same two-pane structure as Home Assistant's native To-do panel: list selector on the left, active workspace on the right.
+- **Custom Better To-do card** – auto-registers a Lovelace card with inline support for recurrence, quantity, unit, category, notes, completion, deletion, and reordering.
 - **Recurring tasks (RRULE)** – attach any iCalendar RRULE string to a task (e.g. `FREQ=WEEKLY;BYDAY=MO`, `FREQ=DAILY`, `FREQ=MONTHLY;BYMONTHDAY=1`). When the task is marked done it rolls forward to the next occurrence automatically.
 - **`better_todo.set_task_recurrence` service** – set or clear the RRULE on a task by its UID from an automation, script, or *Developer Tools → Actions*.
 - **`task_recurrence` attribute** – the entity exposes a `{uid: rrule_string}` dictionary so custom Lovelace cards and automations can read per-task recurrence rules.
@@ -55,11 +57,13 @@ It is built on the same foundation as the built-in [Local To-do](https://www.hom
 3. Add `https://github.com/Geek-MD/Better_ToDo` with category **Integration**.
 4. Search for **Better To-do** and click **Download**.
 5. Restart Home Assistant.
+6. Open the new **Better To-do** sidebar panel, or add the custom Lovelace card below.
 
 ### Manual
 
 1. Copy the `custom_components/better_todo` directory into your `<config>/custom_components/` folder.
 2. Restart Home Assistant.
+3. Open the new **Better To-do** sidebar panel, or add the custom Lovelace card below.
 
 ---
 
@@ -88,7 +92,26 @@ You can add multiple custom lists by repeating the setup process. Removing an in
 | Attribute | Type | Description |
 |-----------|------|-------------|
 | `task_recurrence` | `dict` | Maps each task UID to its RRULE string. Only present when at least one task has a recurrence rule set. |
-| `task_details` | `dict` | Maps each task UID to a `{quantity, category}` dict. Only present when at least one task has structured details set via `set_task_details`. |
+| `task_details` | `dict` | Maps each task UID to a `{quantity, unit, category, repeat}` dict. Only present when at least one task has structured details set via `set_task_details`. |
+
+---
+
+## Custom panel and card
+
+After setup, Better To-do exposes:
+
+- a **sidebar panel** at `/better-todo`
+- a **custom Lovelace card** named `custom:better-todo-card`
+
+Example dashboard card:
+
+```yaml
+type: custom:better-todo-card
+entity: todo.chores
+title: Household chores
+```
+
+The custom card is registered automatically by the integration when Home Assistant loads Better To-do, so no separate manual resource URL is required.
 
 ---
 
