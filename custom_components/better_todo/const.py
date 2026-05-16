@@ -16,7 +16,7 @@ FRONTEND_CARD_MODULE = "better-todo-card.js"
 FRONTEND_PANEL_MODULE = "better-todo-panel.js"
 PANEL_URL_PATH = "better-todo"
 PANEL_WEB_COMPONENT = "better-todo-panel"
-PANEL_TITLE = "Better To-do"
+PANEL_TITLE = "Better ToDo"
 PANEL_ICON = "mdi:clipboard-check-outline"
 
 # Custom service names

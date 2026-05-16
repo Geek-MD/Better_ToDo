@@ -128,7 +128,7 @@ class BetterTodoPanel extends HTMLElement {
       </style>
       <ha-two-pane-top-app-bar-fixed id="layout" footer>
         <ha-menu-button id="menu" slot="navigationIcon"></ha-menu-button>
-        <div slot="title">${showPane ? "Better To-do" : ""}</div>
+        <div slot="title">${showPane ? "Better ToDo" : ""}</div>
         <ha-list slot="pane" class="pane-list">
           ${
             entities.length
