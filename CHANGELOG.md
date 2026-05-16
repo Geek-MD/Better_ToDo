@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.5] - 2026-05-16
+
+### Changed
+- **Frontend migrated from JavaScript to TypeScript**: all three frontend modules (`better-todo-shared`, `better-todo-card`, `better-todo-panel`) have been rewritten in TypeScript and live in `frontend/src/`. The compiled ES2020 modules are emitted back to `frontend/` so the static-asset path served by `__init__.py` is unchanged.
+  - Full HA interface stubs (`HomeAssistant`, `HassEntity`, `HassConnection`, `HassEntityEntry`) defined locally so no external HA package is required.
+  - Domain types: `TodoItem`, `StoredTaskDetails`, `ParsedDescription`, `ItemDetails`, `ItemFields`, `TodoPayload`, `BetterTodoCardHost`.
+  - `BetterTodoClient` fully typed with generic `sendMessagePromise<T>` for WebSocket responses.
+  - `HaElement` interface types property-bindings on HA custom elements (`path`, `stateObj`, `pane`, `narrow`, etc.) that are not DOM attributes.
+  - `window.customCards` augmented via `declare global { interface Window { … } }`.
+  - Build: `cd custom_components/better_todo/frontend && npm install && npm run build`.
+
 ## [0.5.4] - 2026-05-16
 
 ### Fixed

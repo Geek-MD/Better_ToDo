@@ -52,3 +52,7 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+
+# Node / frontend build
+node_modules/
+package-lock.json
