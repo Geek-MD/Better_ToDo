@@ -28,8 +28,8 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the Better To-do integration (panel + static assets)."""
     await hass.http.async_register_static_paths(
         [StaticPathConfig(
-            "/better_todo_static",
-            str(Path(__file__).parent / "frontend"),
+            url_path="/better_todo_static",
+            path=str(Path(__file__).parent / "frontend"),
             cache_headers=False,
         )]
     )
