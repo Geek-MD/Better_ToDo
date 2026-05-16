@@ -5,7 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.3] - 2026-05-16
+## [0.5.4] - 2026-05-16
+
+### Fixed
+- **Title bar now renders on first paint**: `_showPane` is initialised to `!narrow` (mirroring HA's own `?? !this.narrow` logic) and `layout.pane` is set synchronously during `_init()`, so `ha-two-pane-top-app-bar-fixed` receives both required properties before the first browser frame and always renders the top title bar correctly.
+- **Tasks no longer appear/disappear without user action**: three co-operating fixes eliminate spurious full-DOM rebuilds:
+  - `set panel(value)` now guards with an equality check and skips `render()` when the value has not changed. Because `_syncCard()` previously called `card.panel = true` on every `hass` update, this was the primary cause of the visible task flicker.
+  - `set hass()` no longer calls `this.render()` immediately after starting the async `refreshItems()` fetch. `refreshItems()` already calls `render()` when new data arrives, so the extra call was always redundant.
+  - `refreshItems()` compares the newly fetched items (length check + `JSON.stringify`) against the current list and skips `render()` entirely when nothing changed, preventing DOM destruction during routine HA state-update heartbeats that do not affect the task list.
+
+### Added
+- **"Add item" entry in the action dropdown**: the three-dots button in the toolbar now contains a functional *Add item* option (with the same `mdi:plus` icon) so users can open the add-task form from the toolbar in addition to the FAB.
+
 
 ### Changed
 - **Panel fully rewritten to match Home Assistant's native To-do panel structure** (`ha-panel-todo`):

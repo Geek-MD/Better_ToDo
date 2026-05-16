@@ -105,6 +105,9 @@ class BetterTodoPanel extends HTMLElement {
 
   _init(entities) {
     this._initialized = true;
+    // Mirror HA panel's showPane initialisation: default to !narrow so the
+    // title bar and two-pane layout render correctly on first paint.
+    this._showPane = !this._narrow;
     const root = this.shadowRoot;
 
     root.innerHTML = `
@@ -156,6 +159,10 @@ class BetterTodoPanel extends HTMLElement {
         <ha-list slot="pane" id="entity-list" activatable></ha-list>
         <ha-dropdown slot="actionItems" id="action-dropdown">
           <ha-icon-button id="action-trigger" slot="trigger" label=""></ha-icon-button>
+          <ha-dropdown-item value="add">
+            <ha-svg-icon id="dropdown-add-icon" slot="icon"></ha-svg-icon>
+            Add item
+          </ha-dropdown-item>
         </ha-dropdown>
         <div id="columns">
           <div class="column">
@@ -172,15 +179,18 @@ class BetterTodoPanel extends HTMLElement {
     // Set icon paths (property bindings, not attributes)
     root.getElementById("action-trigger").path = MDI_DOTS_VERTICAL;
     root.getElementById("fab-icon").path = MDI_PLUS;
+    root.getElementById("dropdown-add-icon").path = MDI_PLUS;
 
     // Menu button
     const menu = root.getElementById("menu");
     menu.hass = this._hass;
     menu.narrow = this._narrow;
 
-    // Layout
+    // Layout – set both narrow and pane immediately so ha-two-pane-top-app-bar-fixed
+    // renders the title bar and correct layout on the very first paint.
     const layout = root.getElementById("layout");
     layout.narrow = this._narrow;
+    layout.pane = this._showPane;
 
     // ResizeObserver – drives the two-pane breakpoint (mirrors HA panel @ 750 px)
     this._resizeObserver = new ResizeObserver((entries) => {
