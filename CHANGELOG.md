@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0a4] - 2026-05-16
+
+### Fixed
+- **Panel blank in frontend**: the `css` tagged-template shim in `better-todo-panel.js` was missing the `styleSheet` getter that Lit 3 requires when using the Constructable StyleSheets API (`adoptedStyleSheets`). In every modern browser `supportsAdoptingStyleSheets` is `true`, so Lit's `adoptStyles` called `s.styleSheet!` on the shim object, received `undefined`, then `adoptedStyleSheets = [undefined]` threw a `TypeError`. That prevented the shadow root from ever being created, leaving the panel completely blank even though its sidebar entry was registered correctly. The shim now lazily constructs a `CSSStyleSheet` via the getter, matching Lit 3's own `CSSResult` behaviour.
+
 ## [0.5.0a3] - 2026-05-16
 
 ### Fixed

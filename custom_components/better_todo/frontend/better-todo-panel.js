@@ -7,10 +7,26 @@ const LitElement = Object.getPrototypeOf(customElements.get("ha-card"));
 
 const html = (strings, ...values) => ({ _$litType$: 1, strings, values });
 
-const css = (strings, ...values) => ({
-  cssText: strings.reduce((acc, str, i) => acc + str + (values[i] ?? ""), ""),
-  _$cssResult$: true,
-});
+const css = (strings, ...values) => {
+  const cssText = strings.reduce((acc, str, i) => acc + str + (values[i] ?? ""), "");
+  let _styleSheet;
+  // Provide a lazy `styleSheet` getter so Lit 3's `adoptStyles` can use the
+  // Constructable StyleSheets path (`adoptedStyleSheets`) in modern browsers.
+  // Without this getter, `adoptStyles` receives `undefined` for every entry
+  // and the `adoptedStyleSheets = [undefined]` assignment throws a TypeError,
+  // which prevents the shadow root from being created and leaves the panel blank.
+  return {
+    cssText,
+    _$cssResult$: true,
+    get styleSheet() {
+      if (_styleSheet === undefined) {
+        _styleSheet = new CSSStyleSheet();
+        _styleSheet.replaceSync(cssText);
+      }
+      return _styleSheet;
+    },
+  };
+};
 
 class BetterTodoPanel extends LitElement {
   static get properties() {
