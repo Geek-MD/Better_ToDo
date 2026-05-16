@@ -63,9 +63,8 @@ class BetterTodoCard extends HTMLElement {
     if (nextVersion && nextVersion !== this._lastVersion) {
       this._lastVersion = nextVersion;
       void this.refreshItems();
+      this.render();
     }
-
-    this.render();
   }
 
   getCardSize() {
