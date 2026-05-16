@@ -8,6 +8,7 @@ class BetterTodoPanel extends HTMLElement {
     super();
     this.attachShadow({ mode: "open" });
     this._entityId = "";
+    this._rendered = false;
   }
 
   set hass(hass) {
@@ -23,14 +24,20 @@ class BetterTodoPanel extends HTMLElement {
       entities[0]?.entity_id ||
       "";
 
-    if (activeEntity !== this._entityId) {
+    const entityChanged = activeEntity !== this._entityId;
+    if (entityChanged) {
       this._entityId = activeEntity;
       if (activeEntity) {
         window.localStorage.setItem(STORAGE_KEY, activeEntity);
       }
     }
 
-    this.render();
+    if (!this._rendered || entityChanged) {
+      this.render();
+      return;
+    }
+
+    this._syncRightPane();
   }
 
   set narrow(value) {
@@ -52,58 +59,51 @@ class BetterTodoPanel extends HTMLElement {
       return;
     }
 
+    this._rendered = true;
     const entities = getBetterTodoEntities(this._hass);
     const entityState = this._entityId ? this._hass?.states?.[this._entityId] : undefined;
+    const showPane = !this._narrow;
 
     this.shadowRoot.innerHTML = `
       <style>
         :host {
           display: block;
-          min-height: 100vh;
-          background: var(--primary-background-color, #f4f7fb);
-          color: var(--primary-text-color, #111);
         }
 
-        .layout {
-          display: grid;
-          grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
-          min-height: 100vh;
+        #columns {
+          display: flex;
+          flex-direction: row;
+          justify-content: center;
+          margin: 8px;
+          padding-bottom: 70px;
         }
 
-        .sidebar {
-          border-right: 1px solid var(--divider-color, #d9dee5);
-          background: var(--card-background-color, #fff);
-          padding: 20px 16px;
+        .column {
+          flex: 1 0 0;
+          max-width: 500px;
+          min-width: 0;
         }
 
-        .sidebar h1 {
-          margin: 0 0 6px;
-          font-size: 1.35rem;
-        }
-
-        .sidebar p {
-          margin: 0 0 16px;
-          color: var(--secondary-text-color, #666);
-        }
-
-        .list {
+        .pane-list {
           display: grid;
           gap: 8px;
+          padding: 8px;
         }
 
-        .list button {
-          border: 1px solid var(--divider-color, #d9dee5);
-          border-radius: 12px;
+        .entity-button {
+          border: 1px solid var(--divider-color);
+          border-radius: 10px;
           background: transparent;
           color: inherit;
-          padding: 12px;
           text-align: left;
+          padding: 10px 12px;
           cursor: pointer;
+          font: inherit;
         }
 
-        .list button.active {
-          background: rgba(33, 150, 243, 0.12);
-          border-color: var(--primary-color, #1d74c9);
+        .entity-button.active {
+          border-color: var(--primary-color);
+          background: color-mix(in srgb, var(--primary-color) 12%, transparent);
         }
 
         .entity-name {
@@ -112,59 +112,28 @@ class BetterTodoPanel extends HTMLElement {
 
         .entity-meta {
           margin-top: 4px;
-          color: var(--secondary-text-color, #666);
+          color: var(--secondary-text-color);
           font-size: 0.9rem;
         }
 
-        .content {
-          padding: 20px;
-        }
-
-        .content-header {
-          margin-bottom: 16px;
-        }
-
-        .content-header h2 {
-          margin: 0;
-          font-size: 1.4rem;
-        }
-
-        .content-header p {
-          margin: 6px 0 0;
-          color: var(--secondary-text-color, #666);
-        }
-
         .empty {
-          display: grid;
-          place-items: center;
-          min-height: 50vh;
-          color: var(--secondary-text-color, #666);
-        }
-
-        @media (max-width: 900px) {
-          .layout {
-            grid-template-columns: 1fr;
-          }
-
-          .sidebar {
-            border-right: 0;
-            border-bottom: 1px solid var(--divider-color, #d9dee5);
-          }
+          color: var(--secondary-text-color);
+          padding: 12px 0;
         }
       </style>
-      <div class="layout">
-        <aside class="sidebar">
-          <h1>Better To-do</h1>
-          <p>Custom panel with the same split layout style as the HA To-do panel.</p>
-          <div class="list">
-            ${
-              entities.length
-                ? entities
+      <ha-two-pane-top-app-bar-fixed id="layout" footer>
+        <ha-menu-button id="menu" slot="navigationIcon"></ha-menu-button>
+        <div slot="title">${showPane ? "Better To-do" : ""}</div>
+        <ha-list slot="pane" class="pane-list">
+          ${
+            entities.length
+              ? `
+                  ${entities
                     .map(
                       (entity) => `
                         <button
                           type="button"
-                          class="${entity.entity_id === this._entityId ? "active" : ""}"
+                          class="entity-button ${entity.entity_id === this._entityId ? "active" : ""}"
                           data-entity="${escapeHtml(entity.entity_id)}"
                         >
                           <div class="entity-name">${escapeHtml(getEntityName(entity))}</div>
@@ -172,26 +141,34 @@ class BetterTodoPanel extends HTMLElement {
                         </button>
                       `
                     )
-                    .join("")
-                : `<div class="empty">Create a Better To-do list to use this panel.</div>`
+                    .join("")}
+                `
+              : `<div class="empty">Create a Better To-do list to use this panel.</div>`
+          }
+        </ha-list>
+        <div id="columns">
+          <div class="column">
+            ${
+              entityState
+                ? `<better-todo-card id="workspace-card"></better-todo-card>`
+                : `<div class="empty">Select a Better To-do list from the sidebar.</div>`
             }
           </div>
-        </aside>
-        <main class="content">
-          ${
-            entityState
-              ? `
-                  <div class="content-header">
-                    <h2>${escapeHtml(getEntityName(entityState))}</h2>
-                    <p>Tasks, recurrence, metadata, and notes from a single Better To-do workspace.</p>
-                  </div>
-                  <better-todo-card id="workspace-card"></better-todo-card>
-                `
-              : `<div class="empty">Select a Better To-do list from the sidebar.</div>`
-          }
-        </main>
-      </div>
+        </div>
+      </ha-two-pane-top-app-bar-fixed>
     `;
+
+    const layout = this.shadowRoot.getElementById("layout");
+    if (layout) {
+      layout.pane = showPane;
+      layout.narrow = Boolean(this._narrow);
+    }
+
+    const menu = this.shadowRoot.getElementById("menu");
+    if (menu) {
+      menu.hass = this._hass;
+      menu.narrow = Boolean(this._narrow);
+    }
 
     this.shadowRoot.querySelectorAll("[data-entity]").forEach((button) => {
       button.addEventListener("click", () => {
@@ -202,6 +179,10 @@ class BetterTodoPanel extends HTMLElement {
       });
     });
 
+    this._syncRightPane();
+  }
+
+  _syncRightPane() {
     const card = this.shadowRoot.getElementById("workspace-card");
     if (card) {
       card.panel = true;
