@@ -82,6 +82,18 @@ def _register_ha_stubs() -> None:
     ha_util_dt.get_default_time_zone = lambda: datetime.timezone.utc
     sys.modules.setdefault("homeassistant.util.dt", ha_util_dt)
 
+    # --- homeassistant.components.http ---
+    ha_http = types.ModuleType("homeassistant.components.http")
+
+    @dataclasses.dataclass
+    class StaticPathConfig:
+        url_path: str
+        path: str
+        cache_headers: bool = True
+
+    ha_http.StaticPathConfig = StaticPathConfig
+    sys.modules.setdefault("homeassistant.components.http", ha_http)
+
     # --- homeassistant.components.panel_custom ---
     ha_panel_custom = types.ModuleType("homeassistant.components.panel_custom")
 

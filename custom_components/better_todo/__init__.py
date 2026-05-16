@@ -7,6 +7,7 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.components import panel_custom
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
@@ -25,10 +26,12 @@ type BetterTodoConfigEntry = ConfigEntry[BetterTodoListStore]
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the Better To-do integration (panel + static assets)."""
-    hass.http.register_static_path(
-        "/better_todo_static",
-        str(Path(__file__).parent / "frontend"),
-        cache_headers=False,
+    await hass.http.async_register_static_paths(
+        [StaticPathConfig(
+            url_path="/better_todo_static",
+            path=str(Path(__file__).parent / "frontend"),
+            cache_headers=False,
+        )]
     )
     await panel_custom.async_register_panel(
         hass,
