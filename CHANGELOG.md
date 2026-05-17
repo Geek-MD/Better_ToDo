@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0a7] - 2026-05-17
+
+### Fixed
+- **Panel rendering — definitive fix**: replaced the `customElements.whenDefined("ha-card").then(...)` wrapper with a two-path registration strategy. In the common case the script executes after HA's core bundle has already defined `ha-card`, so `better-todo-panel` is now registered **synchronously** during script execution — before the `onload` event fires and before HA's `panel_custom` tries to create the element. This eliminates the microtask race condition where HA's `createCustomPanelElement()` could run slightly ahead of the async `.then()` callback and obtain an unregistered `HTMLElement` placeholder. The async `whenDefined` fallback is retained for the rare cold-start edge case.
+
+### Added
+- **Left-pane todo list**: the left pane now lists all `todo.*` entities found in `hass.states`. Entities are sorted alphabetically by friendly name; the built-in Better To-do Shopping List is always pinned last regardless of its translated name.
+- **"Create list" pane footer**: a footer row with a `+` icon and the label `Create list` (localised via `hass.localize("ui.panel.todo.create_list")` — the same key used by HA's native To-do panel, so it adapts to all languages HA supports) now appears at the bottom of the left pane when the wide-screen layout is active.
+- **List selection state**: clicking a list item selects it (highlighted via `ha-list-item`'s `.activated` property). The selection is persisted to `sessionStorage` so navigating away and back restores the last active list.
+
 ## [0.5.0a6] - 2026-05-17
 
 ### Fixed
