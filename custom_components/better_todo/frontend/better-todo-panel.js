@@ -3,6 +3,15 @@
 // html/css shims produce objects matching Lit 3's internal TemplateResult and CSSResult
 // structures so that the LitElement rendering engine (from HA's bundle) processes them
 // correctly.
+//
+// Defer all initialization until ha-card is defined. On a fresh page load, when
+// Better ToDo is the last-active panel, this script can execute before HA's core
+// bundle registers ha-card. Without the guard, customElements.get("ha-card")
+// returns undefined, Object.getPrototypeOf(undefined) throws a TypeError, the
+// entire script fails, better-todo-panel is never registered and the panel only
+// shows the plain text "Better ToDo" with no formatting. Navigating away and back
+// works because by then ha-card is already defined.
+customElements.whenDefined("ha-card").then(() => {
 const LitElement = Object.getPrototypeOf(customElements.get("ha-card"));
 
 const html = (strings, ...values) => ({ _$litType$: 1, strings, values });
@@ -132,3 +141,4 @@ class BetterTodoPanel extends LitElement {
 }
 
 customElements.define("better-todo-panel", BetterTodoPanel);
+}); // customElements.whenDefined("ha-card")
