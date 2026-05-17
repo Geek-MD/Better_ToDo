@@ -8,5 +8,5 @@
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/Geek-MD/Better_ToDo/issues",
   "requirements": ["ical==13.2.2"],
-  "version": "0.5.0a4"
+  "version": "0.5.0a5"
 }

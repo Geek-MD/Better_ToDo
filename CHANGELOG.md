@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0a5] - 2026-05-17
+
+### Fixed
+- **Panel title rendering**: the panel title slot used a block-level `<div>` element instead of an inline `<span>`, causing the title to render differently from HA's native To-do panel. Changed to `<span slot="title">` to match `ha-panel-todo` behaviour inside `ha-two-pane-top-app-bar-fixed`'s MDC flex container.
+
 ## [0.5.0a4] - 2026-05-16
 
 ### Fixed
