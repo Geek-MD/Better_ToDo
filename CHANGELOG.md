@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0a6] - 2026-05-17
+
+### Fixed
+- **Panel blank on fresh page load**: on a fresh browser load when Better ToDo is the last-active panel, `better-todo-panel.js` could execute before HA's core bundle had registered `ha-card`. The top-level `Object.getPrototypeOf(customElements.get("ha-card"))` call received `undefined`, threw a `TypeError`, and aborted the script — leaving `better-todo-panel` undefined and the panel rendering as unstyled plain text ("Better ToDo"). Navigating to another panel and back worked only because `ha-card` was already registered by then. Wrapped all component initialization inside `customElements.whenDefined("ha-card").then(...)` so LitElement resolution and element registration are deferred until the dependency is guaranteed to be available.
+
 ## [0.5.0a5] - 2026-05-17
 
 ### Fixed
