@@ -92,7 +92,7 @@ class BetterTodoPanel extends LitElement {
           .narrow=${this.narrow}
         ></ha-menu-button>
 
-        <div slot="title">Better ToDo</div>
+        <span slot="title">Better ToDo</span>
 
         <!-- Left pane: empty — content will be added in future iterations -->
         <ha-list slot="pane" activatable></ha-list>
