@@ -8,19 +8,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.5.0a8] - 2026-05-18
 
 ### Added
-- **Right pane — todo list content**: the main content area now renders a `ha-todo-list` component for the currently selected entity, giving users full read/write access to their tasks (add, complete, delete, reorder) directly from the Better ToDo panel.
-- **Mobile navigation (narrow screens < 750 px)**: on narrow screens the sidebar is replaced by a single-pane layout. Selecting a list shows the list content with a **back arrow** in the top-app-bar; tapping it returns to the list selector, which is rendered in the main content area with the same sorted order (alphabetical, Shopping List last) and the "Create list" footer row.
+- **Right pane — task list view**: when a Better To-do task list is selected, the right pane renders a custom `better-todo-task-list` component that mirrors the behaviour of HA's native To-do panel. Items are displayed with a checkbox (mark done/pending), due-date and recurrence indicators, and a per-item delete button. A footer "Add task" button opens the Better To-do task dialog. Completed items are shown in a separate collapsed section below pending items.
+- **Custom task dialog**: creating or editing a task opens a Better To-do-specific dialog (`better-todo-task-dialog`) with fields for task name, due date, optional due time, notes, and a **recurrence preset picker** (None / Daily / Weekly / Monthly / Yearly / Custom RRULE). Selecting *Weekly* reveals a day-of-week chip picker; selecting *Custom* exposes a free-text RRULE input. Recurrence is applied via the `better_todo.set_task_recurrence` service.
+- **Right pane — shopping list view**: when the built-in Shopping List is selected, the right pane renders a custom `better-todo-shopping-list` component. Items are **grouped by their assigned category**, with category headers shown in **alphabetical order** (only categories that contain at least one item are rendered). Each item displays its **name, quantity, and unit**. Items without a category appear after all named groups. Completed items are shown below all pending groups. Checkboxes allow marking items as done/pending.
+- **Left-pane todo list**: the left pane lists all `todo.*` entities found in `hass.states`. Entities are sorted alphabetically by friendly name; the built-in Better To-do Shopping List is always pinned last regardless of its translated name.
+- **Mobile navigation (narrow screens < 750 px)**: on narrow screens the sidebar is replaced by a single-pane layout. Selecting a list shows the list content with a **back arrow** in the top-app-bar; tapping it returns to the list selector, which is rendered in the main content area with the same sorted order and the "Create list" footer row.
+- **"Create list" pane footer**: a footer row with a `+` icon and the label *Create list* (localised via `hass.localize("ui.panel.todo.create_list")`) appears at the bottom of the left pane when the wide-screen layout is active.
+- **List selection state**: clicking a list item selects it (highlighted via `ha-list-item`'s `.activated` property). The selection is persisted to `sessionStorage` so navigating away and back restores the last active list.
 - **Empty state**: when no lists exist a localised "No lists found" message is displayed in the content area.
-
-
 
 ### Fixed
 - **Panel rendering — definitive fix**: replaced the `customElements.whenDefined("ha-card").then(...)` wrapper with a two-path registration strategy. In the common case the script executes after HA's core bundle has already defined `ha-card`, so `better-todo-panel` is now registered **synchronously** during script execution — before the `onload` event fires and before HA's `panel_custom` tries to create the element. This eliminates the microtask race condition where HA's `createCustomPanelElement()` could run slightly ahead of the async `.then()` callback and obtain an unregistered `HTMLElement` placeholder. The async `whenDefined` fallback is retained for the rare cold-start edge case.
-
-### Added
-- **Left-pane todo list**: the left pane now lists all `todo.*` entities found in `hass.states`. Entities are sorted alphabetically by friendly name; the built-in Better To-do Shopping List is always pinned last regardless of its translated name.
-- **"Create list" pane footer**: a footer row with a `+` icon and the label `Create list` (localised via `hass.localize("ui.panel.todo.create_list")` — the same key used by HA's native To-do panel, so it adapts to all languages HA supports) now appears at the bottom of the left pane when the wide-screen layout is active.
-- **List selection state**: clicking a list item selects it (highlighted via `ha-list-item`'s `.activated` property). The selection is persisted to `sessionStorage` so navigating away and back restores the last active list.
 
 ## [0.5.0a6] - 2026-05-17
 
