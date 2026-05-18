@@ -536,7 +536,10 @@ def test_shopping_list_entity_uses_translation_key_for_name(tmp_path: Path, mock
     )
 
     assert entity._attr_translation_key == "shopping_list"
-    assert entity._attr_name is None
+    # No instance-level _attr_name must be set so HA's entity framework sees
+    # UNDEFINED and resolves the friendly name via translation_key instead of
+    # returning None (which produces no friendly_name for standalone entities).
+    assert "_attr_name" not in entity.__dict__
     assert entity._attr_has_entity_name is True
 
 

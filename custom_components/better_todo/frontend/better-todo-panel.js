@@ -1151,6 +1151,11 @@
           // true while the user is browsing the list selector on a narrow screen.
           _paneOnMobile: { state: true },
           _selectedEntityId: { state: true },
+          // Create-list inline dialog state.
+          _showCreateListDialog: { state: true },
+          _newListName: { state: true },
+          _createListSaving: { state: true },
+          _createListError: { state: true },
         };
       }
 
@@ -1171,6 +1176,11 @@
         this._resizeObserver = null;
         this._mql = null;
         this._onMqlChange = null;
+        // Create-list dialog
+        this._showCreateListDialog = false;
+        this._newListName = "";
+        this._createListSaving = false;
+        this._createListError = "";
       }
 
       // -----------------------------------------------------------------------
@@ -1224,35 +1234,62 @@
         this._paneOnMobile = true;
       }
 
-      /** Open the Better To-do config flow to create a new list.
-       *  Dispatches the same show-dialog event that ha-panel-todo uses so that
-       *  HA's app shell opens the standard config-flow dialog inline. */
+      /** Open the inline create-list dialog. */
       _addList() {
-        this.dispatchEvent(
-          new CustomEvent("show-dialog", {
-            bubbles: true,
-            composed: true,
-            detail: {
-              dialogTag: "ha-config-flow",
-              // Resolve immediately if the dialog element is already registered;
-              // otherwise wait up to 2 s for HA to register it (it is loaded
-              // lazily by the config/integrations section).
-              dialogImport: () =>
-                customElements.get("ha-config-flow")
-                  ? Promise.resolve()
-                  : Promise.race([
-                      customElements
-                        .whenDefined("ha-config-flow")
-                        .then(() => {}),
-                      new Promise((r) => setTimeout(r, 2000)),
-                    ]),
-              dialogParams: {
-                startFlowHandler: "better_todo",
-                showAdvanced: this.hass?.userData?.showAdvanced ?? false,
-              },
-            },
-          })
-        );
+        this._newListName = "";
+        this._createListError = "";
+        this._createListSaving = false;
+        this._showCreateListDialog = true;
+      }
+
+      /** Close the create-list dialog (no-op while saving). */
+      _closeCreateListDialog() {
+        if (this._createListSaving) return;
+        this._showCreateListDialog = false;
+        this._newListName = "";
+        this._createListError = "";
+      }
+
+      /** Submit the create-list form: run the Better To-do config flow via the
+       *  HA REST API and close the dialog on success. */
+      async _submitCreateList() {
+        const name = this._newListName.trim();
+        if (!name || this._createListSaving) return;
+        this._createListSaving = true;
+        this._createListError = "";
+        try {
+          // Step 1: start the config flow for the better_todo integration.
+          const startResult = await this.hass.callApi(
+            "POST",
+            "config/config_entries/flow",
+            { handler: "better_todo" }
+          );
+          if (!startResult?.flow_id) throw new Error("Failed to start config flow");
+          // Step 2: submit the user step with the chosen list name.
+          const submitResult = await this.hass.callApi(
+            "POST",
+            `config/config_entries/flow/${startResult.flow_id}`,
+            { todo_list_name: name }
+          );
+          if (submitResult?.type === "abort") {
+            // Flow aborted (e.g. duplicate list name).
+            this._createListError =
+              submitResult.reason === "already_configured"
+                ? (this.hass?.localize(
+                    "component.better_todo.config.abort.already_configured"
+                  ) || "A list with this name already exists.")
+                : `Flow aborted: ${submitResult.reason}`;
+            this._createListSaving = false;
+            return;
+          }
+          this._createListSaving = false;
+          this._showCreateListDialog = false;
+          this._newListName = "";
+        } catch (err) {
+          this._createListError =
+            err?.message || "Error creating list. Please try again.";
+          this._createListSaving = false;
+        }
       }
 
       // -----------------------------------------------------------------------
@@ -1470,6 +1507,62 @@
             <!-- Main content area -->
             ${mainContent}
           </ha-two-pane-top-app-bar-fixed>
+
+          <!-- Create-list inline dialog (rendered as a fixed overlay above the panel) -->
+          ${this._showCreateListDialog ? html`
+            <div
+              class="create-list-overlay"
+              @click=${(e) => { if (e.target === e.currentTarget) this._closeCreateListDialog(); }}
+            >
+              <ha-card class="create-list-dlg">
+                <div class="dlg-header">
+                  <span class="dlg-title">${createListLabel}</span>
+                  <ha-icon-button
+                    .path=${_mdiClose}
+                    @click=${() => this._closeCreateListDialog()}
+                    ?disabled=${this._createListSaving}
+                  ></ha-icon-button>
+                </div>
+                <div class="dlg-body">
+                  <div class="field">
+                    <label class="lbl">
+                      ${this.hass?.localize("ui.panel.todo.list_name") || "List name"}
+                      <span class="req">*</span>
+                    </label>
+                    <input
+                      class="inp"
+                      type="text"
+                      .value=${this._newListName}
+                      @input=${(e) => { this._newListName = e.target.value; }}
+                      @keydown=${(e) => {
+                        if (e.key === "Enter" && this._newListName.trim() && !this._createListSaving)
+                          this._submitCreateList();
+                      }}
+                      ?disabled=${this._createListSaving}
+                      autocomplete="off"
+                    />
+                  </div>
+                  ${this._createListError
+                    ? html`<p class="err">${this._createListError}</p>`
+                    : ""}
+                </div>
+                <div class="dlg-actions">
+                  <button
+                    class="btn btn-ghost"
+                    @click=${() => this._closeCreateListDialog()}
+                    ?disabled=${this._createListSaving}
+                  >${this.hass?.localize("ui.common.cancel") || "Cancel"}</button>
+                  <button
+                    class="btn btn-primary"
+                    @click=${() => this._submitCreateList()}
+                    ?disabled=${!this._newListName.trim() || this._createListSaving}
+                  >${this._createListSaving
+                    ? "…"
+                    : (this.hass?.localize("ui.common.create") || "Create")}</button>
+                </div>
+              </ha-card>
+            </div>
+          ` : ""}
         `;
       }
 
@@ -1503,6 +1596,113 @@
               text-align: center;
               color: var(--secondary-text-color);
             }
+
+            /* ── Create-list inline dialog ─────────────────────────────────── */
+            .create-list-overlay {
+              position: fixed;
+              inset: 0;
+              background: rgba(0, 0, 0, 0.48);
+              z-index: 10;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              padding: 16px;
+              box-sizing: border-box;
+            }
+            .create-list-dlg {
+              width: 100%;
+              max-width: 400px;
+              display: flex;
+              flex-direction: column;
+              overflow: hidden;
+              border-radius: var(--ha-card-border-radius, 12px);
+            }
+            .dlg-header {
+              display: flex;
+              align-items: center;
+              padding: 16px 8px 0 20px;
+              flex-shrink: 0;
+            }
+            .dlg-title {
+              flex: 1;
+              font-size: 1.2rem;
+              font-weight: 500;
+              color: var(--primary-text-color);
+            }
+            .dlg-body {
+              padding: 12px 20px 8px;
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+              gap: 14px;
+            }
+            .field {
+              display: flex;
+              flex-direction: column;
+              gap: 4px;
+            }
+            .lbl {
+              font-size: 0.73rem;
+              font-weight: 500;
+              letter-spacing: 0.04em;
+              text-transform: uppercase;
+              color: var(--secondary-text-color);
+            }
+            .req {
+              color: var(--error-color, #b00020);
+              margin-left: 2px;
+            }
+            .inp {
+              width: 100%;
+              padding: 8px 12px;
+              border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12));
+              border-radius: 8px;
+              background: var(--input-fill-color, var(--secondary-background-color, #f5f5f5));
+              color: var(--primary-text-color);
+              font-size: 0.95rem;
+              font-family: inherit;
+              box-sizing: border-box;
+              outline: none;
+              transition: border-color 0.15s;
+              -webkit-appearance: none;
+            }
+            .inp:focus { border-color: var(--primary-color); }
+            .inp:disabled { opacity: 0.55; }
+            .err {
+              color: var(--error-color, #b00020);
+              font-size: 0.85rem;
+              margin: 0;
+            }
+            .dlg-actions {
+              display: flex;
+              justify-content: flex-end;
+              padding: 8px 20px 16px;
+              gap: 8px;
+              flex-shrink: 0;
+            }
+            .btn {
+              padding: 8px 20px;
+              border: none;
+              border-radius: 8px;
+              cursor: pointer;
+              font-size: 0.88rem;
+              font-family: inherit;
+              font-weight: 500;
+              transition: opacity 0.12s, background 0.12s;
+            }
+            .btn:disabled { opacity: 0.45; cursor: default; }
+            .btn-ghost {
+              background: transparent;
+              color: var(--primary-text-color);
+            }
+            .btn-ghost:hover:not(:disabled) {
+              background: var(--secondary-background-color);
+            }
+            .btn-primary {
+              background: var(--primary-color);
+              color: var(--text-primary-color, #fff);
+            }
+            .btn-primary:hover:not(:disabled) { opacity: 0.85; }
           `,
         ];
       }

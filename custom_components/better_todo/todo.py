@@ -730,6 +730,10 @@ class ShoppingListTodoListEntity(BetterTodoListEntity):
     ) -> None:
         """Initialize the Shopping List entity with a translated name."""
         super().__init__(store, calendar, name, unique_id)
-        # Let HA resolve the friendly name from translations instead of using
-        # the hard-coded DEFAULT_SHOPPING_LIST_NAME constant.
-        self._attr_name = None
+        # Remove the instance _attr_name set by super() so that HA's entity
+        # framework sees UNDEFINED and resolves the friendly name via
+        # translation_key ("shopping_list") instead of returning None.
+        # With None, has_entity_name=True produces no friendly_name for a
+        # standalone entity (no device), causing the frontend to fall back to
+        # the entity_id-derived lowercase string.
+        del self._attr_name
