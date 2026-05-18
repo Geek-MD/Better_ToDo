@@ -22,7 +22,7 @@ It is built on the same foundation as the built-in [Local To-do](https://www.hom
 
 ## Features
 
-- **Custom sidebar panel** – a dedicated *Better ToDo* panel accessible from the HA sidebar at `/better-todo`, built with the same two-pane layout as the built-in To-do panel. Content will be expanded in future releases.
+- **Custom sidebar panel** – a dedicated *Better ToDo* panel accessible from the HA sidebar at `/better-todo`, built with the same two-pane layout as the built-in To-do panel. Task lists are rendered with a custom view (checkboxes, due-date & recurrence indicators, delete button) and a create/edit dialog that exposes Better To-do-specific options such as the recurrence preset picker. The Shopping List is rendered in a dedicated view that groups items alphabetically by category, showing each item's name, quantity, and unit.
 - **Full to-do list entity** – integrates natively with the Home Assistant [To-do list dashboard card](https://www.home-assistant.io/dashboards/todo-list/) and all built-in `todo.*` services.
 - **Recurring tasks (RRULE)** – attach any iCalendar RRULE string to a task (e.g. `FREQ=WEEKLY;BYDAY=MO`, `FREQ=DAILY`, `FREQ=MONTHLY;BYMONTHDAY=1`). When the task is marked done it rolls forward to the next occurrence automatically.
 - **`better_todo.set_task_recurrence` service** – set or clear the RRULE on a task by its UID from an automation, script, or *Developer Tools → Actions*.
