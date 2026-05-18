@@ -313,15 +313,19 @@
         const isCreate = !this._item;
         const L = (k, fb) => this.hass?.localize(k) || fb;
 
-        // Short day labels used in the weekday picker.
+        // Short day labels built from the browser's Intl API for locale-aware names.
+        // Jan 4–10 2021 is Mon–Sun; we reorder to MO–SU (Mon first).
+        const _locale = this.hass?.locale?.language || navigator.language || "en";
+        const _fmt = (d) =>
+          new Date(2021, 0, d).toLocaleDateString(_locale, { weekday: "short" });
         const DAYS = [
-          { k: "MO", label: "Mon" },
-          { k: "TU", label: "Tue" },
-          { k: "WE", label: "Wed" },
-          { k: "TH", label: "Thu" },
-          { k: "FR", label: "Fri" },
-          { k: "SA", label: "Sat" },
-          { k: "SU", label: "Sun" },
+          { k: "MO", label: _fmt(4) },
+          { k: "TU", label: _fmt(5) },
+          { k: "WE", label: _fmt(6) },
+          { k: "TH", label: _fmt(7) },
+          { k: "FR", label: _fmt(8) },
+          { k: "SA", label: _fmt(9) },
+          { k: "SU", label: _fmt(10) },
         ];
 
         return html`
@@ -331,7 +335,7 @@
                 <span class="dlg-title">
                   ${isCreate
                     ? L("ui.panel.todo.action.add_item", "Add task")
-                    : L("ui.common.edit", "Edit task")}
+                    : L("ui.common.edit", "Edit")}
                 </span>
                 <ha-icon-button
                   .path=${_mdiClose}
@@ -360,7 +364,7 @@
                 <!-- Due date -->
                 <div class="field">
                   <label class="lbl">
-                    ${L("ui.components.date-range-picker.start_date", "Due date")}
+                    ${L("ui.components.todo-list-item.due_date", "Due date")}
                   </label>
                   <input
                     class="inp"
@@ -374,7 +378,7 @@
                 <!-- Due time (only visible when a date has been entered) -->
                 ${this._dueDate ? html`
                   <div class="field">
-                    <label class="lbl">${L("ui.common.time", "Due time")}</label>
+                    <label class="lbl">${L("ui.common.time", "Time")}</label>
                     <input
                       class="inp"
                       type="time"
