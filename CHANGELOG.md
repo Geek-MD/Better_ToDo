@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **List selection state**: clicking a list item selects it (highlighted via `ha-list-item`'s `.activated` property). The selection is persisted to `sessionStorage` so navigating away and back restores the last active list.
 - **Empty state**: when no lists exist a localised "No lists found" message is displayed in the content area.
 
+## v0.5.0a7 - 2026-05-17
+
 ### Fixed
 - **Panel rendering — definitive fix**: replaced the `customElements.whenDefined("ha-card").then(...)` wrapper with a two-path registration strategy. In the common case the script executes after HA's core bundle has already defined `ha-card`, so `better-todo-panel` is now registered **synchronously** during script execution — before the `onload` event fires and before HA's `panel_custom` tries to create the element. This eliminates the microtask race condition where HA's `createCustomPanelElement()` could run slightly ahead of the async `.then()` callback and obtain an unregistered `HTMLElement` placeholder. The async `whenDefined` fallback is retained for the rare cold-start edge case.
 
