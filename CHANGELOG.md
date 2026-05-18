@@ -5,54 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.0a8] - 2026-05-18
+## [0.5.0] - 2026-05-18
 
 ### Added
-- **Right pane — task list view**: when a Better To-do task list is selected, the right pane renders a custom `better-todo-task-list` component that mirrors the behaviour of HA's native To-do panel. Items are displayed with a checkbox (mark done/pending), due-date and recurrence indicators, and a per-item delete button. A footer "Add task" button opens the Better To-do task dialog. Completed items are shown in a separate collapsed section below pending items.
-- **Custom task dialog**: creating or editing a task opens a Better To-do-specific dialog (`better-todo-task-dialog`) with fields for task name, due date, optional due time, notes, and a **recurrence preset picker** (None / Daily / Weekly / Monthly / Yearly / Custom RRULE). Selecting *Weekly* reveals a day-of-week chip picker; selecting *Custom* exposes a free-text RRULE input. Recurrence is applied via the `better_todo.set_task_recurrence` service.
-- **Right pane — shopping list view**: when the built-in Shopping List is selected, the right pane renders a custom `better-todo-shopping-list` component. Items are **grouped by their assigned category**, with category headers shown in **alphabetical order** (only categories that contain at least one item are rendered). Each item displays its **name, quantity, and unit**. Items without a category appear after all named groups. Completed items are shown below all pending groups. Checkboxes allow marking items as done/pending.
+- **Custom panel**: Better To-do now registers a sidebar panel at `/better-todo` that mirrors the structural layout of the built-in HA To-do panel (`ha-two-pane-top-app-bar-fixed`) with a left pane and a right content area. The panel is implemented in plain JavaScript using LitElement accessed from HA's already-loaded frontend bundle (no external CDN dependency).
 - **Left-pane todo list**: the left pane lists all `todo.*` entities found in `hass.states`. Entities are sorted alphabetically by friendly name; the built-in Better To-do Shopping List is always pinned last regardless of its translated name.
+- **Right pane — task list view**: when a Better To-do task list is selected, the right pane renders a custom `better-todo-task-list` component that mirrors the behaviour of HA's native To-do panel. Items are displayed with a checkbox (mark done/pending), due-date and recurrence indicators, and a per-item delete button. A footer "Add task" button opens the Better To-do task dialog. Completed items are shown in a separate collapsed section below pending items.
+- **Right pane — shopping list view**: when the built-in Shopping List is selected, the right pane renders a custom `better-todo-shopping-list` component. Items are **grouped by their assigned category**, with category headers shown in **alphabetical order** (only categories that contain at least one item are rendered). Each item displays its **name, quantity, and unit**. Items without a category appear after all named groups. Completed items are shown below all pending groups. Checkboxes allow marking items as done/pending.
+- **Custom task dialog**: creating or editing a task opens a Better To-do-specific dialog (`better-todo-task-dialog`) with fields for task name, due date, optional due time, notes, and a **recurrence preset picker** (None / Daily / Weekly / Monthly / Yearly / Custom RRULE). Selecting *Weekly* reveals a day-of-week chip picker; selecting *Custom* exposes a free-text RRULE input. Recurrence is applied via the `better_todo.set_task_recurrence` service.
 - **Mobile navigation (narrow screens < 750 px)**: on narrow screens the sidebar is replaced by a single-pane layout. Selecting a list shows the list content with a **back arrow** in the top-app-bar; tapping it returns to the list selector, which is rendered in the main content area with the same sorted order and the "Create list" footer row.
 - **"Create list" pane footer**: a footer row with a `+` icon and the label *Create list* (localised via `hass.localize("ui.panel.todo.create_list")`) appears at the bottom of the left pane when the wide-screen layout is active.
 - **List selection state**: clicking a list item selects it (highlighted via `ha-list-item`'s `.activated` property). The selection is persisted to `sessionStorage` so navigating away and back restores the last active list.
 - **Empty state**: when no lists exist a localised "No lists found" message is displayed in the content area.
-
-## v0.5.0a7 - 2026-05-17
-
-### Fixed
-- **Panel rendering — definitive fix**: replaced the `customElements.whenDefined("ha-card").then(...)` wrapper with a two-path registration strategy. In the common case the script executes after HA's core bundle has already defined `ha-card`, so `better-todo-panel` is now registered **synchronously** during script execution — before the `onload` event fires and before HA's `panel_custom` tries to create the element. This eliminates the microtask race condition where HA's `createCustomPanelElement()` could run slightly ahead of the async `.then()` callback and obtain an unregistered `HTMLElement` placeholder. The async `whenDefined` fallback is retained for the rare cold-start edge case.
-
-## [0.5.0a6] - 2026-05-17
-
-### Fixed
-- **Panel blank on fresh page load**: on a fresh browser load when Better ToDo is the last-active panel, `better-todo-panel.js` could execute before HA's core bundle had registered `ha-card`. The top-level `Object.getPrototypeOf(customElements.get("ha-card"))` call received `undefined`, threw a `TypeError`, and aborted the script — leaving `better-todo-panel` undefined and the panel rendering as unstyled plain text ("Better ToDo"). Navigating to another panel and back worked only because `ha-card` was already registered by then. Wrapped all component initialization inside `customElements.whenDefined("ha-card").then(...)` so LitElement resolution and element registration are deferred until the dependency is guaranteed to be available.
-
-## [0.5.0a5] - 2026-05-17
-
-### Fixed
-- **Panel title rendering**: the panel title slot used a block-level `<div>` element instead of an inline `<span>`, causing the title to render differently from HA's native To-do panel. Changed to `<span slot="title">` to match `ha-panel-todo` behaviour inside `ha-two-pane-top-app-bar-fixed`'s MDC flex container.
-
-## [0.5.0a4] - 2026-05-16
-
-### Fixed
-- **Panel blank in frontend**: the `css` tagged-template shim in `better-todo-panel.js` was missing the `styleSheet` getter that Lit 3 requires when using the Constructable StyleSheets API (`adoptedStyleSheets`). In every modern browser `supportsAdoptingStyleSheets` is `true`, so Lit's `adoptStyles` called `s.styleSheet!` on the shim object, received `undefined`, then `adoptedStyleSheets = [undefined]` threw a `TypeError`. That prevented the shadow root from ever being created, leaving the panel completely blank even though its sidebar entry was registered correctly. The shim now lazily constructs a `CSSStyleSheet` via the getter, matching Lit 3's own `CSSResult` behaviour.
-
-## [0.5.0a3] - 2026-05-16
-
-### Fixed
-- **Panel and todo entities not loading**: `async_setup` was calling `panel_custom.async_register_panel` with `component_name=` instead of the correct `webcomponent_name=` parameter. This caused a `TypeError` that aborted integration setup entirely, preventing both the sidebar panel and all todo entities from being registered.
-
-## [0.5.0a2] - 2026-05-16
+- **`async_setup`**: added integration-level setup that serves the frontend assets via `/better_todo_static` and registers the `better-todo-panel` custom panel with Home Assistant's `panel_custom` component.
+- **`http` dependency**: added to `manifest.json` so Home Assistant loads the HTTP component before this integration.
 
 ### Fixed
 - **`register_static_path` removed in recent HA versions**: replaced the deprecated `hass.http.register_static_path(...)` call with `hass.http.async_register_static_paths([StaticPathConfig(...)])` so the integration no longer raises `AttributeError: 'HomeAssistantHTTP' object has no attribute 'register_static_path'` during setup.
-
-## [0.5.0a1] - 2026-05-16
-
-### Added
-- **Custom panel skeleton**: Better To-do now registers a sidebar panel at `/better-todo` with a title bar reading *Better ToDo*. The panel mirrors the structural layout of the built-in HA To-do panel (`ha-two-pane-top-app-bar-fixed`) with a left pane and a right content area, both empty in this first iteration. The action-menu slot is present in the markup but hidden until needed. The panel is implemented in plain JavaScript using LitElement accessed from HA's already-loaded frontend bundle (no external CDN dependency).
-- **`async_setup`**: added integration-level setup that serves the frontend assets via `/better_todo_static` and registers the `better-todo-panel` custom panel with Home Assistant's `panel_custom` component.
-- **`http` dependency**: added to `manifest.json` so Home Assistant loads the HTTP component before this integration.
+- **Panel and todo entities not loading**: `async_setup` was calling `panel_custom.async_register_panel` with `component_name=` instead of the correct `webcomponent_name=` parameter. This caused a `TypeError` that aborted integration setup entirely, preventing both the sidebar panel and all todo entities from being registered.
+- **Panel rendering on fresh page load**: all component initialization is deferred until `ha-card` is defined, with a synchronous registration fast-path for the common case where HA's core bundle has already loaded. This eliminates the race condition where `createCustomPanelElement()` could run before `better-todo-panel` was registered, and prevents a `TypeError` when `Object.getPrototypeOf(customElements.get("ha-card"))` received `undefined`.
+- **Panel title rendering**: the panel title slot now uses `<span slot="title">` instead of a block-level `<div>` to match `ha-panel-todo` behaviour inside `ha-two-pane-top-app-bar-fixed`'s MDC flex container.
 
 ## [0.4.2] - 2026-05-10
 
