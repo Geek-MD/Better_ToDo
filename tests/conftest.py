@@ -82,6 +82,29 @@ def _register_ha_stubs() -> None:
     ha_util_dt.get_default_time_zone = lambda: datetime.timezone.utc
     sys.modules.setdefault("homeassistant.util.dt", ha_util_dt)
 
+    # --- homeassistant.components.http ---
+    ha_http = types.ModuleType("homeassistant.components.http")
+
+    @dataclasses.dataclass
+    class StaticPathConfig:
+        url_path: str
+        path: str
+        cache_headers: bool = True
+
+    ha_http.StaticPathConfig = StaticPathConfig
+    sys.modules.setdefault("homeassistant.components.http", ha_http)
+
+    # --- homeassistant.components.panel_custom ---
+    ha_panel_custom = types.ModuleType("homeassistant.components.panel_custom")
+
+    async def _async_register_panel(*_a, **_kw):
+        pass
+
+    ha_panel_custom.async_register_panel = _async_register_panel
+    sys.modules.setdefault(
+        "homeassistant.components.panel_custom", ha_panel_custom
+    )
+
     # --- homeassistant.components.todo ---
     class TodoItemStatus(str, enum.Enum):
         NEEDS_ACTION = "needs_action"
