@@ -49,8 +49,11 @@
       };
     };
 
-    // MDI Plus icon path (mdiPlus from @mdi/js).
+    // MDI icon paths (from @mdi/js).
     const _mdiPlus = "M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z";
+    // mdiArrowLeft — used as back button on narrow screens.
+    const _mdiArrowLeft =
+      "M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z";
 
     // Compute a human-readable name for a state object, mirroring HA's
     // computeStateName helper: use attributes.friendly_name when available,
@@ -70,6 +73,8 @@
           narrow: { type: Boolean, reflect: true },
           mobile: { type: Boolean, reflect: true },
           _showPane: { state: true },
+          // true while the user is browsing the list selector on a narrow screen.
+          _paneOnMobile: { state: true },
           _selectedEntityId: { state: true },
         };
       }
@@ -79,6 +84,7 @@
         this.narrow = false;
         this.mobile = false;
         this._showPane = false;
+        this._paneOnMobile = false;
         // Restore last selected list from session storage so navigation
         // back to the panel re-opens the same list.
         try {
@@ -129,11 +135,18 @@
 
       _setSelectedEntity(entityId) {
         this._selectedEntityId = entityId;
+        // On narrow screens, close the mobile list selector after picking a list.
+        this._paneOnMobile = false;
         try {
           sessionStorage.setItem("better-todo-selected-entity", entityId);
         } catch (_) {
           // ignore
         }
+      }
+
+      /** Navigate back to the list selector on narrow screens. */
+      _backToLists() {
+        this._paneOnMobile = true;
       }
 
       /** Open the Better To-do config flow to create a new list.
@@ -216,7 +229,18 @@
             if (this._selectedEntityId !== firstId) {
               this._selectedEntityId = firstId;
             }
+            // On narrow screens with no valid selection, open the list selector
+            // so the user can pick or create a list.
+            if (!this._showPane && !firstId) {
+              this._paneOnMobile = true;
+            }
           }
+        }
+
+        // When the layout switches from narrow → wide, the sidebar is always
+        // visible again, so reset the mobile toggle.
+        if (changedProps.has("_showPane") && this._showPane) {
+          this._paneOnMobile = false;
         }
       }
 
@@ -227,26 +251,88 @@
       render() {
         const lists = this._getTodoLists();
 
-        const listItems = lists.map(
-          (list) => html`
-            <ha-list-item
-              graphic="icon"
-              .activated=${list.entity_id === this._selectedEntityId}
-              @click=${() => this._setSelectedEntity(list.entity_id)}
-            >
-              <ha-state-icon
-                .stateObj=${list}
-                slot="graphic"
-              ></ha-state-icon>
-              ${_computeStateName(list)}
-            </ha-list-item>
-          `
-        );
+        // Reusable helper so each call site gets independent TemplateResult
+        // instances (Lit must not share a single instance across two DOM slots).
+        const makeListItems = () =>
+          lists.map(
+            (list) => html`
+              <ha-list-item
+                graphic="icon"
+                .activated=${list.entity_id === this._selectedEntityId}
+                @click=${() => this._setSelectedEntity(list.entity_id)}
+              >
+                <ha-state-icon
+                  .stateObj=${list}
+                  slot="graphic"
+                ></ha-state-icon>
+                ${_computeStateName(list)}
+              </ha-list-item>
+            `
+          );
 
         // "Create list" label: reuse HA's own translation key so the label is
         // automatically localised in every language HA supports.
         const createListLabel =
           this.hass?.localize("ui.panel.todo.create_list") || "Create list";
+
+        // ── Layout decisions ────────────────────────────────────────────────
+        // On narrow screens (_showPane=false) the sidebar is hidden by
+        // ha-two-pane-top-app-bar-fixed.  We handle mobile navigation by
+        // rendering either the list selector OR the todo content in the main
+        // slot, controlled by _paneOnMobile.
+        //
+        // Wide screens (_showPane=true): sidebar + content always visible.
+
+        // True while showing the list selector as main content on narrow.
+        const showMobileList =
+          !this._showPane &&
+          (this._paneOnMobile || !this._selectedEntityId);
+
+        // Show a back-arrow instead of the hamburger while viewing list
+        // content on a narrow screen.
+        const showBack =
+          !this._showPane && !showMobileList && !!this._selectedEntityId;
+
+        // Title: selected list name when back-button is shown, otherwise brand.
+        const panelTitle =
+          showBack && this.hass?.states[this._selectedEntityId]
+            ? _computeStateName(this.hass.states[this._selectedEntityId])
+            : "Better ToDo";
+
+        // ── Main content slot ────────────────────────────────────────────────
+        let mainContent;
+        if (showMobileList) {
+          // Mobile list selector (rendered in the main content area).
+          mainContent = html`
+            <ha-list activatable>${makeListItems()}</ha-list>
+            <ha-list-item graphic="icon" @click=${this._addList}>
+              <ha-svg-icon .path=${_mdiPlus} slot="graphic"></ha-svg-icon>
+              ${createListLabel}
+            </ha-list-item>
+          `;
+        } else if (this._selectedEntityId) {
+          // Right pane: the selected todo list.
+          mainContent = html`
+            <div id="columns">
+              <div class="column">
+                <ha-todo-list
+                  .hass=${this.hass}
+                  .entityId=${this._selectedEntityId}
+                ></ha-todo-list>
+              </div>
+            </div>
+          `;
+        } else {
+          // No lists exist yet — prompt the user to create one.
+          mainContent = html`
+            <div class="empty-content">
+              <span
+                >${this.hass?.localize("ui.panel.todo.no_lists") ||
+                "No lists found. Create one to get started."}</span
+              >
+            </div>
+          `;
+        }
 
         return html`
           <ha-two-pane-top-app-bar-fixed
@@ -254,18 +340,29 @@
             footer
             .narrow=${this.narrow}
           >
-            <ha-menu-button
-              slot="navigationIcon"
-              .hass=${this.hass}
-              .narrow=${this.narrow}
-            ></ha-menu-button>
+            ${showBack
+              ? html`
+                  <ha-icon-button
+                    slot="navigationIcon"
+                    .path=${_mdiArrowLeft}
+                    .label=${this.hass?.localize("ui.common.back") || "Back"}
+                    @click=${this._backToLists}
+                  ></ha-icon-button>
+                `
+              : html`
+                  <ha-menu-button
+                    slot="navigationIcon"
+                    .hass=${this.hass}
+                    .narrow=${this.narrow}
+                  ></ha-menu-button>
+                `}
 
-            <span slot="title">Better ToDo</span>
+            <span slot="title">${panelTitle}</span>
 
-            <!-- Left pane: sorted todo lists -->
-            <ha-list slot="pane" activatable>${listItems}</ha-list>
+            <!-- Left pane: sorted todo lists (always in sidebar slot) -->
+            <ha-list slot="pane" activatable>${makeListItems()}</ha-list>
 
-            <!-- "Create list" footer (visible only when the pane is shown) -->
+            <!-- "Create list" footer (visible only when the sidebar pane is shown) -->
             ${this._showPane
               ? html`
                   <ha-list-item
@@ -285,10 +382,8 @@
             <!-- Action menu: hidden until needed -->
             <div slot="actionItems" hidden></div>
 
-            <!-- Right content: empty — content will be added in future iterations -->
-            <div id="columns">
-              <div class="column"></div>
-            </div>
+            <!-- Main content area -->
+            ${mainContent}
           </ha-two-pane-top-app-bar-fixed>
         `;
       }
@@ -310,6 +405,17 @@
               flex: 1 0 0;
               max-width: 500px;
               min-width: 0;
+            }
+            ha-todo-list {
+              display: block;
+            }
+            .empty-content {
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              padding: 48px 16px;
+              text-align: center;
+              color: var(--secondary-text-color);
             }
           `,
         ];

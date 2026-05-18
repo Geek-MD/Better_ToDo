@@ -5,7 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.0a7] - 2026-05-17
+## [0.5.0a8] - 2026-05-18
+
+### Added
+- **Right pane — todo list content**: the main content area now renders a `ha-todo-list` component for the currently selected entity, giving users full read/write access to their tasks (add, complete, delete, reorder) directly from the Better ToDo panel.
+- **Mobile navigation (narrow screens < 750 px)**: on narrow screens the sidebar is replaced by a single-pane layout. Selecting a list shows the list content with a **back arrow** in the top-app-bar; tapping it returns to the list selector, which is rendered in the main content area with the same sorted order (alphabetical, Shopping List last) and the "Create list" footer row.
+- **Empty state**: when no lists exist a localised "No lists found" message is displayed in the content area.
+
+
 
 ### Fixed
 - **Panel rendering — definitive fix**: replaced the `customElements.whenDefined("ha-card").then(...)` wrapper with a two-path registration strategy. In the common case the script executes after HA's core bundle has already defined `ha-card`, so `better-todo-panel` is now registered **synchronously** during script execution — before the `onload` event fires and before HA's `panel_custom` tries to create the element. This eliminates the microtask race condition where HA's `createCustomPanelElement()` could run slightly ahead of the async `.then()` callback and obtain an unregistered `HTMLElement` placeholder. The async `whenDefined` fallback is retained for the rare cold-start edge case.
