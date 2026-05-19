@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1a1] - 2026-05-19
+
+### Changed
+- **Panel baseline reset to HA To-do**: rewrote `better-todo-panel.js` to use the same structure, style, and UX flow as Home Assistant's `ha-panel-todo` baseline (two-pane layout, mobile dropdown selector, `hui-card` with `type: todo-list`, action menu, and floating add-item button).
+- **Native To-do interactions in panel**: item management now relies on HA's native To-do card/dialog flow instead of the custom Better To-do task/shopping panel implementations, so the panel starts from the same functional base as HA's official To-do panel.
+- **List creation flow preserved for Better To-do**: the *Create list* action in the panel continues opening the `better_todo` config flow so the panel remains usable with this integration while keeping HA panel behavior/style as the base.
+
 ## [0.5.0] - 2026-05-18
 
 ### Added
