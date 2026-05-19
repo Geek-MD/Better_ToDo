@@ -1151,6 +1151,11 @@
           // true while the user is browsing the list selector on a narrow screen.
           _paneOnMobile: { state: true },
           _selectedEntityId: { state: true },
+          // Create-list inline dialog state.
+          _showCreateDialog: { state: true },
+          _createListName: { state: true },
+          _createListSaving: { state: true },
+          _createListError: { state: true },
         };
       }
 
@@ -1171,6 +1176,10 @@
         this._resizeObserver = null;
         this._mql = null;
         this._onMqlChange = null;
+        this._showCreateDialog = false;
+        this._createListName = "";
+        this._createListSaving = false;
+        this._createListError = "";
       }
 
       // -----------------------------------------------------------------------
@@ -1236,35 +1245,62 @@
         this._paneOnMobile = true;
       }
 
-      /** Open the Better To-do config flow to create a new list.
-       *  Dispatches the same show-dialog event that ha-panel-todo uses so that
-       *  HA's app shell opens the standard config-flow dialog inline. */
+      /** Open the inline create-list dialog. */
       _addList() {
-        this.dispatchEvent(
-          new CustomEvent("show-dialog", {
-            bubbles: true,
-            composed: true,
-            detail: {
-              dialogTag: "ha-config-flow",
-              // Resolve immediately if the dialog element is already registered;
-              // otherwise wait up to 2 s for HA to register it (it is loaded
-              // lazily by the config/integrations section).
-              dialogImport: () =>
-                customElements.get("ha-config-flow")
-                  ? Promise.resolve()
-                  : Promise.race([
-                      customElements
-                        .whenDefined("ha-config-flow")
-                        .then(() => {}),
-                      new Promise((r) => setTimeout(r, 2000)),
-                    ]),
-              dialogParams: {
-                startFlowHandler: "better_todo",
-                showAdvanced: this.hass?.userData?.showAdvanced ?? false,
-              },
-            },
-          })
-        );
+        this._createListName = "";
+        this._createListError = "";
+        this._createListSaving = false;
+        this._showCreateDialog = true;
+      }
+
+      /** Close the create-list dialog (no-op while a save is in progress). */
+      _closeCreateDialog() {
+        if (this._createListSaving) return;
+        this._showCreateDialog = false;
+      }
+
+      /** Submit the create-list form via the HA config-flow REST API. */
+      async _submitCreateList() {
+        const name = this._createListName.trim();
+        if (!name || this._createListSaving) return;
+        this._createListSaving = true;
+        this._createListError = "";
+        try {
+          // Step 1: start a new config-flow for better_todo.
+          const flow = await this.hass.callApi(
+            "POST",
+            "config/config_entries/flow",
+            { handler: "better_todo" }
+          );
+          // Step 2: submit the list name to complete the flow.
+          const result = await this.hass.callApi(
+            "POST",
+            `config/config_entries/flow/${flow.flow_id}`,
+            { todo_list_name: name }
+          );
+          if (result.type === "abort") {
+            this._createListError =
+              this.hass?.localize(
+                `component.better_todo.config.abort.${result.reason}`
+              ) ||
+              result.reason ||
+              "Could not create list.";
+            this._createListSaving = false;
+            return;
+          }
+          if (result.type === "form" && result.errors && Object.keys(result.errors).length) {
+            this._createListError =
+              this.hass?.localize("ui.errors.config.config_flow_error") ||
+              "Invalid input. Please check the list name.";
+            this._createListSaving = false;
+            return;
+          }
+          this._showCreateDialog = false;
+        } catch (err) {
+          this._createListError =
+            err?.message || "Error creating list. Please try again.";
+          this._createListSaving = false;
+        }
       }
 
       // -----------------------------------------------------------------------
@@ -1304,6 +1340,16 @@
 
       willUpdate(changedProps) {
         super.willUpdate(changedProps);
+        // Ensure the integration's own translations (e.g. the Shopping List
+        // entity name in each language) are loaded into hass.localize.  We do
+        // this once on first hass availability and again whenever the frontend
+        // language changes so localisation always reflects the current locale.
+        if (changedProps.has("hass") && this.hass) {
+          const prevHass = changedProps.get("hass");
+          if (!prevHass || prevHass.language !== this.hass.language) {
+            this.hass.loadBackendTranslation?.("component", "better_todo");
+          }
+        }
         // Auto-select the first available list when nothing is selected (or when
         // the previously selected entity no longer exists in the state machine).
         if (this.hass) {
@@ -1482,6 +1528,89 @@
             <!-- Main content area -->
             ${mainContent}
           </ha-two-pane-top-app-bar-fixed>
+
+          <!-- Inline "Create list" dialog overlay -->
+          ${this._showCreateDialog
+            ? this._renderCreateListDialog()
+            : ""}
+        `;
+      }
+
+      /** Render the inline create-list dialog.
+       *  Uses a position:fixed overlay (same approach as BetterTodoTaskDialog)
+       *  so it is always correctly layered regardless of panel transitions. */
+      _renderCreateListDialog() {
+        const L = (k, fb) => this.hass?.localize(k) || fb;
+        const title =
+          L("component.better_todo.config.step.user.title", null) ||
+          L("ui.panel.todo.create_list", "Create list");
+        const fieldLabel = L(
+          "component.better_todo.config.step.user.data.todo_list_name",
+          "List name"
+        );
+        return html`
+          <div
+            class="create-overlay"
+            @click=${(e) => {
+              if (e.target === e.currentTarget) this._closeCreateDialog();
+            }}
+          >
+            <ha-card class="create-dialog">
+              <div class="dlg-header">
+                <span class="dlg-title">${title}</span>
+                <ha-icon-button
+                  .path=${_mdiClose}
+                  @click=${() => this._closeCreateDialog()}
+                  ?disabled=${this._createListSaving}
+                ></ha-icon-button>
+              </div>
+
+              <div class="dlg-body">
+                <div class="field">
+                  <label class="lbl">
+                    ${fieldLabel}<span class="req">*</span>
+                  </label>
+                  <input
+                    class="inp"
+                    type="text"
+                    .value=${this._createListName}
+                    @input=${(e) => {
+                      this._createListName = e.target.value;
+                    }}
+                    @keydown=${(e) => {
+                      if (e.key === "Enter") this._submitCreateList();
+                      if (e.key === "Escape") this._closeCreateDialog();
+                    }}
+                    ?disabled=${this._createListSaving}
+                    autocomplete="off"
+                  />
+                </div>
+                ${this._createListError
+                  ? html`<p class="err">${this._createListError}</p>`
+                  : ""}
+              </div>
+
+              <div class="dlg-actions">
+                <button
+                  class="btn btn-ghost"
+                  @click=${() => this._closeCreateDialog()}
+                  ?disabled=${this._createListSaving}
+                >
+                  ${L("ui.common.cancel", "Cancel")}
+                </button>
+                <button
+                  class="btn btn-primary"
+                  @click=${() => this._submitCreateList()}
+                  ?disabled=${!this._createListName.trim() ||
+                    this._createListSaving}
+                >
+                  ${this._createListSaving
+                    ? "…"
+                    : L("ui.common.add", "Add")}
+                </button>
+              </div>
+            </ha-card>
+          </div>
         `;
       }
 
@@ -1515,6 +1644,112 @@
               text-align: center;
               color: var(--secondary-text-color);
             }
+            /* Create-list dialog overlay (position:fixed so it layers over
+               the panel regardless of any HA transition transforms). */
+            .create-overlay {
+              position: fixed;
+              inset: 0;
+              background: rgba(0, 0, 0, 0.48);
+              z-index: 10;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              padding: 16px;
+              box-sizing: border-box;
+            }
+            .create-dialog {
+              width: 100%;
+              max-width: 400px;
+              display: flex;
+              flex-direction: column;
+              overflow: hidden;
+              border-radius: var(--ha-card-border-radius, 12px);
+            }
+            .dlg-header {
+              display: flex;
+              align-items: center;
+              padding: 16px 8px 0 20px;
+              flex-shrink: 0;
+            }
+            .dlg-title {
+              flex: 1;
+              font-size: 1.2rem;
+              font-weight: 500;
+              color: var(--primary-text-color);
+            }
+            .dlg-body {
+              padding: 12px 20px 8px;
+              overflow-y: auto;
+              flex: 1;
+              display: flex;
+              flex-direction: column;
+              gap: 14px;
+            }
+            .field {
+              display: flex;
+              flex-direction: column;
+              gap: 4px;
+            }
+            .lbl {
+              font-size: 0.73rem;
+              font-weight: 500;
+              letter-spacing: 0.04em;
+              text-transform: uppercase;
+              color: var(--secondary-text-color);
+            }
+            .req {
+              color: var(--error-color, #b00020);
+              margin-left: 2px;
+            }
+            .inp {
+              width: 100%;
+              padding: 8px 12px;
+              border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12));
+              border-radius: 8px;
+              background: var(--input-fill-color, var(--secondary-background-color, #f5f5f5));
+              color: var(--primary-text-color);
+              font-size: 0.95rem;
+              font-family: inherit;
+              box-sizing: border-box;
+              outline: none;
+              transition: border-color 0.15s;
+              -webkit-appearance: none;
+            }
+            .inp:focus { border-color: var(--primary-color); }
+            .inp:disabled { opacity: 0.55; }
+            .err {
+              color: var(--error-color, #b00020);
+              font-size: 0.85rem;
+              margin: 0;
+            }
+            .dlg-actions {
+              display: flex;
+              justify-content: flex-end;
+              padding: 8px 20px 16px;
+              gap: 8px;
+              flex-shrink: 0;
+            }
+            .btn {
+              padding: 8px 20px;
+              border: none;
+              border-radius: 8px;
+              cursor: pointer;
+              font-size: 0.88rem;
+              font-family: inherit;
+              font-weight: 500;
+              transition: opacity 0.12s, background 0.12s;
+            }
+            .btn:disabled { opacity: 0.45; cursor: default; }
+            .btn-ghost {
+              background: transparent;
+              color: var(--primary-text-color);
+            }
+            .btn-ghost:hover:not(:disabled) { background: var(--secondary-background-color); }
+            .btn-primary {
+              background: var(--primary-color);
+              color: var(--text-primary-color, #fff);
+            }
+            .btn-primary:hover:not(:disabled) { opacity: 0.85; }
           `,
         ];
       }
