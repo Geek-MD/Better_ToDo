@@ -1564,7 +1564,9 @@
           <div
             class="create-dialog-overlay"
             @click=${(e) => {
-              if (e.target === e.currentTarget) this._closeCreateDialog();
+              if (e.target === e.currentTarget && !this._createListSaving) {
+                this._closeCreateDialog();
+              }
             }}
           >
             <ha-card class="create-dialog-card">
@@ -1592,7 +1594,9 @@
                     }}
                     @keydown=${(e) => {
                       if (e.key === "Enter") this._submitCreateList();
-                      if (e.key === "Escape") this._closeCreateDialog();
+                      if (e.key === "Escape" && !this._createListSaving) {
+                        this._closeCreateDialog();
+                      }
                     }}
                     ?disabled=${this._createListSaving}
                     autocomplete="off"
