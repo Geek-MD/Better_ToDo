@@ -1352,6 +1352,7 @@
 
       /** Open the inline create-list dialog. */
       _addList() {
+        if (!this.hass?.user?.is_admin) return;
         this._createListName = "";
         this._createListError = "";
         this._createListSaving = false;
@@ -1547,6 +1548,7 @@
         // automatically localised in every language HA supports.
         const createListLabel =
           this.hass?.localize("ui.panel.todo.create_list") || "Create list";
+        const canManageLists = !!this.hass?.user?.is_admin;
 
         // ── Layout decisions ────────────────────────────────────────────────
         // On narrow screens (_showPane=false) the sidebar is hidden by
@@ -1578,10 +1580,14 @@
           // Mobile list selector (rendered in the main content area).
           mainContent = html`
             <ha-list activatable>${makeListItems()}</ha-list>
-            <ha-list-item graphic="icon" @click=${this._addList}>
-              <ha-svg-icon .path=${_mdiPlus} slot="graphic"></ha-svg-icon>
-              ${createListLabel}
-            </ha-list-item>
+            ${canManageLists
+              ? html`
+                  <ha-list-item graphic="icon" @click=${() => this._addList()}>
+                    <ha-svg-icon .path=${_mdiPlus} slot="graphic"></ha-svg-icon>
+                    ${createListLabel}
+                  </ha-list-item>
+                `
+              : ""}
           `;
         } else if (this._selectedEntityId) {
           // Right pane: render a specialised view depending on list type.
@@ -1625,12 +1631,12 @@
           >
             ${showBack
               ? html`
-                  <ha-icon-button
-                    slot="navigationIcon"
-                    .path=${_mdiArrowLeft}
-                    .label=${this.hass?.localize("ui.common.back") || "Back"}
-                    @click=${this._backToLists}
-                  ></ha-icon-button>
+                    <ha-icon-button
+                      slot="navigationIcon"
+                      .path=${_mdiArrowLeft}
+                      .label=${this.hass?.localize("ui.common.back") || "Back"}
+                      @click=${() => this._backToLists()}
+                    ></ha-icon-button>
                 `
               : html`
                   <ha-menu-button
@@ -1646,12 +1652,12 @@
             <ha-list slot="pane" activatable>${makeListItems()}</ha-list>
 
             <!-- "Create list" footer (visible only when the sidebar pane is shown) -->
-            ${this._showPane
+            ${this._showPane && canManageLists
               ? html`
                   <ha-list-item
                     graphic="icon"
                     slot="pane-footer"
-                    @click=${this._addList}
+                    @click=${() => this._addList()}
                   >
                     <ha-svg-icon
                       .path=${_mdiPlus}
