@@ -1267,6 +1267,7 @@
         if (!name || this._createListSaving) return;
         this._createListSaving = true;
         this._createListError = "";
+        let closeDialog = false;
         try {
           // Step 1: start a new config-flow for better_todo.
           const flow = await this.hass.callApi(
@@ -1294,17 +1295,19 @@
             this._createListError =
               this.hass?.localize("ui.errors.config.config_flow_error") ||
               "Invalid input. Please check the list name.";
-            this._createListSaving = false;
             return;
           }
-          this._createListSaving = false;
-          this._createListName = "";
-          this._createListError = "";
-          this._showCreateDialog = false;
+          closeDialog = true;
         } catch (err) {
           this._createListError =
             err?.message || "Error creating list. Please try again.";
+        } finally {
           this._createListSaving = false;
+          if (closeDialog) {
+            this._createListName = "";
+            this._createListError = "";
+            this._showCreateDialog = false;
+          }
         }
       }
 
@@ -1594,7 +1597,7 @@
                     }}
                     @keydown=${(e) => {
                       if (e.key === "Enter") this._submitCreateList();
-                      if (e.key === "Escape" && !this._createListSaving) {
+                      else if (e.key === "Escape" && !this._createListSaving) {
                         e.preventDefault();
                         e.stopPropagation();
                         this._closeCreateDialog();
