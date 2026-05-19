@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.4] - 2026-05-19
+
+### Fixed
+- **"Create list" dialog not opening**: replaced the `show-dialog` → `ha-config-flow` event approach (which relied on an element that may never be registered in a custom-panel context) with an inline overlay dialog that calls the HA config-flow REST API directly (`POST /api/config/config_entries/flow`). The dialog is rendered inside the panel's own shadow DOM using the same `position: fixed` overlay pattern already used by `better-todo-task-dialog`, so it correctly layers over the panel regardless of any navigation transitions.
+- **Shopping List not translating to the active frontend language**: the panel now calls `hass.loadBackendTranslation("component", "better_todo")` in `willUpdate` whenever `hass` first becomes available or the frontend language changes. This loads the integration's entity translations into `hass.localize`, making `hass.localize("component.better_todo.entity.todo.shopping_list.name")` return the correct locale-specific name (e.g. *Lista de la compra* in Spanish, *Einkaufsliste* in German) instead of the English fallback.
+
 ## [0.5.3] - 2026-05-19
 
 ### Fixed
