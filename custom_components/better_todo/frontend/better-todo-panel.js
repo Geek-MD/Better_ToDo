@@ -1543,7 +1543,7 @@
             ${mainContent}
           </ha-two-pane-top-app-bar-fixed>
 
-          <!-- Create-list dialog (native <dialog> / top layer) -->
+          <!-- Create-list dialog -->
           ${this._renderCreateListDialog()}
         `;
       }
