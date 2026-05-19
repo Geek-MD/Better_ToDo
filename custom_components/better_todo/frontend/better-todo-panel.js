@@ -1213,16 +1213,13 @@
         );
       }
 
-      /** Returns the display name for a list, localizing Shopping List in the
-       *  active HA frontend language when possible. */
+      /** Returns the display name for a list. */
       _computeListName(stateObj) {
-        if (this._isShoppingList(stateObj.entity_id)) {
-          const translated = this.hass?.localize(
-            "component.better_todo.entity.todo.shopping_list.name"
-          );
-          if (translated) return translated;
-        }
         return _computeStateName(stateObj);
+      }
+
+      _getConfigEntryId(entityId) {
+        return this.hass?.entities?.[entityId]?.config_entry_id || null;
       }
 
       // -----------------------------------------------------------------------
@@ -1243,6 +1240,52 @@
       /** Navigate back to the list selector on narrow screens. */
       _backToLists() {
         this._paneOnMobile = true;
+      }
+
+      async _renameList(entityId, ev) {
+        ev?.stopPropagation();
+        const stateObj = this.hass?.states?.[entityId];
+        if (!stateObj) return;
+        const currentName = this._computeListName(stateObj);
+        const nextName = window.prompt(
+          this.hass?.localize("ui.common.edit") || "Edit",
+          currentName
+        );
+        if (nextName === null) return;
+        const trimmed = nextName.trim();
+        if (!trimmed || trimmed === currentName) return;
+        try {
+          await this.hass.callWS({
+            type: "config/entity_registry/update",
+            entity_id: entityId,
+            name: trimmed,
+          });
+        } catch (err) {
+          alert(err?.message || "Error renaming list.");
+        }
+      }
+
+      async _deleteList(entityId, ev) {
+        ev?.stopPropagation();
+        const configEntryId = this._getConfigEntryId(entityId);
+        if (!configEntryId) return;
+        const stateObj = this.hass?.states?.[entityId];
+        const listName = stateObj ? this._computeListName(stateObj) : entityId;
+        const confirmed = window.confirm(
+          `${this.hass?.localize("ui.common.delete") || "Delete"} "${listName}"?`
+        );
+        if (!confirmed) return;
+        try {
+          await this.hass.callApi(
+            "DELETE",
+            `config/config_entries/entry/${configEntryId}`
+          );
+          if (this._selectedEntityId === entityId) {
+            this._selectedEntityId = null;
+          }
+        } catch (err) {
+          alert(err?.message || "Error deleting list.");
+        }
       }
 
       /** Open the inline create-list dialog. */
@@ -1348,16 +1391,6 @@
 
       willUpdate(changedProps) {
         super.willUpdate(changedProps);
-        // Ensure the integration's own translations (e.g. the Shopping List
-        // entity name in each language) are loaded into hass.localize.  We do
-        // this once on first hass availability and again whenever the frontend
-        // language changes so localisation always reflects the current locale.
-        if (changedProps.has("hass") && this.hass) {
-          const prevHass = changedProps.get("hass");
-          if (!prevHass || prevHass.language !== this.hass.language) {
-            this.hass.loadBackendTranslation?.("component", "better_todo");
-          }
-        }
         // Auto-select the first available list when nothing is selected (or when
         // the previously selected entity no longer exists in the state machine).
         if (this.hass) {
@@ -1405,7 +1438,9 @@
         // instances (Lit must not share a single instance across two DOM slots).
         const makeListItems = () =>
           lists.map(
-            (list) => html`
+            (list) => {
+              const configEntryId = this._getConfigEntryId(list.entity_id);
+              return html`
               <ha-list-item
                 graphic="icon"
                 .activated=${list.entity_id === this._selectedEntityId}
@@ -1416,8 +1451,25 @@
                   slot="graphic"
                 ></ha-state-icon>
                 ${this._computeListName(list)}
+                <ha-button-menu
+                  slot="meta"
+                  @click=${(e) => e.stopPropagation()}
+                >
+                  <ha-list-item
+                    @click=${(e) => this._renameList(list.entity_id, e)}
+                  >
+                    ${this.hass?.localize("ui.common.edit") || "Edit"}
+                  </ha-list-item>
+                  <ha-list-item
+                    ?disabled=${!configEntryId}
+                    @click=${(e) => this._deleteList(list.entity_id, e)}
+                  >
+                    ${this.hass?.localize("ui.common.delete") || "Delete"}
+                  </ha-list-item>
+                </ha-button-menu>
               </ha-list-item>
-            `
+            `;
+            }
           );
 
         // "Create list" label: reuse HA's own translation key so the label is
