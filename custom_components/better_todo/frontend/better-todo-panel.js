@@ -1377,6 +1377,29 @@
         }
       }
 
+      updated(changedProps) {
+        super.updated(changedProps);
+        // Drive the native <dialog> open/close from reactive state so the
+        // element uses the browser top layer (immune to CSS transforms on HA's
+        // panel container that would otherwise trap position:fixed elements).
+        if (changedProps.has("_showCreateDialog")) {
+          const dlg = this.shadowRoot?.querySelector("#dlg-create");
+          if (!dlg) return;
+          if (this._showCreateDialog) {
+            if (!dlg.open) {
+              dlg.showModal();
+              // Focus the text input on the next frame so the browser has time
+              // to finish the showModal() layout pass.
+              requestAnimationFrame(() => {
+                this.shadowRoot?.querySelector("#inp-list-name")?.focus();
+              });
+            }
+          } else if (dlg.open) {
+            dlg.close();
+          }
+        }
+      }
+
       // -----------------------------------------------------------------------
       // Rendering
       // -----------------------------------------------------------------------
@@ -1529,16 +1552,15 @@
             ${mainContent}
           </ha-two-pane-top-app-bar-fixed>
 
-          <!-- Inline "Create list" dialog overlay -->
-          ${this._showCreateDialog
-            ? this._renderCreateListDialog()
-            : ""}
+          <!-- Create-list dialog (native <dialog> / top layer) -->
+          ${this._renderCreateListDialog()}
         `;
       }
 
-      /** Render the inline create-list dialog.
-       *  Uses a position:fixed overlay (same approach as BetterTodoTaskDialog)
-       *  so it is always correctly layered regardless of panel transitions. */
+      /** Render the create-list dialog using the native <dialog> element.
+       *  showModal() places the dialog in the browser top layer, which is
+       *  completely unaffected by CSS transforms on ancestor elements
+       *  (including HA's panel-transition transforms). */
       _renderCreateListDialog() {
         const L = (k, fb) => this.hass?.localize(k) || fb;
         const title =
@@ -1549,68 +1571,75 @@
           "List name"
         );
         return html`
-          <div
-            class="create-overlay"
-            @click=${(e) => {
-              if (e.target === e.currentTarget) this._closeCreateDialog();
+          <dialog
+            id="dlg-create"
+            class="create-dialog"
+            @cancel=${(e) => {
+              /* Prevent Escape from closing the dialog mid-save */
+              if (this._createListSaving) e.preventDefault();
+            }}
+            @close=${() => {
+              /* Sync state whenever the dialog closes (Escape or programmatic) */
+              this._showCreateDialog = false;
+              this._createListName = "";
+              this._createListSaving = false;
+              this._createListError = "";
             }}
           >
-            <ha-card class="create-dialog">
-              <div class="dlg-header">
-                <span class="dlg-title">${title}</span>
-                <ha-icon-button
-                  .path=${_mdiClose}
-                  @click=${() => this._closeCreateDialog()}
-                  ?disabled=${this._createListSaving}
-                ></ha-icon-button>
-              </div>
+            <div class="dlg-header">
+              <span class="dlg-title">${title}</span>
+              <ha-icon-button
+                .path=${_mdiClose}
+                @click=${() => this._closeCreateDialog()}
+                ?disabled=${this._createListSaving}
+              ></ha-icon-button>
+            </div>
 
-              <div class="dlg-body">
-                <div class="field">
-                  <label class="lbl">
-                    ${fieldLabel}<span class="req">*</span>
-                  </label>
-                  <input
-                    class="inp"
-                    type="text"
-                    .value=${this._createListName}
-                    @input=${(e) => {
-                      this._createListName = e.target.value;
-                    }}
-                    @keydown=${(e) => {
-                      if (e.key === "Enter") this._submitCreateList();
-                      if (e.key === "Escape") this._closeCreateDialog();
-                    }}
-                    ?disabled=${this._createListSaving}
-                    autocomplete="off"
-                  />
-                </div>
-                ${this._createListError
-                  ? html`<p class="err">${this._createListError}</p>`
-                  : ""}
-              </div>
-
-              <div class="dlg-actions">
-                <button
-                  class="btn btn-ghost"
-                  @click=${() => this._closeCreateDialog()}
+            <div class="dlg-body">
+              <div class="field">
+                <label class="lbl">
+                  ${fieldLabel}<span class="req">*</span>
+                </label>
+                <input
+                  id="inp-list-name"
+                  class="inp"
+                  type="text"
+                  .value=${this._createListName}
+                  @input=${(e) => {
+                    this._createListName = e.target.value;
+                  }}
+                  @keydown=${(e) => {
+                    if (e.key === "Enter") this._submitCreateList();
+                  }}
                   ?disabled=${this._createListSaving}
-                >
-                  ${L("ui.common.cancel", "Cancel")}
-                </button>
-                <button
-                  class="btn btn-primary"
-                  @click=${() => this._submitCreateList()}
-                  ?disabled=${!this._createListName.trim() ||
-                    this._createListSaving}
-                >
-                  ${this._createListSaving
-                    ? "…"
-                    : L("ui.common.add", "Add")}
-                </button>
+                  autocomplete="off"
+                />
               </div>
-            </ha-card>
-          </div>
+              ${this._createListError
+                ? html`<p class="err">${this._createListError}</p>`
+                : ""}
+            </div>
+
+            <div class="dlg-actions">
+              <button
+                class="btn btn-ghost"
+                @click=${() => this._closeCreateDialog()}
+                ?disabled=${this._createListSaving}
+              >
+                ${L("ui.common.cancel", "Cancel")}
+              </button>
+              <button
+                class="btn btn-primary"
+                @click=${() => this._submitCreateList()}
+                ?disabled=${!this._createListName.trim() ||
+                  this._createListSaving}
+              >
+                ${this._createListSaving
+                  ? "…"
+                  : L("ui.common.add", "Add")}
+              </button>
+            </div>
+          </dialog>
         `;
       }
 
@@ -1644,26 +1673,24 @@
               text-align: center;
               color: var(--secondary-text-color);
             }
-            /* Create-list dialog overlay (position:fixed so it layers over
-               the panel regardless of any HA transition transforms). */
-            .create-overlay {
-              position: fixed;
-              inset: 0;
-              background: rgba(0, 0, 0, 0.48);
-              z-index: 10;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              padding: 16px;
-              box-sizing: border-box;
-            }
-            .create-dialog {
-              width: 100%;
+            /* Native <dialog> element in the browser top layer.
+               showModal() is completely unaffected by CSS transforms on
+               HA's panel container (which would trap position:fixed). */
+            dialog.create-dialog {
+              border: none;
+              padding: 0;
+              background: var(--card-background-color, #fff);
+              border-radius: var(--ha-card-border-radius, 12px);
+              box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24),
+                          0 2px 8px rgba(0, 0, 0, 0.16);
+              width: calc(100vw - 32px);
               max-width: 400px;
               display: flex;
               flex-direction: column;
               overflow: hidden;
-              border-radius: var(--ha-card-border-radius, 12px);
+            }
+            dialog.create-dialog::backdrop {
+              background: rgba(0, 0, 0, 0.48);
             }
             .dlg-header {
               display: flex;
