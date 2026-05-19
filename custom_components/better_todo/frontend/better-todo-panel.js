@@ -1823,6 +1823,7 @@
                   : html`
                       <p>
                         ${L("ui.dialogs.generic.delete", "Delete")}
+                        ${" "}
                         "${this._listActionName}"?
                       </p>
                     `}
