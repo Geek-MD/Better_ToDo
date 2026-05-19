@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.6] - 2026-05-19
+
+### Fixed
+- **"Create list" dialog still not opening from the left pane**: replaced the native `<dialog>` / `showModal()` path with a Lit-rendered overlay card that opens directly from the panel state, keeps the existing Better To-do config-flow REST submission, restores focus to the list-name field when opened, and prevents the dialog from being dismissed while a save is in progress.
+
 ## [0.5.5] - 2026-05-19
 
 ### Fixed
