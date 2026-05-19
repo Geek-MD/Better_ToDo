@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] - 2026-05-19
+
+### Fixed
+- **Panel render regression**: restored the v0.5.0 create-list flow approach (`show-dialog` → `ha-config-flow`) and removed the inline `ha-dialog` implementation introduced in v0.5.2, which could break panel rendering in some HA frontend contexts.
+- **"Create list" dialog not opening**: clicking *Create list* now again triggers Home Assistant's native config-flow dialog path used in v0.5.0.
+- **Shopping List language mismatch in panel**: the panel now resolves the Shopping List label via `hass.localize("component.better_todo.entity.todo.shopping_list.name")`, so it follows the active HA frontend language instead of showing a fixed-language friendly name.
+
 ## [0.5.2] - 2026-05-19
 
 ### Fixed

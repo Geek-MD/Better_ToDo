@@ -18,6 +18,12 @@ A custom Home Assistant integration that provides a **local, file-based to-do li
 
 It is built on the same foundation as the built-in [Local To-do](https://www.home-assistant.io/integrations/local_todo) integration but extends it with a native recurrence engine: when a recurring task is marked completed it automatically advances to its next scheduled occurrence rather than disappearing.
 
+## What's new in v0.5.3
+
+- Restored the panel create-list rendering path to the v0.5.0 approach to avoid frontend render regressions seen in v0.5.2.
+- Clicking **Create list** now opens Home Assistant's native config-flow dialog again.
+- The Shopping List label shown in the custom panel now follows the active Home Assistant frontend language.
+
 ---
 
 ## Features
