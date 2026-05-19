@@ -18,9 +18,10 @@ A custom Home Assistant integration that provides a **local, file-based to-do li
 
 It is built on the same foundation as the built-in [Local To-do](https://www.home-assistant.io/integrations/local_todo) integration but extends it with a native recurrence engine: when a recurring task is marked completed it automatically advances to its next scheduled occurrence rather than disappearing.
 
-## What's new in v0.5.5
+## What's new in v0.5.7
 
-- **"Create list" dialog now opens reliably**: replaced the `position: fixed` overlay (which was silently hidden when HA's panel container applied CSS transforms during navigation transitions) with the browser-native `<dialog>` element driven by `showModal()`. The native dialog uses the browser's **top layer**, which is completely immune to CSS transforms and stacking contexts on any ancestor element.
+- **Per-list actions in the left pane**: every list row now includes a right-side 3-dots menu with actions to **edit the list name** or **delete the list**.
+- **Shopping List naming in panel simplified**: the panel now uses the entity display name path directly for all lists instead of forcing a frontend translation override for `Shopping List`.
 
 ---
 
@@ -33,7 +34,7 @@ It is built on the same foundation as the built-in [Local To-do](https://www.hom
 - **`task_recurrence` attribute** – the entity exposes a `{uid: rrule_string}` dictionary so custom Lovelace cards and automations can read per-task recurrence rules.
 - **`better_todo.set_task_details` service** – attach structured metadata tags (`quantity`, `unit`, `category`, `repeat`, plus free-text notes) to any task. Data is encoded in the standard `description` field and is immediately visible in the HA Tasks panel without a custom card.
 - **`task_details` attribute** – the entity exposes a `{uid: {quantity, unit, category, repeat}}` dictionary so automations and scripts can read per-task metadata.
-- **Default `Shopping List`** – a `todo.shopping_list` entity is created automatically on first setup, separate from any custom lists you create. Shopping List items support only a **description** field (no due date), matching typical shopping-list behaviour. Its visible name is localized using your Home Assistant language (e.g. Spanish: *Lista de la compra*).
+- **Default `Shopping List`** – a `todo.shopping_list` entity is created automatically on first setup, separate from any custom lists you create. Shopping List items support only a **description** field (no due date), matching typical shopping-list behaviour.
 - **Local iCalendar storage** – each list is persisted as a `.ics` file in the Home Assistant `.storage` directory; no cloud, no external services.
 - **Config-flow setup** – configure entirely through the UI; no YAML needed.
 - **Multiple lists** – add as many Better To-do lists as you need, each stored in its own file.
