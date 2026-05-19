@@ -5,11 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.5.1] - 2026-05-18
+## [0.5.2] - 2026-05-19
 
 ### Fixed
-- **"Create list" dialog not opening**: clicking *Create list* in the left pane no longer silently fails. The previous implementation relied on dispatching a `show-dialog` event for `ha-config-flow`, which is loaded lazily and was not available in all navigation contexts. Replaced with a self-contained inline overlay dialog (same visual style as the task dialog) that calls HA's config-flow REST API (`POST /api/config/config_entries/flow`) directly to create the new list.
-- **Shopping List displaying lowercase name**: the built-in Shopping List entity now correctly shows its translated friendly name (e.g. *Lista de la compra* in Spanish, *Einkaufsliste* in German) in the left pane instead of the entity_id-derived lowercase string `shopping list`. Root cause: `_attr_name = None` was set as an instance attribute in `__init__`, causing HA's entity name property to short-circuit before reaching the `translation_key` lookup. Fixed by removing the instance-level `_attr_name` attribute so HA's entity framework sees `UNDEFINED` and resolves the friendly name via `translation_key = "shopping_list"`.
+- **"Create list" dialog not opening**: clicking *Create list* in the left pane now reliably opens a dialog. Replaced the v0.5.0 approach (dispatching a `show-dialog` event for the lazily-loaded `ha-config-flow` element, which silently failed in many navigation contexts) with an `ha-dialog`-based inline dialog that calls HA's config-flow REST API (`POST /api/config/config_entries/flow`) directly. Using `ha-dialog` (which internally uses `showModal()` / the browser top-layer) means the dialog overlays the full viewport correctly regardless of any CSS transforms applied by HA's panel transitions — avoiding the layout regression introduced by v0.5.1's `position: fixed` overlay approach.
+- **Shopping List displaying lowercase name**: the built-in Shopping List entity now correctly shows its translated friendly name (e.g. *Lista de la compra* in Spanish, *Einkaufsliste* in German) instead of the entity_id-derived lowercase string `shopping list`. Root cause: `_attr_name = None` was set as an instance attribute in `__init__`, causing HA's entity name property to short-circuit before reaching the `translation_key` lookup. Fixed by removing the instance-level `_attr_name` attribute so HA's entity framework sees `UNDEFINED` and resolves the friendly name via `translation_key = "shopping_list"`.
 
 ## [0.5.0] - 2026-05-18
 
