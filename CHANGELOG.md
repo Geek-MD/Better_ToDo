@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.5] - 2026-05-19
+
+### Fixed
+- **"Create list" dialog not opening**: replaced the `position: fixed` overlay approach (used in v0.5.4) with the browser-native `<dialog>` element driven by `showModal()`. The native dialog is placed in the browser's **top layer** by the UA and is therefore completely immune to any CSS `transform` or stacking-context on HA's panel container — which was the root cause of the overlay silently not appearing during HA panel transitions. The dialog state is driven by a new `updated()` lifecycle hook that calls `showModal()` / `close()` whenever `_showCreateDialog` changes.
+
 ## [0.5.4] - 2026-05-19
 
 ### Fixed
