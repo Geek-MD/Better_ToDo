@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.7] - 2026-05-19
+
+### Added
+- **List actions menu in the left pane**: each list row now includes a 3-dots menu on the right side with direct actions to edit the list name or delete the list.
+
+### Changed
+- **Shopping List name handling in panel**: removed the forced frontend translation override for `todo.shopping_list` and now uses the normal entity display name path consistently for all lists.
+
 ## [0.5.6] - 2026-05-19
 
 ### Fixed
