@@ -1156,6 +1156,12 @@
           _createListName: { state: true },
           _createListSaving: { state: true },
           _createListError: { state: true },
+          _showListActionDialog: { state: true },
+          _listActionType: { state: true },
+          _listActionEntityId: { state: true },
+          _listActionName: { state: true },
+          _listActionSaving: { state: true },
+          _listActionError: { state: true },
         };
       }
 
@@ -1180,6 +1186,12 @@
         this._createListName = "";
         this._createListSaving = false;
         this._createListError = "";
+        this._showListActionDialog = false;
+        this._listActionType = null;
+        this._listActionEntityId = null;
+        this._listActionName = "";
+        this._listActionSaving = false;
+        this._listActionError = "";
       }
 
       // -----------------------------------------------------------------------
@@ -1242,39 +1254,86 @@
         this._paneOnMobile = true;
       }
 
-      async _renameList(entityId, ev) {
+      _openRenameListDialog(entityId, ev) {
         ev?.stopPropagation();
         const stateObj = this.hass?.states?.[entityId];
         if (!stateObj) return;
+        this._listActionType = "rename";
+        this._listActionEntityId = entityId;
+        this._listActionName = this._computeListName(stateObj);
+        this._listActionSaving = false;
+        this._listActionError = "";
+        this._showListActionDialog = true;
+      }
+
+      _openDeleteListDialog(entityId, ev) {
+        ev?.stopPropagation();
+        if (!this._getConfigEntryId(entityId)) return;
+        const stateObj = this.hass?.states?.[entityId];
+        if (!stateObj) return;
+        this._listActionType = "delete";
+        this._listActionEntityId = entityId;
+        this._listActionName = this._computeListName(stateObj);
+        this._listActionSaving = false;
+        this._listActionError = "";
+        this._showListActionDialog = true;
+      }
+
+      _closeListActionDialog(force = false) {
+        if (this._listActionSaving && !force) return;
+        this._showListActionDialog = false;
+        this._listActionType = null;
+        this._listActionEntityId = null;
+        this._listActionName = "";
+        this._listActionError = "";
+      }
+
+      async _submitRenameList() {
+        if (
+          this._listActionSaving ||
+          this._listActionType !== "rename" ||
+          !this._listActionEntityId
+        ) {
+          return;
+        }
+        const stateObj = this.hass?.states?.[this._listActionEntityId];
+        if (!stateObj) return;
         const currentName = this._computeListName(stateObj);
-        const nextName = window.prompt(
-          this.hass?.localize("ui.common.edit") || "Edit",
-          currentName
-        );
-        if (nextName === null) return;
-        const trimmed = nextName.trim();
-        if (!trimmed || trimmed === currentName) return;
+        const trimmed = this._listActionName.trim();
+        if (!trimmed) return;
+        if (trimmed === currentName) {
+          this._closeListActionDialog(true);
+          return;
+        }
+        this._listActionSaving = true;
+        this._listActionError = "";
         try {
           await this.hass.callWS({
             type: "config/entity_registry/update",
-            entity_id: entityId,
+            entity_id: this._listActionEntityId,
             name: trimmed,
           });
+          this._closeListActionDialog(true);
         } catch (err) {
-          alert(err?.message || "Error renaming list.");
+          this._listActionError = err?.message || "Error renaming list.";
+        } finally {
+          this._listActionSaving = false;
         }
       }
 
-      async _deleteList(entityId, ev) {
-        ev?.stopPropagation();
+      async _submitDeleteList() {
+        if (
+          this._listActionSaving ||
+          this._listActionType !== "delete" ||
+          !this._listActionEntityId
+        ) {
+          return;
+        }
+        const entityId = this._listActionEntityId;
         const configEntryId = this._getConfigEntryId(entityId);
         if (!configEntryId) return;
-        const stateObj = this.hass?.states?.[entityId];
-        const listName = stateObj ? this._computeListName(stateObj) : entityId;
-        const confirmed = window.confirm(
-          `${this.hass?.localize("ui.common.delete") || "Delete"} "${listName}"?`
-        );
-        if (!confirmed) return;
+        this._listActionSaving = true;
+        this._listActionError = "";
         try {
           await this.hass.callApi(
             "DELETE",
@@ -1283,8 +1342,11 @@
           if (this._selectedEntityId === entityId) {
             this._selectedEntityId = null;
           }
+          this._closeListActionDialog();
         } catch (err) {
-          alert(err?.message || "Error deleting list.");
+          this._listActionError = err?.message || "Error deleting list.";
+        } finally {
+          this._listActionSaving = false;
         }
       }
 
@@ -1425,6 +1487,15 @@
             this.shadowRoot?.querySelector("#inp-list-name")?.focus();
           });
         }
+        if (
+          changedProps.has("_showListActionDialog") &&
+          this._showListActionDialog &&
+          this._listActionType === "rename"
+        ) {
+          requestAnimationFrame(() => {
+            this.shadowRoot?.querySelector("#inp-rename-list-name")?.focus();
+          });
+        }
       }
 
       // -----------------------------------------------------------------------
@@ -1456,13 +1527,13 @@
                   @click=${(e) => e.stopPropagation()}
                 >
                   <ha-list-item
-                    @click=${(e) => this._renameList(list.entity_id, e)}
+                    @click=${(e) => this._openRenameListDialog(list.entity_id, e)}
                   >
                     ${this.hass?.localize("ui.common.edit") || "Edit"}
                   </ha-list-item>
                   <ha-list-item
                     ?disabled=${!configEntryId}
-                    @click=${(e) => this._deleteList(list.entity_id, e)}
+                    @click=${(e) => this._openDeleteListDialog(list.entity_id, e)}
                   >
                     ${this.hass?.localize("ui.common.delete") || "Delete"}
                   </ha-list-item>
@@ -1600,6 +1671,7 @@
 
           <!-- Create-list dialog -->
           ${this._renderCreateListDialog()}
+          ${this._renderListActionDialog()}
         `;
       }
 
@@ -1681,6 +1753,105 @@
                   ${this._createListSaving
                     ? "…"
                     : L("ui.common.add", "Add")}
+                </button>
+              </div>
+            </ha-card>
+          </div>
+        `;
+      }
+
+      _renderListActionDialog() {
+        if (!this._showListActionDialog || !this._listActionType) {
+          return html``;
+        }
+        const L = (k, fb) => this.hass?.localize(k) || fb;
+        const isRename = this._listActionType === "rename";
+        return html`
+          <div
+            class="create-dialog-overlay"
+            @click=${(e) => {
+              if (e.target === e.currentTarget && !this._listActionSaving) {
+                this._closeListActionDialog();
+              }
+            }}
+          >
+            <ha-card class="create-dialog-card">
+              <div class="dlg-header">
+                <span class="dlg-title">
+                  ${isRename
+                    ? L("ui.common.edit", "Edit")
+                    : L("ui.common.delete", "Delete")}
+                </span>
+                <ha-icon-button
+                  .path=${_mdiClose}
+                  @click=${() => this._closeListActionDialog()}
+                  ?disabled=${this._listActionSaving}
+                ></ha-icon-button>
+              </div>
+
+              <div class="dlg-body">
+                ${isRename
+                  ? html`
+                      <div class="field">
+                        <label class="lbl">
+                          ${L(
+                            "component.better_todo.config.step.user.data.todo_list_name",
+                            "List name"
+                          )}<span class="req">*</span>
+                        </label>
+                        <input
+                          id="inp-rename-list-name"
+                          class="inp"
+                          type="text"
+                          .value=${this._listActionName}
+                          @input=${(e) => {
+                            this._listActionName = e.target.value;
+                          }}
+                          @keydown=${(e) => {
+                            if (e.key === "Enter") this._submitRenameList();
+                            else if (e.key === "Escape" && !this._listActionSaving) {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              this._closeListActionDialog();
+                            }
+                          }}
+                          ?disabled=${this._listActionSaving}
+                          autocomplete="off"
+                        />
+                      </div>
+                    `
+                  : html`
+                      <p>
+                        ${L("ui.dialogs.generic.delete", "Delete")}
+                        "${this._listActionName}"?
+                      </p>
+                    `}
+                ${this._listActionError
+                  ? html`<p class="err">${this._listActionError}</p>`
+                  : ""}
+              </div>
+
+              <div class="dlg-actions">
+                <button
+                  class="btn btn-ghost"
+                  @click=${() => this._closeListActionDialog()}
+                  ?disabled=${this._listActionSaving}
+                >
+                  ${L("ui.common.cancel", "Cancel")}
+                </button>
+                <button
+                  class="btn btn-primary"
+                  @click=${() =>
+                    isRename ? this._submitRenameList() : this._submitDeleteList()}
+                  ?disabled=${isRename
+                    ? !this._listActionName.trim() || this._listActionSaving
+                    : this._listActionSaving}
+                >
+                  ${this._listActionSaving
+                    ? "…"
+                    : isRename
+                      ? L("ui.common.save", "Save")
+                      : L("ui.common.delete", "Delete")}
                 </button>
               </div>
             </ha-card>
