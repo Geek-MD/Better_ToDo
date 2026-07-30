@@ -141,7 +141,7 @@
         return new Date(y, m - 1, d).toLocaleDateString(locale, {
           month: "short", day: "numeric", year: "numeric",
         });
-      } catch (_) {
+      } catch {
         return String(due);
       }
     }
@@ -249,7 +249,9 @@
         // remains correct when multiple tasks share the same summary.
         for (let attempt = 0; attempt < 8; attempt++) {
           if (attempt > 0) {
-            await new Promise((resolve) => setTimeout(resolve, 100 * attempt));
+            await new Promise((resolve) => {
+              setTimeout(resolve, 100 * attempt);
+            });
           }
           const items = await this._listItemUids();
           const created = items.find(
@@ -723,7 +725,7 @@
           if (fetchSequence === this._fetchSequence && entityId === this.entityId) {
             this._items = res?.items || [];
           }
-        } catch (_) {
+        } catch {
           if (fetchSequence === this._fetchSequence && entityId === this.entityId) {
             this._items = [];
           }
@@ -778,7 +780,7 @@
           await this.hass.callService("todo", "update_item", {
             entity_id: this.entityId, item: item.uid, status: newStatus,
           });
-        } catch (_) { /* ignore */ }
+        } catch { /* ignore */ }
       }
 
       async _delete(uid, ev) {
@@ -787,7 +789,7 @@
           await this.hass.callService("todo", "remove_item", {
             entity_id: this.entityId, item: uid,
           });
-        } catch (_) { /* ignore */ }
+        } catch { /* ignore */ }
       }
 
       _renderItem(item) {
@@ -1013,7 +1015,7 @@
           if (fetchSequence === this._fetchSequence && entityId === this.entityId) {
             this._items = res?.items || [];
           }
-        } catch (_) {
+        } catch {
           if (fetchSequence === this._fetchSequence && entityId === this.entityId) {
             this._items = [];
           }
@@ -1049,7 +1051,7 @@
           await this.hass.callService("todo", "update_item", {
             entity_id: this.entityId, item: item.uid, status: newStatus,
           });
-        } catch (_) { /* ignore */ }
+        } catch { /* ignore */ }
       }
 
       render() {
@@ -1214,7 +1216,7 @@
         try {
           this._selectedEntityId =
             sessionStorage.getItem("better-todo-selected-entity") || null;
-        } catch (_) {
+        } catch {
           this._selectedEntityId = null;
         }
         this._resizeObserver = null;
@@ -1280,7 +1282,7 @@
         this._paneOnMobile = false;
         try {
           sessionStorage.setItem("better-todo-selected-entity", entityId);
-        } catch (_) {
+        } catch {
           // ignore
         }
       }
@@ -1310,7 +1312,9 @@
                       customElements
                         .whenDefined("ha-config-flow")
                         .then(() => {}),
-                      new Promise((r) => setTimeout(r, 2000)),
+                      new Promise((resolve) => {
+                        setTimeout(resolve, 2000);
+                      }),
                     ]),
               dialogParams: {
                 startFlowHandler: "better_todo",
