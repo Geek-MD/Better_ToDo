@@ -1,0 +1,16 @@
+{
+  "name": "better-todo-frontend",
+  "version": "0.5.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint:js": "eslint custom_components/better_todo/frontend/better-todo-panel.js",
+    "check:js": "node --check custom_components/better_todo/frontend/better-todo-panel.js && npm run lint:js"
+  },
+  "devDependencies": {
+    "eslint": "9.39.1",
+    "eslint-plugin-lit": "2.1.1",
+    "eslint-plugin-wc": "3.0.1",
+    "globals": "16.5.0"
+  }
+}

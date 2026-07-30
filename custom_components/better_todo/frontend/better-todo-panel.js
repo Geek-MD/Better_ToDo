@@ -141,7 +141,7 @@
         return new Date(y, m - 1, d).toLocaleDateString(locale, {
           month: "short", day: "numeric", year: "numeric",
         });
-      } catch (_) {
+      } catch {
         return String(due);
       }
     }
@@ -236,6 +236,32 @@
           : [...this._weekdays, day];
       }
 
+      async _listItemUids() {
+        const result = await this.hass.callWS({
+          type: "todo/item/list", entity_id: this.entityId,
+        });
+        return result?.items || [];
+      }
+
+      async _findCreatedItemUid(summary, previousUids) {
+        // The todo.add_item service does not return the generated UID. Poll the
+        // local entity briefly and identify the item by set difference, which
+        // remains correct when multiple tasks share the same summary.
+        for (let attempt = 0; attempt < 8; attempt++) {
+          if (attempt > 0) {
+            await new Promise((resolve) => {
+              setTimeout(resolve, 100 * attempt);
+            });
+          }
+          const items = await this._listItemUids();
+          const created = items.find(
+            (item) => item.summary === summary && !previousUids.has(item.uid)
+          );
+          if (created) return created.uid;
+        }
+        return null;
+      }
+
       async _save() {
         const summary = this._summary.trim();
         if (!summary || this._saving) return;
@@ -267,6 +293,11 @@
             });
           } else {
             // ── Create new item ──────────────────────────────────────────────
+            // Snapshot existing UIDs before creation so recurrence is attached
+            // to the exact new item, even when task names are duplicated.
+            const previousUids = rruleStr
+              ? new Set((await this._listItemUids()).map((item) => item.uid))
+              : null;
             const cr = {
               entity_id:   this.entityId,
               item:        summary,
@@ -279,21 +310,14 @@
             await this.hass.callService("todo", "add_item", cr);
 
             // To set recurrence on the brand-new item we first need its UID.
-            // Give the backend a moment to update state, then fetch the list
-            // and match the newest item with the same summary.
             if (rruleStr) {
-              await new Promise((r) => setTimeout(r, 500));
-              const result = await this.hass.callWS({
-                type: "todo/item/list", entity_id: this.entityId,
-              });
-              const candidates = (result?.items || []).filter(
-                (i) => i.summary === summary && i.status !== "completed"
-              );
-              if (candidates.length > 0) {
-                const newUid = candidates[candidates.length - 1].uid;
+              const newUid = await this._findCreatedItemUid(summary, previousUids);
+              if (newUid) {
                 await this.hass.callService("better_todo", "set_task_recurrence", {
                   entity_id: this.entityId, item: newUid, rrule: rruleStr,
                 });
+              } else {
+                throw new Error("The new task was created, but its recurrence could not be set.");
               }
             }
           }
@@ -683,26 +707,40 @@
         this._loading = false;
         // Non-reactive: prevents re-fetch loops when only _loading/_items change.
         this._stateKey = null;
+        // Discard late WebSocket responses after switching lists or starting a
+        // newer refresh. Without this, a slow response can replace the items
+        // belonging to the list that is currently visible.
+        this._fetchSequence = 0;
       }
 
       async _fetchItems() {
         if (!this.hass || !this.entityId) return;
+        const entityId = this.entityId;
+        const fetchSequence = ++this._fetchSequence;
         this._loading = true;
         try {
           const res = await this.hass.callWS({
-            type: "todo/item/list", entity_id: this.entityId,
+            type: "todo/item/list", entity_id: entityId,
           });
-          this._items = res?.items || [];
-        } catch (_) {
-          this._items = [];
+          if (fetchSequence === this._fetchSequence && entityId === this.entityId) {
+            this._items = res?.items || [];
+          }
+        } catch {
+          if (fetchSequence === this._fetchSequence && entityId === this.entityId) {
+            this._items = [];
+          }
+        } finally {
+          if (fetchSequence === this._fetchSequence) {
+            this._loading = false;
+          }
         }
-        this._loading = false;
       }
 
       updated(changedProps) {
         super.updated(changedProps);
         // Full reset when the displayed list changes.
         if (changedProps.has("entityId")) {
+          this._fetchSequence++;
           this._items    = [];
           this._stateKey = null;
           this._fetchItems();
@@ -712,7 +750,9 @@
         // was added / completed / deleted from outside this panel).
         if (changedProps.has("hass") && this.hass) {
           const s = this.hass.states[this.entityId];
-          const key = s ? `${s.last_changed}|${s.state}` : null;
+          // last_changed does not move for attribute-only/item-detail updates.
+          // last_updated ensures those external edits refresh the card too.
+          const key = s ? `${s.last_updated}|${s.state}` : null;
           if (key !== this._stateKey) {
             this._stateKey = key;
             this._fetchItems();
@@ -740,7 +780,7 @@
           await this.hass.callService("todo", "update_item", {
             entity_id: this.entityId, item: item.uid, status: newStatus,
           });
-        } catch (_) { /* ignore */ }
+        } catch { /* ignore */ }
       }
 
       async _delete(uid, ev) {
@@ -749,7 +789,7 @@
           await this.hass.callService("todo", "remove_item", {
             entity_id: this.entityId, item: uid,
           });
-        } catch (_) { /* ignore */ }
+        } catch { /* ignore */ }
       }
 
       _renderItem(item) {
@@ -960,25 +1000,36 @@
         this._items    = [];
         this._loading  = false;
         this._stateKey = null;
+        this._fetchSequence = 0;
       }
 
       async _fetchItems() {
         if (!this.hass || !this.entityId) return;
+        const entityId = this.entityId;
+        const fetchSequence = ++this._fetchSequence;
         this._loading = true;
         try {
           const res = await this.hass.callWS({
-            type: "todo/item/list", entity_id: this.entityId,
+            type: "todo/item/list", entity_id: entityId,
           });
-          this._items = res?.items || [];
-        } catch (_) {
-          this._items = [];
+          if (fetchSequence === this._fetchSequence && entityId === this.entityId) {
+            this._items = res?.items || [];
+          }
+        } catch {
+          if (fetchSequence === this._fetchSequence && entityId === this.entityId) {
+            this._items = [];
+          }
+        } finally {
+          if (fetchSequence === this._fetchSequence) {
+            this._loading = false;
+          }
         }
-        this._loading = false;
       }
 
       updated(changedProps) {
         super.updated(changedProps);
         if (changedProps.has("entityId")) {
+          this._fetchSequence++;
           this._items    = [];
           this._stateKey = null;
           this._fetchItems();
@@ -986,7 +1037,7 @@
         }
         if (changedProps.has("hass") && this.hass) {
           const s   = this.hass.states[this.entityId];
-          const key = s ? `${s.last_changed}|${s.state}` : null;
+          const key = s ? `${s.last_updated}|${s.state}` : null;
           if (key !== this._stateKey) {
             this._stateKey = key;
             this._fetchItems();
@@ -1000,7 +1051,7 @@
           await this.hass.callService("todo", "update_item", {
             entity_id: this.entityId, item: item.uid, status: newStatus,
           });
-        } catch (_) { /* ignore */ }
+        } catch { /* ignore */ }
       }
 
       render() {
@@ -1165,12 +1216,15 @@
         try {
           this._selectedEntityId =
             sessionStorage.getItem("better-todo-selected-entity") || null;
-        } catch (_) {
+        } catch {
           this._selectedEntityId = null;
         }
         this._resizeObserver = null;
         this._mql = null;
         this._onMqlChange = null;
+        this._todoListsCache = [];
+        this._todoStateRefs = new Map();
+        this._entityRegistryRef = null;
       }
 
       // -----------------------------------------------------------------------
@@ -1184,6 +1238,15 @@
         const entities = Object.values(this.hass.states).filter(
           (s) => s.entity_id.startsWith("todo.")
         );
+        const registryChanged = this.hass.entities !== this._entityRegistryRef;
+        const statesChanged =
+          entities.length !== this._todoStateRefs.size ||
+          entities.some((state) => this._todoStateRefs.get(state.entity_id) !== state);
+
+        if (!registryChanged && !statesChanged) {
+          return this._todoListsCache;
+        }
+
         entities.sort((a, b) => {
           const aShop = this._isShoppingList(a.entity_id);
           const bShop = this._isShoppingList(b.entity_id);
@@ -1191,7 +1254,12 @@
           if (!aShop && bShop) return -1;
           return _computeStateName(a).localeCompare(_computeStateName(b));
         });
-        return entities;
+        this._todoListsCache = entities;
+        this._todoStateRefs = new Map(
+          entities.map((state) => [state.entity_id, state])
+        );
+        this._entityRegistryRef = this.hass.entities;
+        return this._todoListsCache;
       }
 
       /** Returns true if the given entity_id belongs to the built-in Better
@@ -1214,7 +1282,7 @@
         this._paneOnMobile = false;
         try {
           sessionStorage.setItem("better-todo-selected-entity", entityId);
-        } catch (_) {
+        } catch {
           // ignore
         }
       }
@@ -1244,7 +1312,9 @@
                       customElements
                         .whenDefined("ha-config-flow")
                         .then(() => {}),
-                      new Promise((r) => setTimeout(r, 2000)),
+                      new Promise((resolve) => {
+                        setTimeout(resolve, 2000);
+                      }),
                     ]),
               dialogParams: {
                 startFlowHandler: "better_todo",
