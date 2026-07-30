@@ -66,3 +66,24 @@ jobs:
 
       - name: Run Hassfest
         uses: home-assistant/actions/hassfest@master
+
+  frontend-lint:
+    name: ESLint (JavaScript)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Install frontend lint dependencies
+        run: npm install --ignore-scripts
+
+      - name: Check JavaScript
+        run: npm run check:js

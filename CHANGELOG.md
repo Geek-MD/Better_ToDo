@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-07-30
+
+### Changed
+- **Panel list rendering**: cached the sorted `todo.*` entity list so unrelated Home Assistant state updates no longer repeat sorting work.
+- **Item refresh detection**: task and shopping-list views now use the entity's `last_updated` timestamp, ensuring attribute-only changes such as task details and recurrence are reflected immediately.
+- **Recurring task creation**: replaced the fixed 500 ms delay and summary-based lookup with bounded retries and UID set-difference detection. Recurrence is now assigned to the exact newly created task even when duplicate task names exist.
+- **Frontend quality checks**: GitHub Actions now validates the panel with ESLint, Lit/Web Components rules, and Node's JavaScript syntax checker.
+
+### Fixed
+- **Stale list responses**: superseded WebSocket responses are ignored, preventing a slow request from replacing the items of a newly selected list.
+
 ## [0.5.0] - 2026-05-18
 
 ### Added

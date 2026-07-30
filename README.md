@@ -18,6 +18,8 @@ A custom Home Assistant integration that provides a **local, file-based to-do li
 
 It is built on the same foundation as the built-in [Local To-do](https://www.home-assistant.io/integrations/local_todo) integration but extends it with a native recurrence engine: when a recurring task is marked completed it automatically advances to its next scheduled occurrence rather than disappearing.
 
+Current version: **0.5.1**
+
 ---
 
 ## Features
@@ -33,6 +35,7 @@ It is built on the same foundation as the built-in [Local To-do](https://www.hom
 - **Local iCalendar storage** – each list is persisted as a `.ics` file in the Home Assistant `.storage` directory; no cloud, no external services.
 - **Config-flow setup** – configure entirely through the UI; no YAML needed.
 - **Multiple lists** – add as many Better To-do lists as you need, each stored in its own file.
+- **Responsive panel updates** – list data tracks attribute-only changes and ignores stale WebSocket responses when switching quickly between lists.
 - **Multilingual UI** – English (default), Spanish, Portuguese, French, and German.
 - **HACS-compatible**.
 
