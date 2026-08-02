@@ -11,7 +11,6 @@ from ical.calendar_stream import IcsCalendarStream
 
 from custom_components.better_todo.const import (
     ATTR_ITEM,
-    ATTR_RRULE,
     ATTR_QUANTITY,
     ATTR_UNIT,
     ATTR_CATEGORY,
@@ -153,8 +152,9 @@ async def test_set_task_recurrence_service(tmp_path: Path, mock_hass) -> None:
     await entity.async_update()
     uid = entity._attr_todo_items[0].uid
 
-    call = ServiceCall({ATTR_ITEM: uid, ATTR_RRULE: "FREQ=WEEKLY;BYDAY=MO"})
-    await entity._async_set_task_recurrence(call)
+    await entity._async_set_task_recurrence(
+        item=uid, rrule="FREQ=WEEKLY;BYDAY=MO"
+    )
 
     attrs = entity.extra_state_attributes
     assert uid in attrs.get("task_recurrence", {})
@@ -171,9 +171,7 @@ async def test_recurring_task_auto_advances(tmp_path: Path, mock_hass) -> None:
     await entity.async_update()
     uid = entity._attr_todo_items[0].uid
 
-    await entity._async_set_task_recurrence(
-        ServiceCall({ATTR_ITEM: uid, ATTR_RRULE: "FREQ=DAILY;COUNT=10"})
-    )
+    await entity._async_set_task_recurrence(item=uid, rrule="FREQ=DAILY;COUNT=10")
 
     updated = TodoItem(uid=uid, summary="Daily standup", status=TodoItemStatus.COMPLETED)
     await entity.async_update_todo_item(updated)
@@ -201,12 +199,8 @@ async def test_remove_recurrence(tmp_path: Path, mock_hass) -> None:
     await entity.async_update()
     uid = entity._attr_todo_items[0].uid
 
-    await entity._async_set_task_recurrence(
-        ServiceCall({ATTR_ITEM: uid, ATTR_RRULE: "FREQ=WEEKLY"})
-    )
-    await entity._async_set_task_recurrence(
-        ServiceCall({ATTR_ITEM: uid, ATTR_RRULE: ""})
-    )
+    await entity._async_set_task_recurrence(item=uid, rrule="FREQ=WEEKLY")
+    await entity._async_set_task_recurrence(item=uid, rrule="")
 
     attrs = entity.extra_state_attributes
     assert uid not in attrs.get("task_recurrence", {})
@@ -467,7 +461,7 @@ async def test_set_task_recurrence_updates_repeat_tag(tmp_path: Path, mock_hass)
     uid = entity._attr_todo_items[0].uid
 
     await entity._async_set_task_recurrence(
-        ServiceCall({ATTR_ITEM: uid, ATTR_RRULE: "FREQ=WEEKLY;BYDAY=MO"})
+        item=uid, rrule="FREQ=WEEKLY;BYDAY=MO"
     )
     await entity.async_update()
     task = next(t for t in entity._attr_todo_items if t.uid == uid)

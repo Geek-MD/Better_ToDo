@@ -650,17 +650,22 @@ class BetterTodoListEntity(TodoListEntity):
     # Custom service: set_task_recurrence
     # ------------------------------------------------------------------
 
-    async def _async_set_task_recurrence(self, call: ServiceCall) -> None:
+    async def _async_set_task_recurrence(
+        self, item: str, rrule: str | None = None
+    ) -> None:
         """Handle the ``better_todo.set_task_recurrence`` service call.
 
         Parameters
         ----------
-        call.data[ATTR_ITEM]:  UID of the task to update.
-        call.data[ATTR_RRULE]: RRULE string (e.g. 'FREQ=WEEKLY;BYDAY=MO') or
-                               ``None`` / empty string to remove recurrence.
+        item:  UID of the task to update.
+        rrule: RRULE string (e.g. 'FREQ=WEEKLY;BYDAY=MO') or ``None`` / empty
+               string to remove recurrence.
+
+        Home Assistant entity services pass validated service fields as keyword
+        arguments to the registered handler, rather than as a ``ServiceCall``.
         """
-        uid: str = call.data[ATTR_ITEM]
-        rrule_str: str | None = call.data.get(ATTR_RRULE) or None
+        uid = item
+        rrule_str = rrule or None
 
         async with self._calendar_lock:
             existing = self._find_ical_todo(uid)

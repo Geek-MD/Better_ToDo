@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-08-02
+
+### Added
+- **Friendly custom recurrence builder**: replaced the raw RRULE text box with interval controls (number plus days, weeks, months, or years) and a monthly pattern builder (first, second, third, fourth, or last occurrence across one or more selected weekdays).
+- **Recurrence ending controls**: recurring tasks can now continue indefinitely, stop on a selected date, or stop after a specified number of repetitions.
+
+## [0.5.3] - 2026-08-02
+
+### Fixed
+- **Task deletion refresh**: task rows now disappear immediately after deletion, repeated delete clicks are ignored, and stale rows are reconciled before calling Home Assistant so an already-removed task no longer produces an `item_not_found` error.
+
+## [0.5.2] - 2026-08-02
+
+### Fixed
+- **Recurrence service invocation**: updated the entity-service handler to accept Home Assistant's validated `item` and `rrule` keyword arguments, preventing task creation from reporting `unexpected keyword argument 'item'` after the task had already been added.
+
 ## [0.5.1] - 2026-07-30
 
 ### Changed
