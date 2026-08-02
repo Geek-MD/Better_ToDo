@@ -41,4 +41,4 @@ async def test_async_setup_registers_static_path_and_panel(mock_hass):
     assert kwargs["webcomponent_name"] == "better-todo-panel"
     assert kwargs["frontend_url_path"] == "better-todo"
     assert kwargs["sidebar_title"] == "Better ToDo"
-    assert kwargs["js_url"] == "/better_todo_static/better-todo-panel.js"
+    assert kwargs["js_url"] == "/better_todo_static/better-todo-panel.js?v=0.6.1"
