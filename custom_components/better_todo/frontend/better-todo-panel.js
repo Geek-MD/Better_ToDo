@@ -97,37 +97,106 @@
       return notes.join("\n").trim();
     }
 
-    // Build an RRULE string from a UI-level preset selection.
-    function _buildRrule(preset, weekdays, custom) {
-      switch (preset) {
-        case "daily":   return "FREQ=DAILY";
-        case "weekly": {
-          const days = (weekdays || []).filter(Boolean).join(",");
-          return days ? `FREQ=WEEKLY;BYDAY=${days}` : "FREQ=WEEKLY";
-        }
-        case "monthly": return "FREQ=MONTHLY";
-        case "yearly":  return "FREQ=YEARLY";
-        case "custom":  return (custom || "").trim();
-        default:        return "";
+    const _FREQ_BY_UNIT = {
+      days: "DAILY", weeks: "WEEKLY", months: "MONTHLY", years: "YEARLY",
+    };
+
+    function _recurrenceEnd(endMode, endDate, endCount) {
+      if (endMode === "date" && endDate) {
+        return `UNTIL=${endDate.replaceAll("-", "")}`;
       }
+      if (endMode === "count") {
+        const count = Math.max(1, Number.parseInt(endCount, 10) || 1);
+        return `COUNT=${count}`;
+      }
+      return "";
     }
 
-    // Parse an RRULE string back into { preset, weekdays, custom } for the dialog.
+    // Build an RRULE string from the dialog's friendly recurrence controls.
+    function _buildRrule(preset, weekdays, recurrence) {
+      let rule;
+      switch (preset) {
+        case "daily":   rule = "FREQ=DAILY"; break;
+        case "weekly": {
+          const days = (weekdays || []).filter(Boolean).join(",");
+          rule = days ? `FREQ=WEEKLY;BYDAY=${days}` : "FREQ=WEEKLY";
+          break;
+        }
+        case "monthly": rule = "FREQ=MONTHLY"; break;
+        case "yearly":  rule = "FREQ=YEARLY"; break;
+        case "custom": {
+          if (recurrence.customMode === "pattern") {
+            const days = recurrence.patternDays
+              .filter(Boolean)
+              .map((day) => `${recurrence.patternOrdinal}${day}`)
+              .join(",");
+            rule = `FREQ=MONTHLY;BYDAY=${days}`;
+          } else {
+            const interval = Math.max(
+              1, Number.parseInt(recurrence.intervalNumber, 10) || 1
+            );
+            rule = `FREQ=${_FREQ_BY_UNIT[recurrence.intervalUnit]};INTERVAL=${interval}`;
+          }
+          break;
+        }
+        default:        return "";
+      }
+      const end = _recurrenceEnd(
+        recurrence.endMode, recurrence.endDate, recurrence.endCount
+      );
+      return end ? `${rule};${end}` : rule;
+    }
+
+    // Parse supported RRULE fields back into the dialog's friendly controls.
     function _parseRrule(rrule) {
-      if (!rrule) return { preset: "none", weekdays: [], custom: "" };
+      const defaults = {
+        preset: "none", weekdays: [], customMode: "time", intervalNumber: "1",
+        intervalUnit: "days", patternOrdinal: "1", patternDays: [],
+        endMode: "never", endDate: "", endCount: "10",
+      };
+      if (!rrule) return defaults;
       const up = rrule.trim().toUpperCase();
       const parts = up.split(";");
-      const freq = (parts.find((p) => p.startsWith("FREQ=")) || "").slice(5);
-      const bydayRaw = (parts.find((p) => p.startsWith("BYDAY=")) || "").slice(6);
+      const value = (name) =>
+        (parts.find((part) => part.startsWith(`${name}=`)) || "").slice(name.length + 1);
+      const freq = value("FREQ");
+      const bydayRaw = value("BYDAY");
       const weekdays = bydayRaw ? bydayRaw.split(",").filter(Boolean) : [];
-      const extra = parts.filter((p) => !p.startsWith("FREQ=") && !p.startsWith("BYDAY="));
-      if (extra.length === 0) {
-        if (freq === "DAILY")   return { preset: "daily",   weekdays: [],     custom: "" };
-        if (freq === "WEEKLY")  return { preset: "weekly",  weekdays,         custom: "" };
-        if (freq === "MONTHLY") return { preset: "monthly", weekdays: [],     custom: "" };
-        if (freq === "YEARLY")  return { preset: "yearly",  weekdays: [],     custom: "" };
+      const interval = value("INTERVAL");
+      const bysetpos = value("BYSETPOS");
+      const until = value("UNTIL");
+      const count = value("COUNT");
+      const end = count
+        ? { endMode: "count", endCount: count }
+        : until
+          ? { endMode: "date", endDate: `${until.slice(0, 4)}-${until.slice(4, 6)}-${until.slice(6, 8)}` }
+          : {};
+
+      const ordinalDays = weekdays.map((day) => day.match(/^(-?\d)([A-Z]{2})$/));
+      const sharedOrdinal = ordinalDays.length && ordinalDays.every(
+        (match) => match && match[1] === ordinalDays[0][1]
+      ) ? ordinalDays[0][1] : "";
+      if ((bysetpos || sharedOrdinal) && weekdays.length) {
+        return {
+          ...defaults, ...end, preset: "custom", customMode: "pattern",
+          patternOrdinal: bysetpos || sharedOrdinal,
+          patternDays: sharedOrdinal ? ordinalDays.map((match) => match[2]) : weekdays,
+        };
       }
-      return { preset: "custom", weekdays: [], custom: rrule };
+      if (interval) {
+        const unit = Object.keys(_FREQ_BY_UNIT).find(
+          (key) => _FREQ_BY_UNIT[key] === freq
+        ) || "days";
+        return {
+          ...defaults, ...end, preset: "custom", customMode: "time",
+          intervalNumber: interval, intervalUnit: unit,
+        };
+      }
+      if (freq === "DAILY") return { ...defaults, ...end, preset: "daily" };
+      if (freq === "WEEKLY") return { ...defaults, ...end, preset: "weekly", weekdays };
+      if (freq === "MONTHLY") return { ...defaults, ...end, preset: "monthly" };
+      if (freq === "YEARLY") return { ...defaults, ...end, preset: "yearly" };
+      return defaults;
     }
 
     // Format a date/datetime string for localised display.
@@ -163,7 +232,14 @@
           _notes:    { state: true },
           _preset:   { state: true },
           _weekdays: { state: true },
-          _custom:   { state: true },
+          _customMode: { state: true },
+          _intervalNumber: { state: true },
+          _intervalUnit: { state: true },
+          _patternOrdinal: { state: true },
+          _patternDays: { state: true },
+          _endMode: { state: true },
+          _endDate: { state: true },
+          _endCount: { state: true },
           _saving:   { state: true },
           _error:    { state: true },
         };
@@ -179,9 +255,20 @@
         this._notes    = "";
         this._preset   = "none";
         this._weekdays = [];
-        this._custom   = "";
+        this._resetRecurrenceControls();
         this._saving   = false;
         this._error    = "";
+      }
+
+      _resetRecurrenceControls() {
+        this._customMode = "time";
+        this._intervalNumber = "1";
+        this._intervalUnit = "days";
+        this._patternOrdinal = "1";
+        this._patternDays = [];
+        this._endMode = "never";
+        this._endDate = "";
+        this._endCount = "10";
       }
 
       // Public API called by BetterTodoTaskList.
@@ -193,7 +280,7 @@
         this._notes    = "";
         this._preset   = "none";
         this._weekdays = [];
-        this._custom   = "";
+        this._resetRecurrenceControls();
         this._saving   = false;
         this._error    = "";
         this._open     = true;
@@ -215,7 +302,14 @@
         const p = _parseRrule(rrule);
         this._preset   = p.preset;
         this._weekdays = p.weekdays;
-        this._custom   = p.custom;
+        this._customMode = p.customMode;
+        this._intervalNumber = p.intervalNumber;
+        this._intervalUnit = p.intervalUnit;
+        this._patternOrdinal = p.patternOrdinal;
+        this._patternDays = p.patternDays;
+        this._endMode = p.endMode;
+        this._endDate = p.endDate;
+        this._endCount = p.endCount;
         this._saving   = false;
         this._error    = "";
         this._open     = true;
@@ -268,7 +362,16 @@
         this._saving = true;
         this._error  = "";
 
-        const rruleStr = _buildRrule(this._preset, this._weekdays, this._custom);
+        const rruleStr = _buildRrule(this._preset, this._weekdays, {
+          customMode: this._customMode,
+          intervalNumber: this._intervalNumber,
+          intervalUnit: this._intervalUnit,
+          patternOrdinal: this._patternOrdinal,
+          patternDays: this._patternDays,
+          endMode: this._endMode,
+          endDate: this._endDate,
+          endCount: this._endCount,
+        });
         const notes    = this._notes.trim();
 
         try {
@@ -477,19 +580,115 @@
                   </div>
                 ` : ""}
 
-                <!-- Raw RRULE input (only for Custom) -->
+                <!-- Friendly custom recurrence builder -->
                 ${this._preset === "custom" ? html`
                   <div class="field">
-                    <label class="lbl">RRULE</label>
-                    <input
-                      class="inp"
-                      type="text"
-                      .value=${this._custom}
-                      @input=${(e) => { this._custom = e.target.value; }}
-                      placeholder="FREQ=WEEKLY;BYDAY=MO,WE,FR"
+                    <label class="lbl">${L("ui.common.type", "Repeat by")}</label>
+                    <select
+                      class="inp sel"
+                      @change=${(e) => { this._customMode = e.target.value; }}
                       ?disabled=${this._saving}
-                    />
+                    >
+                      <option value="time" ?selected=${this._customMode === "time"}>
+                        ${L("ui.components.calendar.event.recurrence.interval", "Time interval")}
+                      </option>
+                      <option value="pattern" ?selected=${this._customMode === "pattern"}>
+                        ${L("ui.components.calendar.event.recurrence.pattern", "Pattern")}
+                      </option>
+                    </select>
                   </div>
+
+                  ${this._customMode === "time" ? html`
+                    <div class="field">
+                      <label class="lbl">${L("ui.components.calendar.event.recurrence.every", "Every")}</label>
+                      <div class="inline-fields">
+                        <input
+                          class="inp compact-number"
+                          type="number"
+                          min="1"
+                          .value=${this._intervalNumber}
+                          @input=${(e) => { this._intervalNumber = e.target.value; }}
+                          ?disabled=${this._saving}
+                        />
+                        <select
+                          class="inp sel"
+                          @change=${(e) => { this._intervalUnit = e.target.value; }}
+                          ?disabled=${this._saving}
+                        >
+                          <option value="days" ?selected=${this._intervalUnit === "days"}>${L("ui.components.calendar.event.recurrence.days", "Days")}</option>
+                          <option value="weeks" ?selected=${this._intervalUnit === "weeks"}>${L("ui.components.calendar.event.recurrence.weeks", "Weeks")}</option>
+                          <option value="months" ?selected=${this._intervalUnit === "months"}>${L("ui.components.calendar.event.recurrence.months", "Months")}</option>
+                          <option value="years" ?selected=${this._intervalUnit === "years"}>${L("ui.components.calendar.event.recurrence.years", "Years")}</option>
+                        </select>
+                      </div>
+                    </div>
+                  ` : html`
+                    <div class="field">
+                      <label class="lbl">${L("ui.components.calendar.event.recurrence.occurrence", "Occurrence")}</label>
+                      <select
+                        class="inp sel"
+                        @change=${(e) => { this._patternOrdinal = e.target.value; }}
+                        ?disabled=${this._saving}
+                      >
+                        <option value="1" ?selected=${this._patternOrdinal === "1"}>${L("ui.common.first", "First")}</option>
+                        <option value="2" ?selected=${this._patternOrdinal === "2"}>${L("ui.common.second", "Second")}</option>
+                        <option value="3" ?selected=${this._patternOrdinal === "3"}>${L("ui.common.third", "Third")}</option>
+                        <option value="4" ?selected=${this._patternOrdinal === "4"}>${L("ui.common.fourth", "Fourth")}</option>
+                        <option value="-1" ?selected=${this._patternOrdinal === "-1"}>${L("ui.common.last", "Last")}</option>
+                      </select>
+                    </div>
+                    <div class="field">
+                      <label class="lbl">${L("ui.components.calendar.event.repeat.on", "Weekdays")}</label>
+                      <select
+                        class="inp multi-select"
+                        multiple
+                        size="7"
+                        @change=${(e) => {
+                          this._patternDays = [...e.target.selectedOptions].map(
+                            (option) => option.value
+                          );
+                        }}
+                        ?disabled=${this._saving}
+                      >
+                        ${DAYS.map((d) => html`
+                          <option value=${d.k} ?selected=${this._patternDays.includes(d.k)}>
+                            ${d.label}
+                          </option>
+                        `)}
+                      </select>
+                    </div>
+                  `}
+                ` : ""}
+
+                ${this._preset !== "none" ? html`
+                  <div class="field">
+                    <label class="lbl">${L("ui.components.calendar.event.recurrence.ends", "Ends")}</label>
+                    <select
+                      class="inp sel"
+                      @change=${(e) => { this._endMode = e.target.value; }}
+                      ?disabled=${this._saving}
+                    >
+                      <option value="never" ?selected=${this._endMode === "never"}>${L("ui.components.calendar.event.recurrence.never", "Never")}</option>
+                      <option value="date" ?selected=${this._endMode === "date"}>${L("ui.components.calendar.event.recurrence.on_date", "On a date")}</option>
+                      <option value="count" ?selected=${this._endMode === "count"}>${L("ui.components.calendar.event.recurrence.after_count", "After a number of repetitions")}</option>
+                    </select>
+                  </div>
+                  ${this._endMode === "date" ? html`
+                    <div class="field">
+                      <label class="lbl">${L("ui.components.calendar.event.recurrence.end_date", "End date")}</label>
+                      <input class="inp" type="date" .value=${this._endDate}
+                        @input=${(e) => { this._endDate = e.target.value; }}
+                        ?disabled=${this._saving} />
+                    </div>
+                  ` : ""}
+                  ${this._endMode === "count" ? html`
+                    <div class="field">
+                      <label class="lbl">${L("ui.components.calendar.event.recurrence.repetitions", "Repetitions")}</label>
+                      <input class="inp" type="number" min="1" .value=${this._endCount}
+                        @input=${(e) => { this._endCount = e.target.value; }}
+                        ?disabled=${this._saving} />
+                    </div>
+                  ` : ""}
                 ` : ""}
 
                 ${this._error ? html`<p class="err">${this._error}</p>` : ""}
@@ -506,7 +705,11 @@
                 <button
                   class="btn btn-primary"
                   @click=${() => this._save()}
-                  ?disabled=${!this._summary.trim() || this._saving}
+                  ?disabled=${!this._summary.trim() || this._saving
+                    || (this._preset === "custom" && this._customMode === "pattern"
+                      && !this._patternDays.length)
+                    || (this._preset !== "none" && this._endMode === "date"
+                      && !this._endDate)}
                 >
                   ${this._saving
                     ? "…"
@@ -614,6 +817,24 @@
 
           .sel { cursor: pointer; }
 
+          .inline-fields {
+            display: grid;
+            grid-template-columns: minmax(88px, 0.35fr) 1fr;
+            gap: 8px;
+          }
+
+          .compact-number { min-width: 0; }
+
+          .multi-select {
+            min-height: 150px;
+            padding: 4px;
+          }
+
+          .multi-select option {
+            padding: 7px 9px;
+            border-radius: 5px;
+          }
+
           .days {
             display: flex;
             gap: 6px;
@@ -711,6 +932,8 @@
         // newer refresh. Without this, a slow response can replace the items
         // belonging to the list that is currently visible.
         this._fetchSequence = 0;
+        // Prevent repeated clicks from issuing duplicate remove_item calls.
+        this._deleting = new Set();
       }
 
       async _fetchItems() {
@@ -785,11 +1008,34 @@
 
       async _delete(uid, ev) {
         ev.stopPropagation();
+        if (this._deleting.has(uid)) return;
+        this._deleting.add(uid);
         try {
+          // Verify the item still exists before invoking remove_item. A card can
+          // retain a stale row when an item was deleted elsewhere without
+          // changing the todo entity state; calling the service for that row
+          // makes Home Assistant respond with item_not_found.
+          const res = await this.hass.callWS({
+            type: "todo/item/list", entity_id: this.entityId,
+          });
+          const currentItems = res?.items || [];
+          if (!currentItems.some((item) => item.uid === uid)) {
+            this._items = currentItems;
+            return;
+          }
+
+          // Remove the row immediately instead of waiting for a state update.
+          // Todo item changes do not always alter the entity state fingerprint.
+          this._items = currentItems.filter((item) => item.uid !== uid);
           await this.hass.callService("todo", "remove_item", {
             entity_id: this.entityId, item: uid,
           });
-        } catch { /* ignore */ }
+        } catch {
+          // Restore the authoritative list if deletion failed for any reason.
+          await this._fetchItems();
+        } finally {
+          this._deleting.delete(uid);
+        }
       }
 
       _renderItem(item) {
