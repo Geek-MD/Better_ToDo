@@ -254,6 +254,6 @@ This project is licensed under the [MIT License](LICENSE).
 
 <div align="center">
 
-💻 **Proudly developed with GitHub Copilot** 🚀
+💻 **Proudly developed with GitHub Copilot and ChatGPT Codex** 🚀
 
 </div>
