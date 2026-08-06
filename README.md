@@ -18,8 +18,6 @@ A custom Home Assistant integration that provides a **local, file-based to-do li
 
 It is built on the same foundation as the built-in [Local To-do](https://www.home-assistant.io/integrations/local_todo) integration but extends it with a native recurrence engine: when a recurring task is marked completed it automatically advances to its next scheduled occurrence rather than disappearing.
 
-Current version: **0.6.1**
-
 ---
 
 ## Features
