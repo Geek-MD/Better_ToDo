@@ -18,7 +18,7 @@ A custom Home Assistant integration that provides a **local, file-based to-do li
 
 It is built on the same foundation as the built-in [Local To-do](https://www.home-assistant.io/integrations/local_todo) integration but extends it with a native recurrence engine: when a recurring task is marked completed it automatically advances to its next scheduled occurrence rather than disappearing.
 
-Version **0.6.2** adds Home Assistant 2026.11 Marketplace metadata and refreshes the versioned sidebar asset URL.
+Version **0.6.2** aligns the `ical` dependency with Home Assistant 2026.11, adds Marketplace metadata, and refreshes the versioned sidebar asset URL.
 
 ---
 

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Added the calendar/to-do category and service integration type used by the Home Assistant 2026.11 Marketplace.
+- Raised the minimum `ical` version to the release used by Home Assistant 2026.11.
 - Bumped the sidebar panel asset URL so clients load the current frontend after upgrading.
 
 ## [0.6.1] - 2026-08-02
