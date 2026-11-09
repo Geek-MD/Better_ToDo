@@ -6,6 +6,10 @@
 [![License](https://img.shields.io/badge/License-MIT-blue)](https://github.com/Geek-MD/Better_ToDo/blob/main/LICENSE)
 [![HACS Custom Repository](https://img.shields.io/badge/HACS-Custom%20Repository-blue)](https://hacs.xyz/)
 
+<!-- ha-marketplace:exclude-start -->
+[![Open your Home Assistant instance and open Better To-do in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=Geek-MD&repository=Better_ToDo&category=integration)
+<!-- ha-marketplace:exclude-end -->
+
 [![Ruff + Mypy + Hassfest](https://github.com/Geek-MD/Better_ToDo/actions/workflows/ci.yaml/badge.svg)](https://github.com/Geek-MD/Better_ToDo/actions/workflows/ci.yaml)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
@@ -18,9 +22,11 @@ A custom Home Assistant integration that provides a **local, file-based to-do li
 
 It is built on the same foundation as the built-in [Local To-do](https://www.home-assistant.io/integrations/local_todo) integration but extends it with a native recurrence engine: when a recurring task is marked completed it automatically advances to its next scheduled occurrence rather than disappearing.
 
+Version **0.6.2** aligns the `ical` dependency with Home Assistant 2026.11, adds Marketplace metadata, and refreshes the versioned sidebar asset URL.
+
 ---
 
-## Features
+## ✨ Features
 
 - **Custom sidebar panel** – a dedicated *Better ToDo* panel accessible from the HA sidebar at `/better-todo`, built with the same two-pane layout as the built-in To-do panel. Task lists are rendered with a custom view (checkboxes, due-date & recurrence indicators, delete button) and a create/edit dialog that exposes Better To-do-specific options such as the recurrence preset picker. The Shopping List is rendered in a dedicated view that groups items alphabetically by category, showing each item's name, quantity, and unit.
 - **Full to-do list entity** – integrates natively with the Home Assistant [To-do list dashboard card](https://www.home-assistant.io/dashboards/todo-list/) and all built-in `todo.*` services.
@@ -39,7 +45,7 @@ It is built on the same foundation as the built-in [Local To-do](https://www.hom
 
 ---
 
-## Requirements
+## 📋 Requirements
 
 | Requirement | Minimum version |
 |-------------|----------------|
@@ -48,9 +54,15 @@ It is built on the same foundation as the built-in [Local To-do](https://www.hom
 
 ---
 
-## Installation
+## 🛠 Installation
 
-### Via HACS (recommended)
+### Option 1: Marketplace (Home Assistant 2026.11 or newer)
+
+1. Go to **Settings → Marketplace**.
+2. Search for **Better To-do**, select **Install**, and confirm the version.
+3. Complete setup when Home Assistant opens the integration page.
+
+### Option 2: HACS (Home Assistant 2026.10 or older)
 
 1. Open HACS → **Integrations**.
 2. Click the three-dot menu → **Custom repositories**.
@@ -58,14 +70,14 @@ It is built on the same foundation as the built-in [Local To-do](https://www.hom
 4. Search for **Better To-do** and click **Download**.
 5. Restart Home Assistant.
 
-### Manual
+### Option 3: Manual installation
 
 1. Copy the `custom_components/better_todo` directory into your `<config>/custom_components/` folder.
 2. Restart Home Assistant.
 
 ---
 
-## Configuration
+## ⚙️ Configuration
 
 1. Go to **Settings → Devices & Services → Add Integration**.
 2. Search for **Better To-do**.
@@ -159,7 +171,7 @@ If the RRULE has no more future occurrences (e.g. `COUNT=3` has been exhausted) 
 
 ---
 
-## Services
+## 🖥 Services
 
 ### `better_todo.set_task_recurrence`
 
@@ -208,7 +220,7 @@ Pick up at the corner shop
 
 ---
 
-## Automations example
+## 💡 Automations example
 
 ```yaml
 # Automatically set a weekly recurrence on a newly-created task named "Weekly review"
@@ -238,13 +250,13 @@ automation:
 
 ---
 
-## Changelog
+## 🗂️ Changelog
 
 See [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
-## License
+## 📜 License
 
 This project is licensed under the [MIT License](LICENSE).
 

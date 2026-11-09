@@ -43,7 +43,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         config={},
         # Keep the release version in the URL so browsers cannot reuse the
         # panel bundle from an older Better To-do installation.
-        js_url="/better_todo_static/better-todo-panel.js?v=0.6.1",
+        js_url="/better_todo_static/better-todo-panel.js?v=0.6.2",
     )
     return True
 
