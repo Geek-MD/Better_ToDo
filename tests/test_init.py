@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -41,4 +42,29 @@ async def test_async_setup_registers_static_path_and_panel(mock_hass):
     assert kwargs["webcomponent_name"] == "better-todo-panel"
     assert kwargs["frontend_url_path"] == "better-todo"
     assert kwargs["sidebar_title"] == "Better ToDo"
-    assert kwargs["js_url"] == "/better_todo_static/better-todo-panel.js?v=0.6.1"
+    assert kwargs["js_url"] == "/better_todo_static/better-todo-panel.js?v=0.7.0"
+
+
+@pytest.mark.asyncio
+async def test_assignee_directory_respects_list_access(mock_hass, monkeypatch):
+    """List readers only get active human users and no auth details."""
+    from custom_components.better_todo import _async_assignees, er
+
+    registry = MagicMock()
+    registry.async_get.return_value = SimpleNamespace(domain="todo", platform="better_todo")
+    monkeypatch.setattr(er, "async_get", lambda _hass: registry, raising=False)
+    mock_hass.auth.async_get_users = AsyncMock(return_value=[
+        SimpleNamespace(id="human", name="Ana", is_active=True, system_generated=False),
+        SimpleNamespace(id="system", name="System", is_active=True, system_generated=True),
+        SimpleNamespace(id="inactive", name="Inactive", is_active=False, system_generated=False),
+    ])
+    connection = MagicMock()
+    msg = {"id": 1, "entity_id": "todo.home"}
+    connection.user.permissions.check_entity.return_value = False
+    await _async_assignees(mock_hass, connection, msg)
+    connection.send_error.assert_called_once()
+    mock_hass.auth.async_get_users.assert_not_called()
+
+    connection.user.permissions.check_entity.return_value = True
+    await _async_assignees(mock_hass, connection, msg)
+    connection.send_result.assert_called_once_with(1, [{"id": "human", "name": "Ana"}])

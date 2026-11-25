@@ -238,11 +238,25 @@
     // BetterTodoTaskDialog
     // Custom create/edit dialog with Better ToDo-specific fields (recurrence).
     // ═══════════════════════════════════════════════════════════════════════════
+    const _assignmentLabels = {
+      en: ["Assigned to", "Unassigned", "Unavailable user", "Could not load users"],
+      es: ["Asignar a", "Sin asignar", "Usuario no disponible", "No se pudieron cargar los usuarios"],
+      de: ["Zugewiesen an", "Nicht zugewiesen", "Benutzer nicht verfügbar", "Benutzer konnten nicht geladen werden"],
+      fr: ["Attribuer à", "Non attribué", "Utilisateur indisponible", "Impossible de charger les utilisateurs"],
+      pt: ["Atribuir a", "Sem atribuição", "Utilizador indisponível", "Não foi possível carregar os utilizadores"],
+    };
+    const _assignmentText = (hass) =>
+      _assignmentLabels[hass?.locale?.language?.split("-")[0]] || _assignmentLabels.en;
+
     class BetterTodoTaskDialog extends LitElement {
       static get properties() {
         return {
           hass:      { attribute: false },
           entityId:  { type: String },
+          users:     { attribute: false },
+          supportsAssignment: { type: Boolean },
+          usersError: { type: Boolean },
+          _assignee: { state: true },
           _open:     { state: true },
           _item:     { state: true },
           _summary:  { state: true },
@@ -293,6 +307,7 @@
       // Public API called by BetterTodoTaskList.
       openCreate() {
         this._item     = null;
+        this._assignee = "";
         this._summary  = "";
         this._dueDate  = "";
         this._dueTime  = "";
@@ -305,8 +320,10 @@
         this._open     = true;
       }
 
-      openEdit(item, rrule) {
+      openEdit(item, rrule, assignee) {
         this._item = item;
+        this._assignee = assignee || "";
+        this._initialAssignee = this._assignee;
         this._summary = item.summary || "";
         const dueStr = item.due ? String(item.due) : "";
         if (dueStr.includes("T")) {
@@ -413,6 +430,22 @@
               item:      this._item.uid,
               rrule:     rruleStr || null,
             });
+            if (this.supportsAssignment && this._assignee !== this._initialAssignee) {
+              await this.hass.callService("better_todo", "set_task_assignee", {
+                entity_id: this.entityId, item: this._item.uid, user_id: this._assignee || null,
+              });
+            }
+          } else if (this.supportsAssignment && this._assignee) {
+            const data = {
+              entity_id: this.entityId,
+              summary,
+              description: notes,
+              user_id: this._assignee,
+            };
+            if (this._dueDate && this._dueTime) data.due_datetime = `${this._dueDate}T${this._dueTime}:00`;
+            else if (this._dueDate) data.due_date = this._dueDate;
+            if (rruleStr) data.rrule = rruleStr;
+            await this.hass.callService("better_todo", "add_assigned_task", data);
           } else {
             // ── Create new item ──────────────────────────────────────────────
             // Snapshot existing UIDs before creation so recurrence is attached
@@ -458,6 +491,8 @@
 
         const isCreate = !this._item;
         const L = (k, fb) => this.hass?.localize(k) || fb;
+        const [assignLabel, unassigned, unavailableUser, usersErrorLabel] = _assignmentText(this.hass);
+        const users = this.users || [];
 
         // Short day labels built from the browser's Intl API for locale-aware names.
         // Jan 4–10 2021 is Mon–Sun; we reorder to MO–SU (Mon first).
@@ -506,6 +541,24 @@
                     autocomplete="off"
                   />
                 </div>
+
+                ${this.supportsAssignment ? html`
+                  <div class="field">
+                    <label class="lbl" for="task-assignee">${assignLabel}</label>
+                    <select id="task-assignee" class="inp sel"
+                      @change=${(e) => { this._assignee = e.target.value; }}
+                      ?disabled=${this._saving}>
+                      <option value="" ?selected=${!this._assignee}>${unassigned}</option>
+                      ${this._assignee && !users.some((user) => user.id === this._assignee)
+                        ? html`<option value=${this._assignee} selected>${unavailableUser}</option>`
+                        : ""}
+                      ${users.map((user) => html`
+                        <option value=${user.id} ?selected=${this._assignee === user.id}>${user.name}</option>
+                      `)}
+                    </select>
+                    ${this.usersError ? html`<span role="status">${usersErrorLabel}</span>` : ""}
+                  </div>
+                ` : ""}
 
                 <!-- Due date -->
                 <div class="field">
@@ -938,6 +991,9 @@
           entityId: { type: String },
           _items:   { state: true },
           _card:    { state: true },
+          _users:   { state: true },
+          _usersError: { state: true },
+          _actionError: { state: true },
         };
       }
 
@@ -948,6 +1004,11 @@
         this._stateKey = null;
         this._fetchSequence = 0;
         this._cardSequence = 0;
+        this._users = [];
+        this._usersError = false;
+        this._actionError = "";
+        this._usersSequence = 0;
+        this._pendingItems = new Set();
         this._captureCardClick = this._captureCardClick.bind(this);
         this._captureCardKeydown = this._captureCardKeydown.bind(this);
       }
@@ -1013,6 +1074,11 @@
           this._cardSequence++;
           this._items = [];
           this._stateKey = null;
+          this._users = [];
+          this._usersError = false;
+          this._actionError = "";
+          this._usersSequence++;
+          this._pendingItems = new Set();
           this._fetchItems();
           this._setupCoreCard();
         }
@@ -1031,6 +1097,36 @@
         if (changedProps.has("hass") && this._card) {
           this._card.hass = this.hass;
         }
+        if (
+          this._supportsAssignment &&
+          (changedProps.has("entityId") || (changedProps.has("hass") &&
+            changedProps.get("hass")?.states?.[this.entityId]?.attributes?.task_assignees === undefined))
+        ) {
+          this._loadUsers();
+        }
+      }
+
+      get _assignments() {
+        return this.hass?.states?.[this.entityId]?.attributes?.task_assignees;
+      }
+
+      get _supportsAssignment() {
+        return this._assignments !== undefined;
+      }
+
+      async _loadUsers() {
+        if (!this._supportsAssignment) return;
+        const entityId = this.entityId;
+        const request = ++this._usersSequence;
+        this._usersError = false;
+        try {
+          const users = await this.hass.callWS({ type: "better_todo/assignees", entity_id: entityId });
+          if (request === this._usersSequence && entityId === this.entityId) {
+            this._users = users.sort((a, b) => a.name.localeCompare(b.name, this.hass.locale?.language));
+          }
+        } catch {
+          if (request === this._usersSequence && entityId === this.entityId) this._usersError = true;
+        }
       }
 
       _dialog() {
@@ -1038,6 +1134,7 @@
       }
 
       _openCreate() {
+        this._loadUsers();
         this._dialog()?.openCreate();
       }
 
@@ -1048,10 +1145,12 @@
       _openEdit(item) {
         const rrule =
           this.hass?.states[this.entityId]?.attributes?.task_recurrence?.[item.uid] || "";
-        this._dialog()?.openEdit(item, rrule);
+        this._loadUsers();
+        this._dialog()?.openEdit(item, rrule, this._assignments?.[item.uid]);
       }
 
       _captureCardClick(event) {
+        if (!this._supportsAssignment) return;
         const path = event.composedPath();
         const row = path.find((node) => node?.localName === "ha-list-item-option");
         if (!row) return;
@@ -1067,7 +1166,7 @@
       }
 
       _captureCardKeydown(event) {
-        if (event.key !== "Enter") return;
+        if (!this._supportsAssignment || event.key !== "Enter") return;
         const path = event.composedPath();
         const row = path.find((node) => node?.localName === "ha-list-item-option");
         if (!row || event.composedPath()[0] !== row) return;
@@ -1078,16 +1177,163 @@
         this._openEdit(item);
       }
 
+      async _runTaskAction(item, action) {
+        const pending = this._pendingItems;
+        if (pending.has(item.uid)) return;
+        const entityId = this.entityId;
+        pending.add(item.uid);
+        this._actionError = "";
+        this.requestUpdate();
+        try {
+          await action({ entity_id: entityId, item: item.uid });
+          if (entityId === this.entityId) await this._fetchItems();
+        } catch (err) {
+          if (entityId === this.entityId) this._actionError = err?.message || "Could not update task";
+        } finally {
+          pending.delete(item.uid);
+          this.requestUpdate();
+        }
+      }
+
+      _toggleTask(item) {
+        const status = item.status === "completed" ? "needs_action" : "completed";
+        return this._runTaskAction(item, (data) =>
+          this.hass.callService("todo", "update_item", { ...data, status }));
+      }
+
+      _deleteTask(item) {
+        return this._runTaskAction(item, (data) =>
+          this.hass.callService("todo", "remove_item", data));
+      }
+
+      async _quickAdd(event) {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const input = form.elements.namedItem("summary");
+        const summary = input.value.trim();
+        if (!summary || input.disabled) return;
+        const entityId = this.entityId;
+        input.disabled = true;
+        this._actionError = "";
+        try {
+          await this.hass.callService("todo", "add_item", { entity_id: entityId, item: summary });
+          input.value = "";
+          if (entityId === this.entityId) await this._fetchItems();
+        } catch (err) {
+          if (entityId === this.entityId) this._actionError = err?.message || "Could not add task";
+        } finally {
+          input.disabled = false;
+          if (input.isConnected) input.focus();
+        }
+      }
+
+      _moveTaskUp(item, previousItem) {
+        return this._runTaskAction(item, ({ entity_id }) =>
+          this.hass.callWS({
+            type: "todo/item/move",
+            entity_id,
+            uid: item.uid,
+            ...(previousItem ? { previous_uid: previousItem.uid } : {}),
+          }));
+      }
+
+      _renderAssignmentColumn(title, items, allowQuickAdd = false) {
+        const L = (key, fallback) => this.hass?.localize(key) || fallback;
+        const unavailable = ["unknown", "unavailable"].includes(this.hass?.states[this.entityId]?.state);
+        const active = items.filter((item) => item.status !== "completed");
+        const completed = items.filter((item) => item.status === "completed");
+        const moveUp = L("ui.common.move_up", "Move up");
+        const addLabel = L("ui.panel.lovelace.cards.todo-list.add_item", "Add item");
+        const renderRow = (item, index) => {
+          const isComplete = item.status === "completed";
+          const notes = _parseDescriptionNotes(item.description);
+          const due = item.due && new Date(item.due.includes("T") ? item.due : item.due + "T00:00:00");
+          const disabled = unavailable || this._pendingItems.has(item.uid);
+          return html`
+            <div class="task-row">
+              <input type="checkbox" aria-label=${item.summary}
+                .checked=${isComplete} ?disabled=${disabled}
+                @change=${(event) => {
+                  event.currentTarget.checked = isComplete;
+                  this._toggleTask(item);
+                }}>
+              <button class="task-summary ${isComplete ? "completed" : ""}"
+                ?disabled=${disabled} @click=${() => this._openEdit(item)}>
+                <span>${item.summary}</span>
+                ${notes ? html`<small>${notes}</small>` : ""}
+                ${due ? html`<small>${due.toLocaleDateString(this.hass.locale?.language)}</small>` : ""}
+              </button>
+              ${!isComplete && index > 0 ? html`
+                <button aria-label=${moveUp} title=${moveUp} ?disabled=${disabled}
+                  @click=${() => this._moveTaskUp(item, active[index - 2])}>↑</button>
+              ` : ""}
+              <button class="task-delete" ?disabled=${disabled}
+                @click=${() => this._deleteTask(item)}>
+                ${L("ui.common.delete", "Delete")}
+              </button>
+            </div>
+          `;
+        };
+        return html`
+          <ha-card .header=${title} class="assignment-column">
+            ${allowQuickAdd ? html`
+              <form class="quick-add" @submit=${this._quickAdd}>
+                <input name="summary" aria-label=${addLabel} placeholder=${addLabel}
+                  maxlength="255" required ?disabled=${unavailable}>
+                <button aria-label=${addLabel} ?disabled=${unavailable}>+</button>
+              </form>
+            ` : ""}
+            ${active.length ? active.map(renderRow)
+              : html`<p>${L("ui.panel.lovelace.cards.todo-list.no_unchecked_items", "No active items")}</p>`}
+            ${completed.length ? html`
+              <h3>${L("ui.panel.lovelace.cards.todo-list.checked_items", "Completed")}</h3>
+              ${completed.map(renderRow)}
+            ` : ""}
+          </ha-card>
+        `;
+      }
+
+      _renderAssignmentColumns() {
+        const [, unassigned, unavailableUser] = _assignmentText(this.hass);
+        const groups = new Map();
+        const unassignedItems = [];
+        for (const item of this._items) {
+          const assignee = this._assignments[item.uid];
+          if (!assignee) {
+            unassignedItems.push(item);
+            continue;
+          }
+          if (!groups.has(assignee)) groups.set(assignee, []);
+          groups.get(assignee).push(item);
+        }
+        const names = new Map(this._users.map((user) => [user.id, user.name]));
+        const columns = [...groups].map(([id, items]) => [names.get(id) || unavailableUser, items]);
+        columns.sort(([a], [b]) => a.localeCompare(b, this.hass.locale?.language));
+        return html`
+          <div class="assignment-viewport">
+            <div class="assignment-columns">
+              ${this._renderAssignmentColumn(unassigned, unassignedItems, true)}
+              ${columns.map(([name, items]) => this._renderAssignmentColumn(name, items))}
+            </div>
+          </div>
+          ${this._actionError ? html`<p role="alert">${this._actionError}</p>` : ""}
+        `;
+      }
+
       render() {
         const L = (k, fb) => this.hass?.localize(k) || fb;
+        const grouped = !!Object.keys(this._assignments || {}).length;
         return html`
-          ${this._card
+          ${grouped ? this._renderAssignmentColumns() : this._card
             ? this._card
             : html`<ha-card><div class="loading">${L("ui.common.loading", "Loading…")}</div></ha-card>`}
 
           <better-todo-task-dialog
             .hass=${this.hass}
             .entityId=${this.entityId}
+            .supportsAssignment=${this._supportsAssignment}
+            .users=${this._users}
+            .usersError=${this._usersError}
             @item-saved=${() => this._fetchItems()}
           ></better-todo-task-dialog>
         `;
@@ -1097,6 +1343,56 @@
         return [css`
           :host {
             display: block;
+          }
+          .assignment-viewport { container-type: inline-size; }
+          .assignment-columns {
+            display: grid;
+            grid-auto-flow: column;
+            grid-auto-columns: minmax(15rem, 1fr);
+            align-items: start;
+            gap: 12px;
+            overflow-x: auto;
+          }
+          @container (max-width: 510px) {
+            .assignment-columns {
+              grid-auto-flow: row;
+              grid-auto-columns: minmax(0, 1fr);
+              overflow-x: visible;
+            }
+          }
+          .assignment-column { padding-bottom: 8px; min-width: 0; }
+          .assignment-column p, .assignment-column h3 { margin: 8px 16px; }
+          .task-row {
+            display: flex;
+            align-items: center;
+            padding: 4px 12px;
+            gap: 8px;
+            min-height: 40px;
+          }
+          .task-row input { accent-color: var(--primary-color); width: 18px; height: 18px; }
+          .task-row button, .quick-add button {
+            font: inherit;
+            border: 0;
+            background: transparent;
+            color: inherit;
+            cursor: pointer;
+            padding: 4px;
+          }
+          .task-row button:disabled { cursor: default; }
+          .task-summary { flex: 1; min-width: 0; text-align: start; overflow-wrap: anywhere; }
+          .task-summary small { display: block; color: var(--secondary-text-color); }
+          .completed span { text-decoration: line-through; }
+          .task-delete { color: var(--secondary-text-color); }
+          .quick-add { display: flex; gap: 4px; margin: 0 12px 8px; }
+          .quick-add input {
+            flex: 1;
+            min-width: 0;
+            font: inherit;
+            color: inherit;
+            background: var(--secondary-background-color);
+            border: 1px solid var(--divider-color);
+            border-radius: 4px;
+            padding: 8px;
           }
           .loading {
             text-align: center;
@@ -1601,7 +1897,8 @@
           // Right pane: render a specialised view depending on list type.
           const isShopping = this._isShoppingList(this._selectedEntityId);
           mainContent = html`
-            <div id="columns">
+            <div id="columns" class=${Object.keys(this.hass?.states[this._selectedEntityId]?.attributes?.task_assignees || {}).length
+              ? "assignment-layout" : ""}>
               <div class="column">
                 ${isShopping
                   ? html`
@@ -1713,6 +2010,7 @@
               max-width: 500px;
               min-width: 0;
             }
+            .assignment-layout .column { max-width: 1200px; }
             .fab {
               position: fixed;
               right: calc(16px + var(--safe-area-inset-right, 0px));

@@ -47,3 +47,45 @@ set_task_details:
       selector:
         text:
           multiline: true
+
+set_task_assignee:
+  target:
+    entity:
+      integration: better_todo
+      domain: todo
+  fields:
+    item:
+      required: true
+      selector:
+        text:
+    user_id:
+      selector:
+        text:
+
+add_assigned_task:
+  target:
+    entity:
+      integration: better_todo
+      domain: todo
+  fields:
+    summary:
+      required: true
+      selector:
+        text:
+    user_id:
+      required: true
+      selector:
+        text:
+    description:
+      selector:
+        text:
+          multiline: true
+    due_date:
+      selector:
+        date:
+    due_datetime:
+      selector:
+        datetime:
+    rrule:
+      selector:
+        text:

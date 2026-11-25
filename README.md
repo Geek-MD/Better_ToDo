@@ -22,7 +22,7 @@ A custom Home Assistant integration that provides a **local, file-based to-do li
 
 It is built on the same foundation as the built-in [Local To-do](https://www.home-assistant.io/integrations/local_todo) integration but extends it with a native recurrence engine: when a recurring task is marked completed it automatically advances to its next scheduled occurrence rather than disappearing.
 
-Version **0.6.3** brings the native To-do list card to the sidebar panel and fixes loading on a direct visit.
+Version **0.7.0** adds task assignment to Home Assistant users in the Better ToDo panel.
 
 ---
 
@@ -30,6 +30,7 @@ Version **0.6.3** brings the native To-do list card to the sidebar panel and fix
 
 - **Custom sidebar panel** – a dedicated *Better ToDo* panel accessible from the HA sidebar at `/better-todo`, built with the same two-pane layout as the built-in To-do panel. Regular task lists use Home Assistant's actual core **To-do list** card, so spacing, typography, section headers, quick-add input, menus, due dates, reordering, completed-item controls, responsiveness, accessibility, and theme behavior stay identical to the installed Home Assistant frontend. Better To-do intercepts only task-row editing and the panel add button to expose its recurrence-aware dialog. The Shopping List keeps its dedicated grouped view with name, quantity, and unit.
 - **Full to-do list entity** – integrates natively with the Home Assistant [To-do list dashboard card](https://www.home-assistant.io/dashboards/todo-list/) and all built-in `todo.*` services.
+- **Task assignment** – choose an active Home Assistant user in the task editor. Unassigned tasks stay in the selected list's left column. Assigned tasks appear once, under the user's name on the right. On narrow screens, the columns stack. Tasks stay in their original entity, and clearing the assignee returns a task to the unassigned column. The assignment persists when a recurring task advances. This view applies to regular Better ToDo lists.
 - **Recurring tasks (RRULE)** – attach any iCalendar RRULE string to a task (e.g. `FREQ=WEEKLY;BYDAY=MO`, `FREQ=DAILY`, `FREQ=MONTHLY;BYMONTHDAY=1`). When the task is marked done it rolls forward to the next occurrence automatically.
 - **`better_todo.set_task_recurrence` service** – set or clear the RRULE on a task by its UID from an automation, script, or *Developer Tools → Actions*.
 - **`task_recurrence` attribute** – the entity exposes a `{uid: rrule_string}` dictionary so custom Lovelace cards and automations can read per-task recurrence rules.
@@ -104,6 +105,7 @@ You can add multiple custom lists by repeating the setup process. Removing an in
 |-----------|------|-------------|
 | `task_recurrence` | `dict` | Maps each task UID to its RRULE string. Only present when at least one task has a recurrence rule set. |
 | `task_details` | `dict` | Maps each task UID to a `{quantity, category}` dict. Only present when at least one task has structured details set via `set_task_details`. |
+| `task_assignees` | `dict` | Maps assigned task UIDs to Home Assistant user IDs on regular Better ToDo lists. |
 
 ---
 

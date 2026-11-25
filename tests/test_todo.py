@@ -4,6 +4,7 @@ from __future__ import annotations
 import datetime
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -28,6 +29,7 @@ from custom_components.better_todo.todo import (
 )
 from homeassistant.components.todo import TodoItem, TodoItemStatus
 from homeassistant.core import ServiceCall
+from homeassistant.exceptions import ServiceValidationError
 
 
 # ---------------------------------------------------------------------------
@@ -67,6 +69,51 @@ def test_ha_item_to_ical_basic() -> None:
     todo = _ha_item_to_ical(item)
     assert todo.uid == "abc"
     assert todo.summary == "Buy milk"
+
+
+@pytest.mark.asyncio
+async def test_assignment_survives_reload_and_completion(tmp_path, mock_hass):
+    """Assignments use the task UID and survive reopening its calendar."""
+    mock_hass.auth.async_get_user = AsyncMock(
+        return_value=SimpleNamespace(is_active=True, system_generated=False)
+    )
+    entity = _make_entity(tmp_path, mock_hass)
+    await entity.async_create_todo_item(TodoItem(summary="Clean"))
+    await entity._async_add_assigned_task("Clean", "user-one")
+    await entity._async_add_assigned_task(
+        "Water plants", "user-two", due_date=datetime.date(2026, 11, 25),
+        rrule="FREQ=DAILY;COUNT=3",
+    )
+    first, assigned, recurring = entity._attr_todo_items
+    assert entity.extra_state_attributes["task_assignees"] == {
+        assigned.uid: "user-one", recurring.uid: "user-two",
+    }
+
+    await entity.async_update_todo_item(
+        TodoItem(uid=recurring.uid, summary=recurring.summary,
+                 due=recurring.due, status=TodoItemStatus.COMPLETED)
+    )
+    await entity._async_set_task_assignee(assigned.uid, "user-two")
+    await entity._async_set_task_assignee(first.uid, "user-one")
+    await entity._async_set_task_assignee(first.uid)
+    entity._calendar = IcsCalendarStream.calendar_from_ics(
+        (tmp_path / "test.ics").read_text(encoding="utf-8")
+    )
+    await entity.async_update()
+    assert entity.extra_state_attributes["task_assignees"] == {
+        assigned.uid: "user-two", recurring.uid: "user-two",
+    }
+    assert entity._attr_todo_items[-1].status is TodoItemStatus.NEEDS_ACTION
+
+
+@pytest.mark.asyncio
+async def test_invalid_assignee_does_not_create_task(tmp_path, mock_hass):
+    """Inactive or unknown users cannot receive new tasks."""
+    mock_hass.auth.async_get_user = AsyncMock(return_value=None)
+    entity = _make_entity(tmp_path, mock_hass)
+    with pytest.raises(ServiceValidationError):
+        await entity._async_add_assigned_task("Clean", "missing-user")
+    assert not entity._calendar.todos
 
 
 def test_ha_item_to_ical_with_due_date() -> None:
@@ -534,10 +581,9 @@ def test_shopping_list_entity_uses_translation_key_for_name(tmp_path: Path, mock
     assert entity._attr_has_entity_name is True
 
 
-def test_setup_entry_shopping_list_uses_shopping_entity(mock_hass) -> None:
+@pytest.mark.asyncio
+async def test_setup_entry_shopping_list_uses_shopping_entity(tmp_path, mock_hass) -> None:
     """The default Shopping List entity must be a ShoppingListTodoListEntity."""
-    import asyncio
-
     mock_hass.data = {}
     added_entities: list[list[BetterTodoListEntity]] = []
 
@@ -545,15 +591,13 @@ def test_setup_entry_shopping_list_uses_shopping_entity(mock_hass) -> None:
         added_entities.append(list(entities))
 
     entry = SimpleNamespace(
-        runtime_data=_make_entity(Path("/tmp"), mock_hass)._store,
+        runtime_data=_make_entity(tmp_path, mock_hass)._store,
         title="My Tasks",
         entry_id="entry-shopping-test",
         domain="better_todo",
         data={CONF_STORAGE_KEY: "my_tasks"},
     )
-    asyncio.get_event_loop().run_until_complete(
-        async_setup_entry(mock_hass, entry, _add_entities)
-    )
+    await async_setup_entry(mock_hass, entry, _add_entities)
 
     all_entities = added_entities[0]
     shopping = next(

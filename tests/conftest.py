@@ -70,6 +70,7 @@ def _register_ha_stubs() -> None:
         pass
 
     ha_exc.ConfigEntryNotReady = ConfigEntryNotReady
+    ha_exc.ServiceValidationError = type("ServiceValidationError", (Exception,), {})
     sys.modules.setdefault("homeassistant.exceptions", ha_exc)
 
     # --- homeassistant.util ---
@@ -104,6 +105,14 @@ def _register_ha_stubs() -> None:
     sys.modules.setdefault(
         "homeassistant.components.panel_custom", ha_panel_custom
     )
+    ha_ws = types.ModuleType("homeassistant.components.websocket_api")
+    ha_ws.websocket_command = lambda _schema: lambda function: function
+    ha_ws.async_response = lambda function: function
+    ha_ws.async_register_command = lambda *_args: None
+    sys.modules.setdefault("homeassistant.components.websocket_api", ha_ws)
+    ha_permissions = types.ModuleType("homeassistant.auth.permissions.const")
+    ha_permissions.POLICY_READ = "read"
+    sys.modules.setdefault("homeassistant.auth.permissions.const", ha_permissions)
 
     # --- homeassistant.components.todo ---
     class TodoItemStatus(str, enum.Enum):
@@ -188,7 +197,14 @@ def _register_ha_stubs() -> None:
     # --- homeassistant.helpers.config_validation ---
     ha_cv = types.ModuleType("homeassistant.helpers.config_validation")
     ha_cv.string = str
+    ha_cv.entity_id = str
+    ha_cv.date = datetime.date.fromisoformat
+    ha_cv.datetime = datetime.datetime.fromisoformat
     sys.modules.setdefault("homeassistant.helpers.config_validation", ha_cv)
+    sys.modules.setdefault(
+        "homeassistant.helpers.entity_registry",
+        types.ModuleType("homeassistant.helpers.entity_registry"),
+    )
 
     # --- homeassistant (root) ---
     sys.modules.setdefault("homeassistant", types.ModuleType("homeassistant"))

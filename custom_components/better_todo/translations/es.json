@@ -21,6 +21,26 @@
     }
   },
   "services": {
+    "set_task_assignee": {
+      "name": "Asignar tarea",
+      "description": "Asigna una tarea a un usuario de Home Assistant. Omite el ID del usuario para quitar la asignación.",
+      "fields": {
+        "item": {"name": "UID de la tarea"},
+        "user_id": {"name": "ID del usuario"}
+      }
+    },
+    "add_assigned_task": {
+      "name": "Agregar tarea asignada",
+      "description": "Crea una tarea asignada a un usuario de Home Assistant.",
+      "fields": {
+        "summary": {"name": "Nombre de la tarea"},
+        "user_id": {"name": "ID del usuario"},
+        "description": {"name": "Descripción"},
+        "due_date": {"name": "Fecha de vencimiento"},
+        "due_datetime": {"name": "Fecha y hora de vencimiento"},
+        "rrule": {"name": "Regla de recurrencia"}
+      }
+    },
     "set_task_recurrence": {
       "name": "Definir recurrencia de tarea",
       "description": "Define o elimina una regla de recurrencia RRULE de iCalendar en una tarea específica. Cuando una tarea recurrente se completa, avanza automáticamente a la siguiente fecha de vencimiento.",
