@@ -1,6 +1,7 @@
 """The Better To-do integration."""
 from __future__ import annotations
 
+from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
@@ -20,6 +21,7 @@ from .const import CONF_STORAGE_KEY, CONF_TODO_LIST_NAME, STORAGE_PATH
 from .store import BetterTodoListStore
 
 PLATFORMS: list[Platform] = [Platform.TODO]
+_PANEL_BUNDLE = Path(__file__).parent / "frontend" / "better-todo-panel.js"
 
 CONFIG_SCHEMA = vol.Schema({}, extra=vol.ALLOW_EXTRA)  # required by hassfest when async_setup is defined
 
@@ -59,25 +61,28 @@ async def _async_assignees(
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the Better To-do integration (panel + static assets)."""
+    bundle = await hass.async_add_executor_job(_PANEL_BUNDLE.read_bytes)
+    fingerprint = sha256(bundle).hexdigest()[:16]
+    # Change the path itself so caches that ignore query parameters can't serve
+    # an older panel bundle after Home Assistant restarts on updated files.
+    js_url = f"/better_todo_static/better-todo-panel.{fingerprint}.js"
     websocket_api.async_register_command(hass, _async_assignees)
     await hass.http.async_register_static_paths(
         [StaticPathConfig(
-            url_path="/better_todo_static",
-            path=str(Path(__file__).parent / "frontend"),
+            url_path=js_url,
+            path=str(_PANEL_BUNDLE),
             cache_headers=False,
         )]
     )
     await panel_custom.async_register_panel(
         hass,
         frontend_url_path="better-todo",
-        webcomponent_name="better-todo-panel",
+        webcomponent_name="better-todo-panel-v080",
         sidebar_title="Better ToDo",
         sidebar_icon="mdi:check-circle-outline",
         require_admin=False,
         config={},
-        # Keep the release version in the URL so browsers cannot reuse the
-        # panel bundle from an older Better To-do installation.
-        js_url="/better_todo_static/better-todo-panel.js?v=0.7.0",
+        js_url=js_url,
     )
     return True
 

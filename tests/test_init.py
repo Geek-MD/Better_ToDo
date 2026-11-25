@@ -1,6 +1,7 @@
 """Tests for the Better To-do integration-level setup."""
 from __future__ import annotations
 
+from hashlib import sha256
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -33,16 +34,40 @@ async def test_async_setup_registers_static_path_and_panel(mock_hass):
     static_configs = call_args[0][0]
     assert len(static_configs) == 1
     static_config = static_configs[0]
-    assert static_config.url_path == "/better_todo_static"
-    assert Path(static_config.path).is_dir()
+    bundle = Path(static_config.path)
+    assert bundle.name == "better-todo-panel.js"
+    fingerprint = sha256(bundle.read_bytes()).hexdigest()[:16]
+    assert static_config.url_path == f"/better_todo_static/better-todo-panel.{fingerprint}.js"
+    assert static_config.cache_headers is False
 
     # Panel registered
     mock_register.assert_called_once()
     kwargs = mock_register.call_args.kwargs
-    assert kwargs["webcomponent_name"] == "better-todo-panel"
+    assert kwargs["webcomponent_name"] == "better-todo-panel-v080"
     assert kwargs["frontend_url_path"] == "better-todo"
     assert kwargs["sidebar_title"] == "Better ToDo"
-    assert kwargs["js_url"] == "/better_todo_static/better-todo-panel.js?v=0.7.0"
+    assert kwargs["js_url"] == static_config.url_path
+
+
+@pytest.mark.asyncio
+async def test_changed_panel_bytes_get_a_new_url_without_a_version_bump(
+    mock_hass, tmp_path, monkeypatch
+):
+    """Updating the actual bundle changes the asset path that clients request."""
+    from custom_components import better_todo
+
+    bundle = tmp_path / "better-todo-panel.js"
+    monkeypatch.setattr(better_todo, "_PANEL_BUNDLE", bundle)
+    mock_hass.http.async_register_static_paths = AsyncMock()
+    with patch.object(better_todo.panel_custom, "async_register_panel", new_callable=AsyncMock) as register:
+        bundle.write_bytes(b"old panel")
+        assert await better_todo.async_setup(mock_hass, {})
+        bundle.write_bytes(b"new panel")
+        assert await better_todo.async_setup(mock_hass, {})
+
+    first, second = [call.kwargs["js_url"] for call in register.call_args_list]
+    assert first != second
+    assert "?" not in second
 
 
 @pytest.mark.asyncio

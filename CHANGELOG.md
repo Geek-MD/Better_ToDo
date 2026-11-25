@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-11-25
+
+### Added
+- Redesigned the Better ToDo panel with responsive list navigation, per-user task cards, and a progress indicator for the selected list.
+- Added bundled Font Awesome Free Solid icons for navigation, task actions, dates, recurrence, and progress.
+- Added a session-level control to hide or show completed tasks without changing the progress count.
+
+### Changed
+- Completed tasks stay in their own assignee column or shopping category and appear crossed out below pending items.
+- Subscribe to Home Assistant task updates so the board also refreshes when the entity's count stays the same.
+- External integrations continue to use the native Home Assistant task card within the redesigned panel.
+
+### Fixed
+- Serve the sidebar JavaScript from a path fingerprinted by its contents so browsers and proxies request the updated panel after an upgrade.
+- Use fresh panel and editor components alongside older tabs. Show the assignee field on Better ToDo task lists even when the entity state omits the empty assignment map.
+- Save assignee-only edits without rewriting task dates, descriptions, or recurrence.
+
 ## [0.7.0] - 2026-11-25
 
 ### Added
