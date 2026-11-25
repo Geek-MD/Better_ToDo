@@ -4,27 +4,34 @@
 // structures so that the LitElement rendering engine (from HA's bundle) processes them
 // correctly.
 //
-// Registration strategy (two paths):
-//
-//  1. SYNCHRONOUS PATH (common case): When this script executes, HA's core bundle
-//     has already run and ha-card is defined. We define better-todo-panel immediately,
-//     BEFORE the script's onload event fires. HA's panel_custom resolves its
-//     loadCustomPanel() promise on that onload event, then calls
-//     document.createElement("better-todo-panel") — which by then finds our element
-//     properly registered.
-//
-//  2. ASYNC FALLBACK PATH (rare fresh-load edge case): If this script somehow executes
-//     before ha-card is registered (e.g. the panel bundle loads ahead of the core
-//     bundle during a cold start), we fall back to customElements.whenDefined("ha-card").
-//     The browser's upgrade mechanism then kicks in: HA creates an HTMLElement
-//     placeholder, we define our class shortly after, and the browser upgrades the
-//     existing placeholder to our LitElement-based component.
+// Registration uses any already-defined HA Lit host (normally the application
+// root) rather than depending on the lazily loaded ha-card element. If the app
+// root is still being registered, the browser upgrades the panel placeholder as
+// soon as that first Lit host becomes available.
 (function () {
+  function _getLitElementBase() {
+    const hosts = ["ha-card", "home-assistant", "hc-main", "ha-panel-lovelace"];
+    for (const tag of hosts) {
+      let constructor = customElements.get(tag);
+      while (constructor && constructor !== HTMLElement) {
+        // Lit marks the actual LitElement constructor (not its subclasses) with
+        // this own static property. Walking to it avoids inheriting HA mixins
+        // from application-root elements during a cold load.
+        if (Object.prototype.hasOwnProperty.call(constructor, "_$litElement$")) {
+          return constructor;
+        }
+        constructor = Object.getPrototypeOf(constructor);
+      }
+    }
+    return null;
+  }
+
   function _definePanel() {
     // Guard: do not register twice (e.g. if the script is somehow executed more than once).
     if (customElements.get("better-todo-panel")) return;
 
-    const LitElement = Object.getPrototypeOf(customElements.get("ha-card"));
+    const LitElement = _getLitElementBase();
+    if (!LitElement) return;
 
     const html = (strings, ...values) => ({ _$litType$: 1, strings, values });
 
@@ -53,14 +60,8 @@
     const _mdiPlus = "M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z";
     const _mdiArrowLeft =
       "M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z";
-    const _mdiDelete =
-      "M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z";
-    const _mdiRepeat =
-      "M17,17H7V14L3,18L7,22V19H19V13H17M7,7H17V10L21,6L17,2V5H5V11H7V7Z";
     const _mdiClose =
       "M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z";
-    const _mdiCalendar =
-      "M19,19H5V8H19M16,1V3H8V1H6V3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3H18V1M17,13H12V18H17V13Z";
 
     // ── Shared helpers ───────────────────────────────────────────────────────
 
@@ -199,19 +200,37 @@
       return defaults;
     }
 
-    // Format a date/datetime string for localised display.
-    function _formatDue(due, hass) {
-      if (!due) return "";
-      try {
-        const s = String(due);
-        const datePart = s.includes("T") ? s.split("T")[0] : s.substring(0, 10);
-        const [y, m, d] = datePart.split("-").map(Number);
-        const locale = hass?.locale?.language || navigator.language || "en";
-        return new Date(y, m - 1, d).toLocaleDateString(locale, {
-          month: "short", day: "numeric", year: "numeric",
-        });
-      } catch {
-        return String(due);
+    let coreTodoLoad;
+
+    function _loadCoreTodoElements() {
+      coreTodoLoad ??= _importCoreTodoElements().catch((err) => {
+        coreTodoLoad = undefined;
+        throw err;
+      });
+      return coreTodoLoad;
+    }
+
+    async function _importCoreTodoElements() {
+      if (customElements.get("ha-panel-todo") && customElements.get("hui-card")) return;
+
+      // A direct cold load of /better-todo has not imported HA's To-do panel
+      // yet. Ask the same panel resolver used by the app shell to import it
+      // without navigating away. That module registers hui-card, the core
+      // todo-list card, and every UI element used by the native panel.
+      await customElements.whenDefined("partial-panel-resolver");
+      const resolver = document.createElement("partial-panel-resolver");
+      const getRoutes = resolver._getRoutes || resolver.getRoutes;
+      if (getRoutes) {
+        const panel = { component_name: "todo", url_path: "todo" };
+        let routes = getRoutes.call(resolver, { todo: panel });
+        // Older HA releases accepted an array instead of the panel map.
+        if (!routes?.routes?.todo) {
+          routes = getRoutes.call(resolver, [panel]);
+        }
+        await routes?.routes?.todo?.load?.();
+      }
+      if (!customElements.get("hui-card")) {
+        throw new Error("Home Assistant's core To-do card is unavailable");
       }
     }
 
@@ -918,29 +937,40 @@
           hass:     { attribute: false },
           entityId: { type: String },
           _items:   { state: true },
-          _loading: { state: true },
+          _card:    { state: true },
         };
       }
 
       constructor() {
         super();
-        this._items   = [];
-        this._loading = false;
-        // Non-reactive: prevents re-fetch loops when only _loading/_items change.
+        this._items = [];
+        this._card = null;
         this._stateKey = null;
-        // Discard late WebSocket responses after switching lists or starting a
-        // newer refresh. Without this, a slow response can replace the items
-        // belonging to the list that is currently visible.
         this._fetchSequence = 0;
-        // Prevent repeated clicks from issuing duplicate remove_item calls.
-        this._deleting = new Set();
+        this._cardSequence = 0;
+        this._captureCardClick = this._captureCardClick.bind(this);
+        this._captureCardKeydown = this._captureCardKeydown.bind(this);
+      }
+
+      connectedCallback() {
+        super.connectedCallback();
+        // Capture item clicks before the core card opens HA's stock editor.  The
+        // visual card remains 100% core, while Better To-do can add recurrence
+        // controls to the edit dialog.
+        this.addEventListener("click", this._captureCardClick, true);
+        this.addEventListener("keydown", this._captureCardKeydown, true);
+      }
+
+      disconnectedCallback() {
+        super.disconnectedCallback();
+        this.removeEventListener("click", this._captureCardClick, true);
+        this.removeEventListener("keydown", this._captureCardKeydown, true);
       }
 
       async _fetchItems() {
         if (!this.hass || !this.entityId) return;
         const entityId = this.entityId;
         const fetchSequence = ++this._fetchSequence;
-        this._loading = true;
         try {
           const res = await this.hass.callWS({
             type: "todo/item/list", entity_id: entityId,
@@ -952,10 +982,26 @@
           if (fetchSequence === this._fetchSequence && entityId === this.entityId) {
             this._items = [];
           }
-        } finally {
-          if (fetchSequence === this._fetchSequence) {
-            this._loading = false;
-          }
+        }
+      }
+
+      async _setupCoreCard() {
+        if (!this.entityId) return;
+        const entityId = this.entityId;
+        const cardSequence = ++this._cardSequence;
+        this._card = null;
+        try {
+          await _loadCoreTodoElements();
+          const card = document.createElement("hui-card");
+          card.config = {
+            type: "todo-list",
+            entity: entityId,
+          };
+          if (cardSequence !== this._cardSequence || entityId !== this.entityId) return;
+          card.hass = this.hass;
+          this._card = card;
+        } catch (err) {
+          console.error("Unable to load Home Assistant's To-do list card", err);
         }
       }
 
@@ -964,10 +1010,11 @@
         // Full reset when the displayed list changes.
         if (changedProps.has("entityId")) {
           this._fetchSequence++;
-          this._items    = [];
+          this._cardSequence++;
+          this._items = [];
           this._stateKey = null;
           this._fetchItems();
-          return;
+          this._setupCoreCard();
         }
         // Re-fetch whenever the entity's state fingerprint changes (e.g. an item
         // was added / completed / deleted from outside this panel).
@@ -981,6 +1028,9 @@
             this._fetchItems();
           }
         }
+        if (changedProps.has("hass") && this._card) {
+          this._card.hass = this.hass;
+        }
       }
 
       _dialog() {
@@ -991,120 +1041,49 @@
         this._dialog()?.openCreate();
       }
 
+      openCreate() {
+        this._openCreate();
+      }
+
       _openEdit(item) {
         const rrule =
           this.hass?.states[this.entityId]?.attributes?.task_recurrence?.[item.uid] || "";
         this._dialog()?.openEdit(item, rrule);
       }
 
-      async _toggle(item) {
-        const newStatus = item.status === "completed" ? "needs_action" : "completed";
-        try {
-          await this.hass.callService("todo", "update_item", {
-            entity_id: this.entityId, item: item.uid, status: newStatus,
-          });
-        } catch { /* ignore */ }
+      _captureCardClick(event) {
+        const path = event.composedPath();
+        const row = path.find((node) => node?.localName === "ha-list-item-option");
+        if (!row) return;
+        // Checkbox, links and action buttons keep the exact core-card behavior.
+        if (path.some((node) =>
+          ["ha-checkbox", "input", "a", "button", "ha-icon-button"].includes(node?.localName)
+        )) return;
+        const item = this._items.find((entry) => entry.uid === row.value);
+        if (!item) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        this._openEdit(item);
       }
 
-      async _delete(uid, ev) {
-        ev.stopPropagation();
-        if (this._deleting.has(uid)) return;
-        this._deleting.add(uid);
-        try {
-          // Verify the item still exists before invoking remove_item. A card can
-          // retain a stale row when an item was deleted elsewhere without
-          // changing the todo entity state; calling the service for that row
-          // makes Home Assistant respond with item_not_found.
-          const res = await this.hass.callWS({
-            type: "todo/item/list", entity_id: this.entityId,
-          });
-          const currentItems = res?.items || [];
-          if (!currentItems.some((item) => item.uid === uid)) {
-            this._items = currentItems;
-            return;
-          }
-
-          // Remove the row immediately instead of waiting for a state update.
-          // Todo item changes do not always alter the entity state fingerprint.
-          this._items = currentItems.filter((item) => item.uid !== uid);
-          await this.hass.callService("todo", "remove_item", {
-            entity_id: this.entityId, item: uid,
-          });
-        } catch {
-          // Restore the authoritative list if deletion failed for any reason.
-          await this._fetchItems();
-        } finally {
-          this._deleting.delete(uid);
-        }
-      }
-
-      _renderItem(item) {
-        const done  = item.status === "completed";
-        const rrule = this.hass?.states[this.entityId]?.attributes?.task_recurrence?.[item.uid];
-        const due   = _formatDue(item.due, this.hass);
-        return html`
-          <div class="item ${done ? "item--done" : ""}">
-            <ha-checkbox
-              .checked=${done}
-              @change=${() => this._toggle(item)}
-            ></ha-checkbox>
-            <div class="item-body" @click=${() => this._openEdit(item)}>
-              <span class="item-name">${item.summary}</span>
-              ${due || rrule ? html`
-                <div class="item-meta">
-                  ${due ? html`
-                    <span class="meta-chip">
-                      <ha-svg-icon class="chip-icon" .path=${_mdiCalendar}></ha-svg-icon>
-                      ${due}
-                    </span>
-                  ` : ""}
-                  ${rrule ? html`
-                    <span class="meta-chip">
-                      <ha-svg-icon class="chip-icon" .path=${_mdiRepeat}></ha-svg-icon>
-                    </span>
-                  ` : ""}
-                </div>
-              ` : ""}
-            </div>
-            <ha-icon-button
-              class="del-btn"
-              .path=${_mdiDelete}
-              @click=${(e) => this._delete(item.uid, e)}
-            ></ha-icon-button>
-          </div>
-        `;
+      _captureCardKeydown(event) {
+        if (event.key !== "Enter") return;
+        const path = event.composedPath();
+        const row = path.find((node) => node?.localName === "ha-list-item-option");
+        if (!row || event.composedPath()[0] !== row) return;
+        const item = this._items.find((entry) => entry.uid === row.value);
+        if (!item) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        this._openEdit(item);
       }
 
       render() {
         const L = (k, fb) => this.hass?.localize(k) || fb;
-        const pending = this._items.filter((i) => i.status !== "completed");
-        const done    = this._items.filter((i) => i.status === "completed");
-
         return html`
-          <div class="list-wrap">
-            ${this._loading && !this._items.length
-              ? html`<div class="placeholder">${L("ui.common.loading", "Loading…")}</div>`
-              : ""}
-            ${!this._loading && !this._items.length
-              ? html`<div class="placeholder">${L("ui.panel.todo.no_items", "No tasks yet.")}</div>`
-              : ""}
-
-            ${pending.map((i) => this._renderItem(i))}
-
-            ${done.length ? html`
-              <div class="section-label">
-                ${L("ui.panel.todo.filter.completed", "Completed")}
-              </div>
-              ${done.map((i) => this._renderItem(i))}
-            ` : ""}
-          </div>
-
-          <div class="add-footer">
-            <button class="add-btn" @click=${() => this._openCreate()}>
-              <ha-svg-icon .path=${_mdiPlus}></ha-svg-icon>
-              ${L("ui.panel.todo.action.add_item", "Add task")}
-            </button>
-          </div>
+          ${this._card
+            ? this._card
+            : html`<ha-card><div class="loading">${L("ui.common.loading", "Loading…")}</div></ha-card>`}
 
           <better-todo-task-dialog
             .hass=${this.hass}
@@ -1119,107 +1098,12 @@
           :host {
             display: block;
           }
-
-          .list-wrap { padding: 8px 0 0; }
-
-          .item {
-            display: flex;
-            align-items: center;
-            padding: 2px 8px 2px 4px;
-            border-radius: 8px;
-            gap: 2px;
-          }
-
-          .item:hover { background: var(--secondary-background-color); }
-
-          .item--done .item-name {
-            text-decoration: line-through;
-            color: var(--secondary-text-color);
-          }
-
-          .item-body {
-            flex: 1;
-            padding: 6px 4px;
-            cursor: pointer;
-            min-width: 0;
-          }
-
-          .item-name {
-            display: block;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            color: var(--primary-text-color);
-            font-size: 1rem;
-          }
-
-          .item-meta {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            margin-top: 2px;
-          }
-
-          .meta-chip {
-            display: inline-flex;
-            align-items: center;
-            gap: 2px;
-            font-size: 0.75rem;
-            color: var(--secondary-text-color);
-          }
-
-          .chip-icon {
-            width: 13px;
-            height: 13px;
-            --mdc-icon-size: 13px;
-          }
-
-          .del-btn {
-            --mdc-icon-button-size: 36px;
-            opacity: 0;
-            transition: opacity 0.15s;
-            flex-shrink: 0;
-          }
-
-          .item:hover .del-btn { opacity: 1; }
-
-          .section-label {
-            font-size: 0.73rem;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            color: var(--secondary-text-color);
-            padding: 16px 8px 4px 12px;
-          }
-
-          .placeholder {
+          .loading {
             text-align: center;
             padding: 48px 16px;
             color: var(--secondary-text-color);
             font-size: 0.95rem;
           }
-
-          .add-footer {
-            border-top: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12));
-            margin-top: 8px;
-          }
-
-          .add-btn {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            width: 100%;
-            padding: 12px 16px;
-            border: none;
-            background: transparent;
-            color: var(--primary-text-color);
-            font-size: 1rem;
-            font-family: inherit;
-            cursor: pointer;
-            transition: background 0.12s;
-          }
-
-          .add-btn:hover { background: var(--secondary-background-color); }
         `];
       }
     }
@@ -1538,6 +1422,12 @@
         this._paneOnMobile = true;
       }
 
+      _addItem() {
+        this.shadowRoot
+          ?.querySelector("better-todo-task-list")
+          ?.openCreate();
+      }
+
       /** Open the Better To-do config flow to create a new list.
        *  Dispatches the same show-dialog event that ha-panel-todo uses so that
        *  HA's app shell opens the standard config-flow dialog inline. */
@@ -1577,6 +1467,12 @@
 
       connectedCallback() {
         super.connectedCallback();
+
+        // The panel layout needs the native module even when there are no
+        // task cards yet or the grouped shopping view was selected last.
+        _loadCoreTodoElements().catch((err) => {
+          console.error("Unable to load Home Assistant's To-do panel components", err);
+        });
 
         // Mirror ha-panel-todo's ResizeController: show left pane when width > 750 px.
         this._resizeObserver = new ResizeObserver((entries) => {
@@ -1785,6 +1681,16 @@
 
             <!-- Main content area -->
             ${mainContent}
+
+            ${this._selectedEntityId &&
+            !this._isShoppingList(this._selectedEntityId)
+              ? html`
+                  <ha-button class="fab" size="l" @click=${this._addItem}>
+                    <ha-svg-icon slot="start" .path=${_mdiPlus}></ha-svg-icon>
+                    ${this.hass?.localize("ui.panel.todo.add_item") || "Add item"}
+                  </ha-button>
+                `
+              : ""}
           </ha-two-pane-top-app-bar-fixed>
         `;
       }
@@ -1807,6 +1713,14 @@
               max-width: 500px;
               min-width: 0;
             }
+            .fab {
+              position: fixed;
+              right: calc(16px + var(--safe-area-inset-right, 0px));
+              bottom: calc(16px + var(--safe-area-inset-bottom, 0px));
+              inset-inline-end: calc(16px + var(--safe-area-inset-right, 0px));
+              inset-inline-start: initial;
+              --ha-button-box-shadow: var(--ha-box-shadow-l);
+            }
             better-todo-task-list,
             better-todo-shopping-list {
               display: block;
@@ -1828,12 +1742,21 @@
   }
 
   // ── Registration entry point ────────────────────────────────────────────────
-  // Attempt the synchronous path first (see module-level comment above).
-  if (customElements.get("ha-card")) {
+  // Prefer any already-defined Lit host. Unlike ha-card, the application root
+  // is present even when a custom panel is the first route after a cold boot.
+  if (
+    customElements.get("ha-card") ||
+    customElements.get("home-assistant") ||
+    customElements.get("hc-main") ||
+    customElements.get("ha-panel-lovelace")
+  ) {
     _definePanel();
   } else {
-    // Async fallback: ha-card will be defined shortly as HA's core bundle finishes
-    // executing. whenDefined resolves as a microtask once that happens.
-    customElements.whenDefined("ha-card").then(_definePanel);
+    Promise.race([
+      customElements.whenDefined("home-assistant"),
+      customElements.whenDefined("hc-main"),
+      customElements.whenDefined("ha-card"),
+      customElements.whenDefined("ha-panel-lovelace"),
+    ]).then(_definePanel);
   }
 })();

@@ -22,13 +22,13 @@ A custom Home Assistant integration that provides a **local, file-based to-do li
 
 It is built on the same foundation as the built-in [Local To-do](https://www.home-assistant.io/integrations/local_todo) integration but extends it with a native recurrence engine: when a recurring task is marked completed it automatically advances to its next scheduled occurrence rather than disappearing.
 
-Version **0.6.2** aligns the `ical` dependency with Home Assistant 2026.11, adds Marketplace metadata, and refreshes the versioned sidebar asset URL.
+Version **0.6.3** brings the native To-do list card to the sidebar panel and fixes loading on a direct visit.
 
 ---
 
 ## ✨ Features
 
-- **Custom sidebar panel** – a dedicated *Better ToDo* panel accessible from the HA sidebar at `/better-todo`, built with the same two-pane layout as the built-in To-do panel. Task lists are rendered with a custom view (checkboxes, due-date & recurrence indicators, delete button) and a create/edit dialog that exposes Better To-do-specific options such as the recurrence preset picker. The Shopping List is rendered in a dedicated view that groups items alphabetically by category, showing each item's name, quantity, and unit.
+- **Custom sidebar panel** – a dedicated *Better ToDo* panel accessible from the HA sidebar at `/better-todo`, built with the same two-pane layout as the built-in To-do panel. Regular task lists use Home Assistant's actual core **To-do list** card, so spacing, typography, section headers, quick-add input, menus, due dates, reordering, completed-item controls, responsiveness, accessibility, and theme behavior stay identical to the installed Home Assistant frontend. Better To-do intercepts only task-row editing and the panel add button to expose its recurrence-aware dialog. The Shopping List keeps its dedicated grouped view with name, quantity, and unit.
 - **Full to-do list entity** – integrates natively with the Home Assistant [To-do list dashboard card](https://www.home-assistant.io/dashboards/todo-list/) and all built-in `todo.*` services.
 - **Recurring tasks (RRULE)** – attach any iCalendar RRULE string to a task (e.g. `FREQ=WEEKLY;BYDAY=MO`, `FREQ=DAILY`, `FREQ=MONTHLY;BYMONTHDAY=1`). When the task is marked done it rolls forward to the next occurrence automatically.
 - **`better_todo.set_task_recurrence` service** – set or clear the RRULE on a task by its UID from an automation, script, or *Developer Tools → Actions*.
@@ -40,6 +40,7 @@ Version **0.6.2** aligns the `ical` dependency with Home Assistant 2026.11, adds
 - **Config-flow setup** – configure entirely through the UI; no YAML needed.
 - **Multiple lists** – add as many Better To-do lists as you need, each stored in its own file.
 - **Responsive panel updates** – list data tracks attribute-only changes and ignores stale WebSocket responses when switching quickly between lists.
+- **Reliable cold loading** – the panel explicitly imports Home Assistant's core To-do frontend module and no longer needs the native To-do dashboard to have been opened first.
 - **Multilingual UI** – English (default), Spanish, Portuguese, French, and German.
 - **HACS-compatible**.
 

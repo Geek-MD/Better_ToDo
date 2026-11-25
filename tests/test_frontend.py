@@ -26,7 +26,7 @@ def test_panel_guards_against_stale_item_responses() -> None:
     source = PANEL_SOURCE.read_text(encoding="utf-8")
 
     assert source.count("const fetchSequence = ++this._fetchSequence;") == 2
-    assert source.count("fetchSequence === this._fetchSequence") >= 6
+    assert source.count("fetchSequence === this._fetchSequence") >= 4
 
 
 def test_recurrence_targets_the_new_uid_not_a_duplicate_name() -> None:
@@ -44,15 +44,6 @@ def test_panel_caches_sorted_todo_lists() -> None:
 
     assert "if (!registryChanged && !statesChanged)" in source
     assert "return this._todoListsCache;" in source
-
-
-def test_task_deletion_handles_stale_rows_and_updates_optimistically() -> None:
-    """Deletion must not call remove_item for a row already absent in HA."""
-    source = PANEL_SOURCE.read_text(encoding="utf-8")
-
-    assert "if (this._deleting.has(uid)) return;" in source
-    assert "if (!currentItems.some((item) => item.uid === uid))" in source
-    assert "this._items = currentItems.filter((item) => item.uid !== uid);" in source
 
 
 def test_custom_recurrence_uses_friendly_controls_instead_of_raw_rrule() -> None:
@@ -77,3 +68,25 @@ def test_custom_recurrence_builds_and_parses_supported_rrules() -> None:
     assert "`FREQ=${_FREQ_BY_UNIT[recurrence.intervalUnit]};INTERVAL=${interval}`" in source
     assert ".map((day) => `${recurrence.patternOrdinal}${day}`)" in source
     assert "const ordinalDays = weekdays.map" in source
+
+
+def test_panel_uses_home_assistant_core_todo_card() -> None:
+    """The task view must render HA's own card instead of duplicating its UI."""
+    source = PANEL_SOURCE.read_text(encoding="utf-8")
+
+    assert 'document.createElement("hui-card")' in source
+    assert 'card.config = {' in source
+    assert 'type: "todo-list"' in source
+    assert 'entity: entityId' in source
+    assert 'node?.localName === "ha-list-item-option"' in source
+
+
+def test_panel_loads_core_todo_elements_on_a_cold_start() -> None:
+    """Opening Better ToDo first must load the frontend dependency itself."""
+    source = PANEL_SOURCE.read_text(encoding="utf-8")
+
+    assert 'customElements.get("home-assistant")' in source
+    assert 'customElements.whenDefined("partial-panel-resolver")' in source
+    assert 'const panel = { component_name: "todo", url_path: "todo" };' in source
+    assert 'await routes?.routes?.todo?.load?.();' in source
+    assert 'customElements.get("hui-card")' in source
