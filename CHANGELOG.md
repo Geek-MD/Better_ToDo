@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.3] - 2026-11-25
+
+### Changed
+- **Native core To-do list card**: regular Better To-do lists now render Home Assistant's own built-in `todo-list` card instead of a visual approximation. This keeps the card pixel-for-pixel aligned with the installed frontend, including its quick-add input, section headers, item rows, descriptions, due-date formatting, menus, reorder mode, completed-item cleanup, keyboard behavior, accessibility, themes, and responsive layout.
+- **Recurrence-aware editing preserved**: task-row clicks and the panel floating add button still open the Better To-do dialog, so recurrence presets and custom RRULEs remain available while all other card interactions retain native behavior.
+
+### Fixed
+- **First panel load**: during a cold load the custom panel now asks Home Assistant's panel resolver to import the official To-do frontend module. Previously it only waited for `ha-card`, which was not guaranteed to be registered until another route—most visibly the core To-do dashboard—had loaded the required card bundle.
+- **Accidental route dependency**: opening the core To-do dashboard is no longer required before Better ToDo can register and render its web component.
+
 ## [0.6.2] - 2026-11-09
 
 ### Changed
