@@ -87,3 +87,6 @@ jobs:
 
       - name: Check JavaScript
         run: npm run check:js
+
+      - name: Test task assignment
+        run: npm run test:frontend

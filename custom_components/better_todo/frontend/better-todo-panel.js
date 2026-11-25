@@ -27,8 +27,9 @@
   }
 
   function _definePanel() {
-    // Guard: do not register twice (e.g. if the script is somehow executed more than once).
-    if (customElements.get("better-todo-panel")) return;
+    // Keep this release's tags separate from older bundles already registered
+    // by Home Assistant in the same browser tab.
+    if (customElements.get("better-todo-panel-v080")) return;
 
     const LitElement = _getLitElementBase();
     if (!LitElement) return;
@@ -106,6 +107,21 @@
     };
     const _boardText = (hass) => _boardTranslations[hass?.locale?.language?.split("-")[0]] || _boardTranslations.en;
     const _isComplete = (item) => item.status === "completed";
+
+    function _isBetterTodoShoppingList(hass, entityId) {
+      if (hass?.states?.[entityId]?.attributes?.better_todo_shopping_list) return true;
+      const entry = hass?.entities?.[entityId];
+      return entry?.platform === "better_todo" &&
+        (entry.translation_key === "shopping_list" || entry.unique_id?.includes("default_shopping_list"));
+    }
+
+    function _canAssignTasks(hass, entityId) {
+      if (_isBetterTodoShoppingList(hass, entityId)) return false;
+      const attributes = hass?.states?.[entityId]?.attributes;
+      // Older or refreshed state snapshots need not include an empty map.
+      return attributes?.task_assignees !== undefined ||
+        hass?.entities?.[entityId]?.platform === "better_todo";
+    }
 
     function _listIcon(state) {
       const identity = `${state?.attributes?.icon || ""} ${state?.entity_id || ""} ${state ? _computeStateName(state) : ""}`;
@@ -513,6 +529,13 @@
         this._endMode = p.endMode;
         this._endDate = p.endDate;
         this._endCount = p.endCount;
+        this._initialEdit = {
+          summary: this._summary.trim(),
+          notes: this._notes.trim(),
+          dueDate: this._dueDate,
+          dueTime: this._dueTime,
+          recurrence: this._getRecurrenceRule(),
+        };
         this._saving   = false;
         this._error    = "";
         this._open     = true;
@@ -591,13 +614,8 @@
         return null;
       }
 
-      async _save() {
-        const summary = this._summary.trim();
-        if (!summary || this._saving) return;
-        this._saving = true;
-        this._error  = "";
-
-        const rruleStr = _buildRrule(this._preset, this._weekdays, {
+      _getRecurrenceRule() {
+        return _buildRrule(this._preset, this._weekdays, {
           customMode: this._customMode,
           intervalNumber: this._intervalNumber,
           intervalUnit: this._intervalUnit,
@@ -607,31 +625,49 @@
           endDate: this._endDate,
           endCount: this._endCount,
         });
-        const notes    = this._notes.trim();
+      }
+
+      async _save() {
+        const summary = this._summary.trim();
+        if (!summary || this._saving) return;
+        this._saving = true;
+        this._error = "";
+
+        const rruleStr = this._getRecurrenceRule();
+        const notes = this._notes.trim();
 
         try {
           if (this._item) {
-            // ── Update existing item ─────────────────────────────────────────
-            const upd = {
-              entity_id:   this.entityId,
-              item:        this._item.uid,
-              rename:      summary,
-              description: notes,
-            };
-            if (this._dueDate) {
-              if (this._dueTime) upd.due_datetime = `${this._dueDate}T${this._dueTime}:00`;
-              else               upd.due_date     = this._dueDate;
+            const target = { entity_id: this.entityId, item: this._item.uid };
+            const changes = {};
+            const initial = this._initialEdit;
+            if (summary !== initial.summary) changes.rename = summary;
+            if (notes !== initial.notes) {
+              const tags = [];
+              for (const line of (this._item.description || "").split("\n")) {
+                if (!_tagLineRe.test(line.trim())) break;
+                tags.push(line);
+              }
+              changes.description = [tags.join("\n"), notes].filter(Boolean).join("\n\n");
             }
-            await this.hass.callService("todo", "update_item", upd);
-            // Set or clear recurrence via the Better To-do service.
-            await this.hass.callService("better_todo", "set_task_recurrence", {
-              entity_id: this.entityId,
-              item:      this._item.uid,
-              rrule:     rruleStr || null,
-            });
+            if (this._dueDate !== initial.dueDate || this._dueTime !== initial.dueTime) {
+              if (this._dueDate && this._dueTime) {
+                changes.due_datetime = `${this._dueDate}T${this._dueTime}:00`;
+              } else {
+                changes.due_date = this._dueDate || null;
+              }
+            }
+            if (Object.keys(changes).length) {
+              await this.hass.callService("todo", "update_item", { ...target, ...changes });
+            }
+            if (rruleStr !== initial.recurrence) {
+              await this.hass.callService("better_todo", "set_task_recurrence", {
+                ...target, rrule: rruleStr || null,
+              });
+            }
             if (this.supportsAssignment && this._assignee !== this._initialAssignee) {
               await this.hass.callService("better_todo", "set_task_assignee", {
-                entity_id: this.entityId, item: this._item.uid, user_id: this._assignee || null,
+                ...target, user_id: this._assignee || null,
               });
             }
           } else if (this.supportsAssignment && this._assignee) {
@@ -1186,7 +1222,7 @@
       }
     }
 
-    customElements.define("better-todo-task-dialog", BetterTodoTaskDialog);
+    customElements.define("better-todo-task-dialog-v080", BetterTodoTaskDialog);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // BetterTodoTaskList
@@ -1327,7 +1363,7 @@
         if (
           this._supportsAssignment &&
           (changedProps.has("entityId") || (changedProps.has("hass") &&
-            changedProps.get("hass")?.states?.[this.entityId]?.attributes?.task_assignees === undefined))
+            !_canAssignTasks(changedProps.get("hass"), this.entityId)))
         ) {
           this._loadUsers();
         }
@@ -1338,7 +1374,7 @@
       }
 
       get _supportsAssignment() {
-        return this._assignments !== undefined;
+        return _canAssignTasks(this.hass, this.entityId);
       }
 
       async _loadUsers() {
@@ -1357,7 +1393,7 @@
       }
 
       _dialog() {
-        return this.shadowRoot?.querySelector("better-todo-task-dialog");
+        return this.shadowRoot?.querySelector("better-todo-task-dialog-v080");
       }
 
       _openCreate() {
@@ -1519,14 +1555,14 @@
               : html`<p role="status">${this._itemsError ? _boardText(this.hass)[9] : loading}</p>`)
             : (this._card || html`<p role="status">${loading}</p>`)}
           ${this._actionError ? html`<p role="alert">${this._actionError}</p>` : ""}
-          <better-todo-task-dialog
+          <better-todo-task-dialog-v080
             .hass=${this.hass}
             .entityId=${this.entityId}
             .supportsAssignment=${own}
             .users=${this._users}
             .usersError=${this._usersError}
             @item-saved=${() => this._fetchItems()}
-          ></better-todo-task-dialog>
+          ></better-todo-task-dialog-v080>
         `;
       }
 
@@ -1584,7 +1620,7 @@
       }
     }
 
-    customElements.define("better-todo-task-list", BetterTodoTaskList);
+    customElements.define("better-todo-task-list-v080", BetterTodoTaskList);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // BetterTodoShoppingList
@@ -1810,7 +1846,7 @@
       }
     }
 
-    customElements.define("better-todo-shopping-list", BetterTodoShoppingList);
+    customElements.define("better-todo-shopping-list-v080", BetterTodoShoppingList);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // BetterTodoPanel
@@ -1886,12 +1922,7 @@
       /** Returns true if the given entity_id belongs to the built-in Better
        *  To-do Shopping List (identified via the entity registry unique_id). */
       _isShoppingList(entityId) {
-        if (this.hass?.states?.[entityId]?.attributes?.better_todo_shopping_list) return true;
-        const entry = this.hass?.entities?.[entityId];
-        return (
-          entry?.platform === "better_todo" &&
-          entry?.unique_id?.includes("default_shopping_list")
-        );
+        return _isBetterTodoShoppingList(this.hass, entityId);
       }
 
       _setSelectedEntity(entityId) {
@@ -2026,13 +2057,13 @@
             </aside>
             <main class="workspace">
               ${this._selectedEntityId ? isShopping ? html`
-                <better-todo-shopping-list .hass=${this.hass} .entityId=${this._selectedEntityId}
+                <better-todo-shopping-list-v080 .hass=${this.hass} .entityId=${this._selectedEntityId}
                   .hideCompleted=${this._hideCompleted} @toggle-completed=${this._toggleCompleted}>
-                </better-todo-shopping-list>
+                </better-todo-shopping-list-v080>
               ` : html`
-                <better-todo-task-list .hass=${this.hass} .entityId=${this._selectedEntityId}
+                <better-todo-task-list-v080 .hass=${this.hass} .entityId=${this._selectedEntityId}
                   .hideCompleted=${this._hideCompleted} @toggle-completed=${this._toggleCompleted}>
-                </better-todo-task-list>
+                </better-todo-task-list-v080>
               ` : html`<p>${this.hass?.localize("ui.panel.todo.no_lists") || "No lists found."}</p>`}
             </main>
           </div>
@@ -2112,7 +2143,7 @@
       }
     }
 
-    customElements.define("better-todo-panel", BetterTodoPanel);
+    customElements.define("better-todo-panel-v080", BetterTodoPanel);
   }
 
   // ── Registration entry point ────────────────────────────────────────────────

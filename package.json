@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "lint:js": "eslint custom_components/better_todo/frontend/better-todo-panel.js",
-    "check:js": "node --check custom_components/better_todo/frontend/better-todo-panel.js && npm run lint:js"
+    "check:js": "node --check custom_components/better_todo/frontend/better-todo-panel.js && npm run lint:js",
+    "test:frontend": "node --test tests/test_frontend_assignment.mjs"
   },
   "devDependencies": {
     "eslint": "9.39.1",

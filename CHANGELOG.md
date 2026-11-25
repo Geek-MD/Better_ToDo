@@ -19,6 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Serve the sidebar JavaScript from a path fingerprinted by its contents so browsers and proxies request the updated panel after an upgrade.
+- Use fresh panel and editor components alongside older tabs. Show the assignee field on Better ToDo task lists even when the entity state omits the empty assignment map.
+- Save assignee-only edits without rewriting task dates, descriptions, or recurrence.
 
 ## [0.7.0] - 2026-11-25
 
