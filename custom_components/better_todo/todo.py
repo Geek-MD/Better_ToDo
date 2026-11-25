@@ -46,6 +46,7 @@ from homeassistant.components.todo import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.entity_platform import (
     AddEntitiesCallback,
@@ -76,6 +77,30 @@ from .const import (
 from .store import BetterTodoListStore
 
 _LOGGER = logging.getLogger(__name__)
+_ASSIGNEE_CATEGORY_PREFIX = "better-todo-assignee:"
+
+
+def _get_assignee(todo: Todo) -> str | None:
+    """Read the assignment from the task's reserved iCalendar category."""
+    return next(
+        (
+            category.removeprefix(_ASSIGNEE_CATEGORY_PREFIX)
+            for category in todo.categories
+            if category.startswith(_ASSIGNEE_CATEGORY_PREFIX)
+        ),
+        None,
+    )
+
+
+def _set_assignee(todo: Todo, user_id: str | None) -> None:
+    """Set or clear the assignment while retaining other category values."""
+    categories = [
+        category for category in todo.categories
+        if not category.startswith(_ASSIGNEE_CATEGORY_PREFIX)
+    ]
+    if user_id:
+        categories.append(f"{_ASSIGNEE_CATEGORY_PREFIX}{user_id}")
+    todo.categories = categories
 
 # HA status  ←→  iCal status mappings
 _ICS_STATUS_TO_HA: dict[TodoStatus, TodoItemStatus] = {
@@ -326,6 +351,26 @@ async def async_setup_entry(
         },
         "_async_set_task_details",
     )
+    platform.async_register_entity_service(
+        "set_task_assignee",
+        {
+            vol.Required(ATTR_ITEM): cv.string,
+            vol.Optional("user_id"): vol.Any(None, cv.string),
+        },
+        "_async_set_task_assignee",
+    )
+    platform.async_register_entity_service(
+        "add_assigned_task",
+        {
+            vol.Required("summary"): cv.string,
+            vol.Required("user_id"): cv.string,
+            vol.Optional("description"): cv.string,
+            vol.Optional("due_date"): cv.date,
+            vol.Optional("due_datetime"): cv.datetime,
+            vol.Optional(ATTR_RRULE): cv.string,
+        },
+        "_async_add_assigned_task",
+    )
 
 
 # Minimal valid empty calendar used when no .ics file exists yet
@@ -462,7 +507,10 @@ class BetterTodoListEntity(TodoListEntity):
         """Expose per-task recurrence info and description-tag details."""
         recurrence: dict[str, str] = {}
         details: dict[str, dict[str, str]] = {}
+        assignees: dict[str, str] = {}
         for todo in self._calendar.todos:
+            if user_id := _get_assignee(todo):
+                assignees[todo.uid] = user_id
             if todo.rrule:
                 try:
                     recurrence[todo.uid] = todo.rrule.as_rrule_str()
@@ -484,6 +532,8 @@ class BetterTodoListEntity(TodoListEntity):
                     entry["repeat"] = repeat
                 details[todo.uid] = entry
         attrs: dict[str, Any] = {}
+        if not isinstance(self, ShoppingListTodoListEntity):
+            attrs["task_assignees"] = assignees
         if recurrence:
             attrs["task_recurrence"] = recurrence
         if details:
@@ -496,7 +546,10 @@ class BetterTodoListEntity(TodoListEntity):
 
     async def async_create_todo_item(self, item: TodoItem) -> None:
         """Create a new task."""
-        todo = _ha_item_to_ical(item)
+        await self._async_add_ical_todo(_ha_item_to_ical(item))
+
+    async def _async_add_ical_todo(self, todo: Todo) -> None:
+        """Persist and publish a new calendar task."""
         async with self._calendar_lock:
             todo_store = self._new_todo_store()
             await self.hass.async_add_executor_job(todo_store.add, todo)
@@ -537,6 +590,8 @@ class BetterTodoListEntity(TodoListEntity):
                     )
 
             todo = _ha_item_to_ical(item)
+            if existing is not None:
+                todo.categories = existing.categories.copy()
 
             # Preserve the RRULE on updates that don't touch recurrence
             if existing is not None and existing.rrule is not None and todo.rrule is None:
@@ -702,6 +757,71 @@ class BetterTodoListEntity(TodoListEntity):
             await self._async_save()
 
         await self.async_update_ha_state(force_refresh=True)
+
+    # ------------------------------------------------------------------
+    # Assignment
+    # ------------------------------------------------------------------
+
+    async def _async_validate_assignee(self, user_id: str | None) -> None:
+        """Require a human Home Assistant user on regular task lists."""
+        if isinstance(self, ShoppingListTodoListEntity):
+            raise ServiceValidationError("Shopping list items cannot be assigned")
+        if user_id:
+            user = await self.hass.auth.async_get_user(user_id)
+            if not user or not user.is_active or user.system_generated:
+                raise ServiceValidationError("This Home Assistant user cannot be assigned")
+
+    async def _async_set_task_assignee(
+        self, item: str, user_id: str | None = None
+    ) -> None:
+        """Assign an existing task or clear its assignment."""
+        await self._async_validate_assignee(user_id)
+        async with self._calendar_lock:
+            todo = self._find_ical_todo(item)
+            if todo is None:
+                raise ServiceValidationError("Task not found")
+            previous = todo.categories
+            _set_assignee(todo, user_id)
+            try:
+                await self._async_save()
+            except BaseException:
+                todo.categories = previous
+                raise
+        await self.async_update_ha_state(force_refresh=True)
+
+    async def _async_add_assigned_task(
+        self,
+        summary: str,
+        user_id: str,
+        description: str = "",
+        due_date: datetime.date | None = None,
+        due_datetime: datetime.datetime | None = None,
+        rrule: str | None = None,
+    ) -> None:
+        """Create the task and assignment together without a UID lookup."""
+        if not summary.strip() or not user_id:
+            raise ServiceValidationError("A task name and assignee are required")
+        if due_date is not None and due_datetime is not None:
+            raise ServiceValidationError("Specify a due date or a due date and time")
+        await self._async_validate_assignee(user_id)
+        if due_datetime is not None and due_datetime.tzinfo is None:
+            due_datetime = due_datetime.replace(tzinfo=dt_util.get_default_time_zone())
+        todo = _ha_item_to_ical(
+            TodoItem(
+                summary=summary,
+                status=TodoItemStatus.NEEDS_ACTION,
+                due=due_datetime or due_date,
+                description=description,
+            )
+        )
+        _set_assignee(todo, user_id)
+        if rrule:
+            try:
+                todo.rrule = Recur.from_rrule(rrule)
+            except ValueError as err:
+                raise ServiceValidationError("Invalid task recurrence") from err
+            todo.description = _encode_description(None, None, description, repeat=rrule)
+        await self._async_add_ical_todo(todo)
 
     # ------------------------------------------------------------------
     # Persistence

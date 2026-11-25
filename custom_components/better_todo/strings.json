@@ -21,6 +21,26 @@
     }
   },
   "services": {
+    "set_task_assignee": {
+      "name": "Set task assignee",
+      "description": "Assigns a task to a Home Assistant user. Omit the user ID to clear the assignment.",
+      "fields": {
+        "item": {"name": "Task UID"},
+        "user_id": {"name": "User ID"}
+      }
+    },
+    "add_assigned_task": {
+      "name": "Add assigned task",
+      "description": "Creates a task assigned to a Home Assistant user.",
+      "fields": {
+        "summary": {"name": "Task name"},
+        "user_id": {"name": "User ID"},
+        "description": {"name": "Description"},
+        "due_date": {"name": "Due date"},
+        "due_datetime": {"name": "Due date and time"},
+        "rrule": {"name": "Recurrence rule"}
+      }
+    },
     "set_task_recurrence": {
       "name": "Set task recurrence",
       "description": "Sets or clears an iCalendar RRULE recurrence rule on a specific task. When a recurring task is completed it automatically advances to the next due date.",
