@@ -70,15 +70,16 @@ def test_custom_recurrence_builds_and_parses_supported_rrules() -> None:
     assert "const ordinalDays = weekdays.map" in source
 
 
-def test_panel_uses_home_assistant_core_todo_card() -> None:
-    """The task view must render HA's own card instead of duplicating its UI."""
+def test_panel_uses_home_assistant_core_card_for_external_lists() -> None:
+    """External integrations keep their native task controls."""
     source = PANEL_SOURCE.read_text(encoding="utf-8")
 
     assert 'document.createElement("hui-card")' in source
     assert 'card.config = {' in source
     assert 'type: "todo-list"' in source
     assert 'entity: entityId' in source
-    assert 'node?.localName === "ha-list-item-option"' in source
+    assert "if (!this._supportsAssignment) this._setupCoreCard();" in source
+    assert "hide_completed: this.hideCompleted" in source
 
 
 def test_panel_loads_core_todo_elements_on_a_cold_start() -> None:

@@ -56,12 +56,33 @@
       };
     };
 
-    // ── MDI icon paths (from @mdi/js) ────────────────────────────────────────
-    const _mdiPlus = "M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z";
-    const _mdiArrowLeft =
-      "M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z";
-    const _mdiClose =
-      "M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z";
+    // Font Awesome Free 6.7.2 Solid, Fonticons, Inc. (CC BY 4.0).
+    // Original paths: https://github.com/FortAwesome/Font-Awesome/tree/6.7.2/svgs/solid
+    const _icons = {
+      house: [576,512,"M575.8 255.5c0 18-15 32.1-32 32.1l-32 0 .7 160.2c0 2.7-.2 5.4-.5 8.1l0 16.2c0 22.1-17.9 40-40 40l-16 0c-1.1 0-2.2 0-3.3-.1c-1.4 .1-2.8 .1-4.2 .1L416 512l-24 0c-22.1 0-40-17.9-40-40l0-24 0-64c0-17.7-14.3-32-32-32l-64 0c-17.7 0-32 14.3-32 32l0 64 0 24c0 22.1-17.9 40-40 40l-24 0-31.9 0c-1.5 0-3-.1-4.5-.2c-1.2 .1-2.4 .2-3.6 .2l-16 0c-22.1 0-40-17.9-40-40l0-112c0-.9 0-1.9 .1-2.8l0-69.7-32 0c-18 0-32-14-32-32.1c0-9 3-17 10-24L266.4 8c7-7 15-8 22-8s15 2 21 7L564.8 231.5c8 7 12 15 11 24z"],
+      circleCheck: [512,512,"M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM369 209L241 337c-9.4 9.4-24.6 9.4-33.9 0l-64-64c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l47 47L335 175c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9z"],
+      squareCheck: [448,512,"M64 32C28.7 32 0 60.7 0 96L0 416c0 35.3 28.7 64 64 64l320 0c35.3 0 64-28.7 64-64l0-320c0-35.3-28.7-64-64-64L64 32zM337 209L209 337c-9.4 9.4-24.6 9.4-33.9 0l-64-64c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l47 47L303 175c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9z"],
+      cartShopping: [576,512,"M0 24C0 10.7 10.7 0 24 0L69.5 0c22 0 41.5 12.8 50.6 32l411 0c26.3 0 45.5 25 38.6 50.4l-41 152.3c-8.5 31.4-37 53.3-69.5 53.3l-288.5 0 5.4 28.5c2.2 11.3 12.1 19.5 23.6 19.5L488 336c13.3 0 24 10.7 24 24s-10.7 24-24 24l-288.3 0c-34.6 0-64.3-24.6-70.7-58.5L77.4 54.5c-.7-3.8-4-6.5-7.9-6.5L24 48C10.7 48 0 37.3 0 24zM128 464a48 48 0 1 1 96 0 48 48 0 1 1 -96 0zm336-48a48 48 0 1 1 0 96 48 48 0 1 1 0-96z"],
+      layerGroup: [576,512,"M264.5 5.2c14.9-6.9 32.1-6.9 47 0l218.6 101c8.5 3.9 13.9 12.4 13.9 21.8s-5.4 17.9-13.9 21.8l-218.6 101c-14.9 6.9-32.1 6.9-47 0L45.9 149.8C37.4 145.8 32 137.3 32 128s5.4-17.9 13.9-21.8L264.5 5.2zM476.9 209.6l53.2 24.6c8.5 3.9 13.9 12.4 13.9 21.8s-5.4 17.9-13.9 21.8l-218.6 101c-14.9 6.9-32.1 6.9-47 0L45.9 277.8C37.4 273.8 32 265.3 32 256s5.4-17.9 13.9-21.8l53.2-24.6 152 70.2c23.4 10.8 50.4 10.8 73.8 0l152-70.2zm-152 198.2l152-70.2 53.2 24.6c8.5 3.9 13.9 12.4 13.9 21.8s-5.4 17.9-13.9 21.8l-218.6 101c-14.9 6.9-32.1 6.9-47 0L45.9 405.8C37.4 401.8 32 393.3 32 384s5.4-17.9 13.9-21.8l53.2-24.6 152 70.2c23.4 10.8 50.4 10.8 73.8 0z"],
+      plus: [448,512,"M256 80c0-17.7-14.3-32-32-32s-32 14.3-32 32l0 144L48 224c-17.7 0-32 14.3-32 32s14.3 32 32 32l144 0 0 144c0 17.7 14.3 32 32 32s32-14.3 32-32l0-144 144 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-144 0 0-144z"],
+      inbox: [512,512,"M121 32C91.6 32 66 52 58.9 80.5L1.9 308.4C.6 313.5 0 318.7 0 323.9L0 416c0 35.3 28.7 64 64 64l384 0c35.3 0 64-28.7 64-64l0-92.1c0-5.2-.6-10.4-1.9-15.5l-57-227.9C446 52 420.4 32 391 32L121 32zm0 64l270 0 48 192-51.2 0c-12.1 0-23.2 6.8-28.6 17.7l-14.3 28.6c-5.4 10.8-16.5 17.7-28.6 17.7l-120.4 0c-12.1 0-23.2-6.8-28.6-17.7l-14.3-28.6c-5.4-10.8-16.5-17.7-28.6-17.7L73 288 121 96z"],
+      calendarDays: [448,512,"M128 0c17.7 0 32 14.3 32 32l0 32 128 0 0-32c0-17.7 14.3-32 32-32s32 14.3 32 32l0 32 48 0c26.5 0 48 21.5 48 48l0 48L0 160l0-48C0 85.5 21.5 64 48 64l48 0 0-32c0-17.7 14.3-32 32-32zM0 192l448 0 0 272c0 26.5-21.5 48-48 48L48 512c-26.5 0-48-21.5-48-48L0 192zm64 80l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16zm128 0l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16zm144-16c-8.8 0-16 7.2-16 16l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0zM64 400l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16zm144-16c-8.8 0-16 7.2-16 16l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0zm112 16l0 32c0 8.8 7.2 16 16 16l32 0c8.8 0 16-7.2 16-16l0-32c0-8.8-7.2-16-16-16l-32 0c-8.8 0-16 7.2-16 16z"],
+      repeat: [512,512,"M0 224c0 17.7 14.3 32 32 32s32-14.3 32-32c0-53 43-96 96-96l160 0 0 32c0 12.9 7.8 24.6 19.8 29.6s25.7 2.2 34.9-6.9l64-64c12.5-12.5 12.5-32.8 0-45.3l-64-64c-9.2-9.2-22.9-11.9-34.9-6.9S320 19.1 320 32l0 32L160 64C71.6 64 0 135.6 0 224zm512 64c0-17.7-14.3-32-32-32s-32 14.3-32 32c0 53-43 96-96 96l-160 0 0-32c0-12.9-7.8-24.6-19.8-29.6s-25.7-2.2-34.9 6.9l-64 64c-12.5 12.5-12.5 32.8 0 45.3l64 64c9.2 9.2 22.9 11.9 34.9 6.9s19.8-16.6 19.8-29.6l0-32 160 0c88.4 0 160-71.6 160-160z"],
+      eyeSlash: [640,512,"M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c8.4-19.3 10.6-41.4 4.8-63.3c-11.1-41.5-47.8-69.4-88.6-71.1c-5.8-.2-9.2 6.1-7.4 11.7c2.1 6.4 3.3 13.2 3.3 20.3c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zM373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5L373 389.9z"],
+      eye: [576,512,"M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM144 256a144 144 0 1 1 288 0 144 144 0 1 1 -288 0zm144-64c0 35.3-28.7 64-64 64c-7.1 0-13.9-1.2-20.3-3.3c-5.5-1.8-11.9 1.6-11.7 7.4c.3 6.9 1.3 13.8 3.2 20.7c13.7 51.2 66.4 81.6 117.6 67.9s81.6-66.4 67.9-117.6c-11.1-41.5-47.8-69.4-88.6-71.1c-5.8-.2-9.2 6.1-7.4 11.7c2.1 6.4 3.3 13.2 3.3 20.3z"],
+      arrowLeft: [448,512,"M9.4 233.4c-12.5 12.5-12.5 32.8 0 45.3l160 160c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L109.2 288 416 288c17.7 0 32-14.3 32-32s-14.3-32-32-32l-306.7 0L214.6 118.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0l-160 160z"],
+      xmark: [384,512,"M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"],
+      bars: [448,512,"M0 96C0 78.3 14.3 64 32 64l384 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L32 128C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32l384 0c17.7 0 32 14.3 32 32s-14.3 32-32 32L32 288c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32L32 448c-17.7 0-32-14.3-32-32s14.3-32 32-32l384 0c17.7 0 32 14.3 32 32z"],
+      arrowUp: [384,512,"M214.6 41.4c-12.5-12.5-32.8-12.5-45.3 0l-160 160c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L160 141.2 160 448c0 17.7 14.3 32 32 32s32-14.3 32-32l0-306.7L329.4 246.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3l-160-160z"],
+      trash: [448,512,"M135.2 17.7L128 32 32 32C14.3 32 0 46.3 0 64S14.3 96 32 96l384 0c17.7 0 32-14.3 32-32s-14.3-32-32-32l-96 0-7.2-14.3C307.4 6.8 296.3 0 284.2 0L163.8 0c-12.1 0-23.2 6.8-28.6 17.7zM416 128L32 128 53.2 467c1.6 25.3 22.6 45 47.9 45l245.8 0c25.3 0 46.3-19.7 47.9-45L416 128z"],
+      listCheck: [512,512,"M152.1 38.2c9.9 8.9 10.7 24 1.8 33.9l-72 80c-4.4 4.9-10.6 7.8-17.2 7.9s-12.9-2.4-17.6-7L7 113C-2.3 103.6-2.3 88.4 7 79s24.6-9.4 33.9 0l22.1 22.1 55.1-61.2c8.9-9.9 24-10.7 33.9-1.8zm0 160c9.9 8.9 10.7 24 1.8 33.9l-72 80c-4.4 4.9-10.6 7.8-17.2 7.9s-12.9-2.4-17.6-7L7 273c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l22.1 22.1 55.1-61.2c8.9-9.9 24-10.7 33.9-1.8zM224 96c0-17.7 14.3-32 32-32l224 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-224 0c-17.7 0-32-14.3-32-32zm0 160c0-17.7 14.3-32 32-32l224 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-224 0c-17.7 0-32-14.3-32-32zM160 416c0-17.7 14.3-32 32-32l288 0c17.7 0 32 14.3 32 32s-14.3 32-32 32l-288 0c-17.7 0-32-14.3-32-32zM48 368a48 48 0 1 1 0 96 48 48 0 1 1 0-96z"],
+    };
+
+    function _icon(name) {
+      const [width, height, path] = _icons[name];
+      return html`<svg aria-hidden="true" focusable="false" viewBox=${`0 0 ${width} ${height}`}
+        width="1em" height="1em" fill="currentColor"><path d=${path}></path></svg>`;
+    }
 
     // ── Shared helpers ───────────────────────────────────────────────────────
 
@@ -75,6 +96,152 @@
         .substring(stateObj.entity_id.indexOf(".") + 1)
         .replace(/_/g, " ");
     }
+
+    const _boardTranslations = {
+      en: ["My lists", "New list", "New task", "Hide completed", "Show completed", "List progress", (done, total) => `${done} of ${total} completed`, "No tasks", "Uncategorized", "Could not load tasks"],
+      es: ["Mis listas", "Nueva lista", "Nueva tarea", "Ocultar completadas", "Mostrar completadas", "Progreso de la lista", (done, total) => `${done} de ${total} completadas`, "Sin tareas", "Sin categoría", "No se pudieron cargar las tareas"],
+      de: ["Meine Listen", "Neue Liste", "Neue Aufgabe", "Erledigte ausblenden", "Erledigte anzeigen", "Listenfortschritt", (done, total) => `${done} von ${total} erledigt`, "Keine Aufgaben", "Ohne Kategorie", "Aufgaben konnten nicht geladen werden"],
+      fr: ["Mes listes", "Nouvelle liste", "Nouvelle tâche", "Masquer les tâches terminées", "Afficher les tâches terminées", "Progression de la liste", (done, total) => `${done} sur ${total} terminées`, "Aucune tâche", "Sans catégorie", "Impossible de charger les tâches"],
+      pt: ["Minhas listas", "Nova lista", "Nova tarefa", "Ocultar concluídas", "Mostrar concluídas", "Progresso da lista", (done, total) => `${done} de ${total} concluídas`, "Sem tarefas", "Sem categoria", "Não foi possível carregar as tarefas"],
+    };
+    const _boardText = (hass) => _boardTranslations[hass?.locale?.language?.split("-")[0]] || _boardTranslations.en;
+    const _isComplete = (item) => item.status === "completed";
+
+    function _listIcon(state) {
+      const identity = `${state?.attributes?.icon || ""} ${state?.entity_id || ""} ${state ? _computeStateName(state) : ""}`;
+      if (/cart|shopping|compras|épicerie|einkauf/i.test(identity)) return "cartShopping";
+      if (/house|home|casa|maison|zuhause/i.test(identity)) return "house";
+      if (/project|proyect|projet|projekt/i.test(identity)) return "layerGroup";
+      return "listCheck";
+    }
+
+    function _boardHeading(hass, entityId, hideCompleted, toggle, add, unavailable = false) {
+      const [, , addLabel, hide, show] = _boardText(hass);
+      const state = hass?.states?.[entityId];
+      return html`
+        <header class="board-heading">
+          <h1>${state ? _computeStateName(state) : ""}</h1>
+          <div class="board-actions">
+            <button type="button" class="board-button" @click=${toggle}>
+              ${_icon(hideCompleted ? "eye" : "eyeSlash")} ${hideCompleted ? show : hide}
+            </button>
+            ${add ? html`
+              <button type="button" class="board-button primary" @click=${add} ?disabled=${unavailable}>
+                ${_icon("plus")} ${addLabel}
+              </button>
+            ` : ""}
+          </div>
+        </header>
+      `;
+    }
+
+    function _boardProgress(hass, entityId, items) {
+      const [, , , , , title, progressLabel] = _boardText(hass);
+      const done = items.filter(_isComplete).length;
+      const total = items.length;
+      const percent = total ? Math.round((100 * done) / total) : 0;
+      return html`
+        <section class="board-progress" aria-label=${title}>
+          <span class="progress-icon">
+            ${_icon(_listIcon(hass?.states?.[entityId]))}
+            <span class="progress-check">${_icon("circleCheck")}</span>
+          </span>
+          <div class="progress-content">
+            <h2>${title}</h2>
+            <p>${progressLabel(done, total)}</p>
+            <div class="progress-meter">
+              <progress aria-label=${progressLabel(done, total)} .value=${done} .max=${total || 1}></progress>
+              <strong>${percent}%</strong>
+            </div>
+          </div>
+        </section>
+      `;
+    }
+
+    function _taskCheck(item, disabled, toggle) {
+      return html`
+        <button type="button" class="task-check" role="checkbox"
+          aria-checked=${String(_isComplete(item))} aria-label=${item.summary}
+          ?disabled=${disabled} @click=${toggle}>
+          ${_isComplete(item) ? _icon("circleCheck") : html`<span class="unchecked"></span>`}
+        </button>
+      `;
+    }
+
+    function _stopItemSubscription(view) {
+      view._itemSubscription?.unsubscribe?.();
+      view._itemSubscription = undefined;
+    }
+
+    function _startItemSubscription(view) {
+      _stopItemSubscription(view);
+      const connection = view.hass?.connection;
+      if (!connection?.subscribeMessage || !view.entityId || !view.isConnected) return;
+      const subscription = {};
+      const entityId = view.entityId;
+      view._itemSubscription = subscription;
+      connection.subscribeMessage(({ items }) => {
+        if (view._itemSubscription !== subscription || view.entityId !== entityId) return;
+        view._fetchSequence++;
+        view._items = items || [];
+        view._loading = false;
+        view._itemsError = false;
+      }, { type: "todo/item/subscribe", entity_id: entityId }).then((unsubscribe) => {
+        if (view._itemSubscription === subscription) subscription.unsubscribe = unsubscribe;
+        else return unsubscribe();
+      }).catch(() => {
+        // The existing entity-state refresh remains available on older HA versions.
+      });
+    }
+
+    const _boardStyles = css`
+      :host { display: block; min-width: 0; }
+      .board-heading, .board-actions, .progress-meter { display: flex; align-items: center; gap: 12px; }
+      .board-heading { flex-wrap: wrap; justify-content: space-between; margin-block-end: 18px; }
+      .board-heading h1 { font-size: clamp(1.8rem, 4vw, 3.2rem); line-height: 1.05; margin: 0; overflow-wrap: anywhere; }
+      .board-actions { flex-wrap: wrap; }
+      .board-button {
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        padding: 9px 13px; min-height: 42px; border: 1px solid var(--bt-accent);
+        border-radius: 10px; background: transparent; color: var(--bt-ink);
+        font: inherit; font-weight: 650; cursor: pointer;
+      }
+      .board-button.primary { background: var(--bt-primary); color: white; border-color: transparent; }
+      .board-button:disabled, .task-check:disabled { opacity: .5; cursor: default; }
+      .board-progress {
+        display: flex; align-items: center; gap: clamp(12px, 3vw, 26px);
+        background: var(--bt-surface); border: 1px solid var(--bt-border); border-radius: 18px;
+        padding: clamp(12px, 2vw, 20px); margin-block-end: 20px;
+      }
+      .progress-icon {
+        position: relative; display: grid; place-items: center; flex: 0 0 auto;
+        width: clamp(54px, 8vw, 100px); aspect-ratio: 1; border-radius: 18%;
+        font-size: clamp(1.6rem, 4vw, 3.6rem); color: var(--bt-accent); background: var(--bt-lilac);
+      }
+      .progress-check {
+        position: absolute; inset-inline-end: 7%; inset-block-end: 7%; display: grid;
+        place-items: center; border-radius: 50%; color: #303900; background: #c6ed33;
+        font-size: .48em;
+      }
+      .progress-content { flex: 1; min-width: 0; }
+      .progress-content h2 { font-size: clamp(1rem, 2vw, 1.45rem); margin: 0; }
+      .progress-content p { margin: 5px 0; color: var(--bt-muted); }
+      progress {
+        appearance: none; flex: 1; min-width: 0; height: 12px; overflow: hidden; border: 0;
+        border-radius: 999px; background: var(--bt-lilac); accent-color: #a6c522;
+      }
+      progress::-webkit-progress-bar { background: var(--bt-lilac); }
+      progress::-webkit-progress-value { background: #b4da26; border-radius: 999px; }
+      progress::-moz-progress-bar { background: #b4da26; border-radius: 999px; }
+      .task-check {
+        border: 0; background: transparent; color: var(--bt-ink); flex: 0 0 auto;
+        display: grid; place-items: center; width: 38px; height: 42px; padding: 0;
+        cursor: pointer; font-size: 22px;
+      }
+      .task-check[aria-checked="true"] { color: var(--bt-done); }
+      .unchecked { width: 17px; height: 17px; border: 2px solid currentColor; border-radius: 50%; }
+      .board-button:focus-visible, .task-check:focus-visible { outline: 2px solid var(--bt-accent); outline-offset: 2px; }
+    `;
 
     // Mirrors the Python _decode_description_structured logic: extract only the
     // free-text notes portion from the description, skipping leading tag lines
@@ -356,6 +523,38 @@
         this._open = false;
       }
 
+      updated(changedProps) {
+        super.updated(changedProps);
+        if (!changedProps.has("_open")) return;
+        if (this._open) {
+          this._previousFocus = this.getRootNode().activeElement;
+          this.shadowRoot.querySelector("#better-todo-task-name")?.focus();
+        } else {
+          this._previousFocus?.focus();
+          this._previousFocus = undefined;
+        }
+      }
+
+      _dialogKeydown(event) {
+        if (event.key === "Escape") {
+          event.stopPropagation();
+          this._close();
+        }
+        if (event.key !== "Tab") return;
+        const controls = [...this.shadowRoot.querySelectorAll(
+          "button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])"
+        )];
+        const first = controls[0];
+        const last = controls.at(-1);
+        if (event.shiftKey && event.target === first) {
+          event.preventDefault();
+          last?.focus();
+        } else if (!event.shiftKey && event.target === last) {
+          event.preventDefault();
+          first?.focus();
+        }
+      }
+
       _clickOverlay(e) {
         if (e.target === e.currentTarget) this._close();
       }
@@ -511,28 +710,30 @@
 
         return html`
           <div class="overlay" @click=${(e) => this._clickOverlay(e)}>
-            <ha-card class="dialog">
+            <div class="dialog" role="dialog" aria-modal="true" aria-labelledby="better-todo-dialog-title"
+              @keydown=${this._dialogKeydown}>
               <div class="dlg-header">
-                <span class="dlg-title">
+                <span id="better-todo-dialog-title" class="dlg-title">
                   ${isCreate
                     ? L("ui.panel.todo.action.add_item", "Add task")
                     : L("ui.common.edit", "Edit")}
                 </span>
-                <ha-icon-button
-                  .path=${_mdiClose}
+                <button type="button" class="close-dialog"
+                  aria-label=${L("ui.common.close", "Close")}
                   @click=${() => this._close()}
                   ?disabled=${this._saving}
-                ></ha-icon-button>
+                >${_icon("xmark")}</button>
               </div>
 
               <div class="dlg-body">
                 <!-- Task name -->
                 <div class="field">
-                  <label class="lbl">
+                  <label class="lbl" for="better-todo-task-name">
                     ${L("ui.components.todo-list-item.summary", "Task name")}
                     <span class="req">*</span>
                   </label>
                   <input
+                    id="better-todo-task-name"
                     class="inp"
                     type="text"
                     .value=${this._summary}
@@ -790,7 +991,7 @@
                       : L("ui.common.save", "Save")}
                 </button>
               </div>
-            </ha-card>
+            </div>
           </div>
         `;
       }
@@ -819,6 +1020,14 @@
             flex-direction: column;
             overflow: hidden;
             border-radius: var(--ha-card-border-radius, 12px);
+            background: var(--bt-surface, var(--card-background-color, white));
+            box-shadow: 0 20px 60px #0004;
+          }
+
+          .close-dialog {
+            display: grid; place-items: center; width: 42px; height: 42px;
+            border: 0; border-radius: 9px; background: transparent;
+            color: var(--primary-text-color); font-size: 20px; cursor: pointer;
           }
 
           .dlg-header {
@@ -989,7 +1198,10 @@
         return {
           hass:     { attribute: false },
           entityId: { type: String },
+          hideCompleted: { type: Boolean },
           _items:   { state: true },
+          _loading: { state: true },
+          _itemsError: { state: true },
           _card:    { state: true },
           _users:   { state: true },
           _usersError: { state: true },
@@ -1000,6 +1212,8 @@
       constructor() {
         super();
         this._items = [];
+        this._loading = true;
+        this._itemsError = false;
         this._card = null;
         this._stateKey = null;
         this._fetchSequence = 0;
@@ -1009,23 +1223,20 @@
         this._actionError = "";
         this._usersSequence = 0;
         this._pendingItems = new Set();
-        this._captureCardClick = this._captureCardClick.bind(this);
-        this._captureCardKeydown = this._captureCardKeydown.bind(this);
       }
 
       connectedCallback() {
         super.connectedCallback();
-        // Capture item clicks before the core card opens HA's stock editor.  The
-        // visual card remains 100% core, while Better To-do can add recurrence
-        // controls to the edit dialog.
-        this.addEventListener("click", this._captureCardClick, true);
-        this.addEventListener("keydown", this._captureCardKeydown, true);
+        if (this.hasUpdated) {
+          _startItemSubscription(this);
+          this._fetchItems();
+        }
       }
 
       disconnectedCallback() {
         super.disconnectedCallback();
-        this.removeEventListener("click", this._captureCardClick, true);
-        this.removeEventListener("keydown", this._captureCardKeydown, true);
+        _stopItemSubscription(this);
+        this._fetchSequence++;
       }
 
       async _fetchItems() {
@@ -1038,10 +1249,15 @@
           });
           if (fetchSequence === this._fetchSequence && entityId === this.entityId) {
             this._items = res?.items || [];
+            this._itemsError = false;
           }
         } catch {
           if (fetchSequence === this._fetchSequence && entityId === this.entityId) {
-            this._items = [];
+            this._itemsError = true;
+          }
+        } finally {
+          if (fetchSequence === this._fetchSequence && entityId === this.entityId) {
+            this._loading = false;
           }
         }
       }
@@ -1053,10 +1269,12 @@
         this._card = null;
         try {
           await _loadCoreTodoElements();
+          this.hass?.loadFragmentTranslation?.("lovelace");
           const card = document.createElement("hui-card");
           card.config = {
             type: "todo-list",
             entity: entityId,
+            hide_completed: this.hideCompleted,
           };
           if (cardSequence !== this._cardSequence || entityId !== this.entityId) return;
           card.hass = this.hass;
@@ -1072,30 +1290,39 @@
         if (changedProps.has("entityId")) {
           this._fetchSequence++;
           this._cardSequence++;
+          this._card = null;
           this._items = [];
+          this._loading = true;
+          this._itemsError = false;
           this._stateKey = null;
           this._users = [];
           this._usersError = false;
           this._actionError = "";
           this._usersSequence++;
           this._pendingItems = new Set();
-          this._fetchItems();
-          this._setupCoreCard();
+          if (!this._supportsAssignment) this._setupCoreCard();
+        }
+        if (changedProps.has("entityId") ||
+          (changedProps.has("hass") && changedProps.get("hass")?.connection !== this.hass?.connection)) {
+          _startItemSubscription(this);
         }
         // Re-fetch whenever the entity's state fingerprint changes (e.g. an item
         // was added / completed / deleted from outside this panel).
-        if (changedProps.has("hass") && this.hass) {
+        if (this.hass && (changedProps.has("hass") || changedProps.has("entityId"))) {
           const s = this.hass.states[this.entityId];
           // last_changed does not move for attribute-only/item-detail updates.
           // last_updated ensures those external edits refresh the card too.
           const key = s ? `${s.last_updated}|${s.state}` : null;
-          if (key !== this._stateKey) {
+          if (changedProps.has("entityId") || key !== this._stateKey) {
             this._stateKey = key;
             this._fetchItems();
           }
         }
         if (changedProps.has("hass") && this._card) {
           this._card.hass = this.hass;
+        }
+        if (changedProps.has("hideCompleted") && this._card) {
+          this._card.config = { ...this._card.config, hide_completed: this.hideCompleted };
         }
         if (
           this._supportsAssignment &&
@@ -1149,34 +1376,6 @@
         this._dialog()?.openEdit(item, rrule, this._assignments?.[item.uid]);
       }
 
-      _captureCardClick(event) {
-        if (!this._supportsAssignment) return;
-        const path = event.composedPath();
-        const row = path.find((node) => node?.localName === "ha-list-item-option");
-        if (!row) return;
-        // Checkbox, links and action buttons keep the exact core-card behavior.
-        if (path.some((node) =>
-          ["ha-checkbox", "input", "a", "button", "ha-icon-button"].includes(node?.localName)
-        )) return;
-        const item = this._items.find((entry) => entry.uid === row.value);
-        if (!item) return;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        this._openEdit(item);
-      }
-
-      _captureCardKeydown(event) {
-        if (!this._supportsAssignment || event.key !== "Enter") return;
-        const path = event.composedPath();
-        const row = path.find((node) => node?.localName === "ha-list-item-option");
-        if (!row || event.composedPath()[0] !== row) return;
-        const item = this._items.find((entry) => entry.uid === row.value);
-        if (!item) return;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        this._openEdit(item);
-      }
-
       async _runTaskAction(item, action) {
         const pending = this._pendingItems;
         if (pending.has(item.uid)) return;
@@ -1206,27 +1405,6 @@
           this.hass.callService("todo", "remove_item", data));
       }
 
-      async _quickAdd(event) {
-        event.preventDefault();
-        const form = event.currentTarget;
-        const input = form.elements.namedItem("summary");
-        const summary = input.value.trim();
-        if (!summary || input.disabled) return;
-        const entityId = this.entityId;
-        input.disabled = true;
-        this._actionError = "";
-        try {
-          await this.hass.callService("todo", "add_item", { entity_id: entityId, item: summary });
-          input.value = "";
-          if (entityId === this.entityId) await this._fetchItems();
-        } catch (err) {
-          if (entityId === this.entityId) this._actionError = err?.message || "Could not add task";
-        } finally {
-          input.disabled = false;
-          if (input.isConnected) input.focus();
-        }
-      }
-
       _moveTaskUp(item, previousItem) {
         return this._runTaskAction(item, ({ entity_id }) =>
           this.hass.callWS({
@@ -1237,59 +1415,65 @@
           }));
       }
 
-      _renderAssignmentColumn(title, items, allowQuickAdd = false) {
+
+      _renderAssignmentColumn(title, items, index) {
         const L = (key, fallback) => this.hass?.localize(key) || fallback;
-        const unavailable = ["unknown", "unavailable"].includes(this.hass?.states[this.entityId]?.state);
-        const active = items.filter((item) => item.status !== "completed");
-        const completed = items.filter((item) => item.status === "completed");
+        const active = items.filter((item) => !_isComplete(item));
+        const completed = this.hideCompleted ? [] : items.filter(_isComplete);
         const moveUp = L("ui.common.move_up", "Move up");
-        const addLabel = L("ui.panel.lovelace.cards.todo-list.add_item", "Add item");
-        const renderRow = (item, index) => {
-          const isComplete = item.status === "completed";
+        const remove = L("ui.common.delete", "Delete");
+        const locale = this.hass?.locale?.language;
+        const renderRow = (item, position) => {
+          const done = _isComplete(item);
           const notes = _parseDescriptionNotes(item.description);
           const due = item.due && new Date(item.due.includes("T") ? item.due : item.due + "T00:00:00");
-          const disabled = unavailable || this._pendingItems.has(item.uid);
+          const rrule = this.hass?.states[this.entityId]?.attributes?.task_recurrence?.[item.uid];
+          const recurrence = rrule && _parseRrule(rrule).preset;
+          const disabled = this._unavailable || this._pendingItems.has(item.uid);
           return html`
-            <div class="task-row">
-              <input type="checkbox" aria-label=${item.summary}
-                .checked=${isComplete} ?disabled=${disabled}
-                @change=${(event) => {
-                  event.currentTarget.checked = isComplete;
-                  this._toggleTask(item);
-                }}>
-              <button class="task-summary ${isComplete ? "completed" : ""}"
-                ?disabled=${disabled} @click=${() => this._openEdit(item)}>
-                <span>${item.summary}</span>
-                ${notes ? html`<small>${notes}</small>` : ""}
-                ${due ? html`<small>${due.toLocaleDateString(this.hass.locale?.language)}</small>` : ""}
+            <li class="task-row ${done ? "completed" : ""}">
+              ${_taskCheck(item, disabled, () => this._toggleTask(item))}
+              <button type="button" class="task-summary" ?disabled=${disabled} @click=${() => this._openEdit(item)}>
+                <span class="task-title">${item.summary}</span>
+                ${!done && notes ? html`<small class="task-notes">${notes}</small>` : ""}
+                ${!done && (due || rrule) ? html`
+                  <span class="task-tags">
+                    ${due ? html`<span class="task-tag">${_icon("calendarDays")}
+                      ${due.toLocaleString(locale, {
+                        day: "numeric", month: "short",
+                        ...(due.getFullYear() !== new Date().getFullYear() ? { year: "numeric" } : {}),
+                        ...(item.due.includes("T") ? { hour: "numeric", minute: "2-digit" } : {}),
+                      })}
+                    </span>` : ""}
+                    ${rrule ? html`<span class="task-tag repeat">${_icon("repeat")}
+                      ${L(`ui.components.calendar.event.recurrence.${recurrence}`,
+                        L("ui.components.calendar.event.recurrence.repeat", "Repeat"))}
+                    </span>` : ""}
+                  </span>
+                ` : ""}
               </button>
-              ${!isComplete && index > 0 ? html`
-                <button aria-label=${moveUp} title=${moveUp} ?disabled=${disabled}
-                  @click=${() => this._moveTaskUp(item, active[index - 2])}>↑</button>
-              ` : ""}
-              <button class="task-delete" ?disabled=${disabled}
-                @click=${() => this._deleteTask(item)}>
-                ${L("ui.common.delete", "Delete")}
-              </button>
-            </div>
+              <div class="row-actions">
+                ${!done && position > 0 ? html`
+                  <button type="button" aria-label=${moveUp} title=${moveUp} ?disabled=${disabled}
+                    @click=${() => this._moveTaskUp(item, active[position - 2])}>${_icon("arrowUp")}</button>
+                ` : ""}
+                <button type="button" aria-label=${remove} title=${remove} ?disabled=${disabled}
+                  @click=${() => this._deleteTask(item)}>${_icon("trash")}</button>
+              </div>
+            </li>
           `;
         };
         return html`
-          <ha-card .header=${title} class="assignment-column">
-            ${allowQuickAdd ? html`
-              <form class="quick-add" @submit=${this._quickAdd}>
-                <input name="summary" aria-label=${addLabel} placeholder=${addLabel}
-                  maxlength="255" required ?disabled=${unavailable}>
-                <button aria-label=${addLabel} ?disabled=${unavailable}>+</button>
-              </form>
-            ` : ""}
-            ${active.length ? active.map(renderRow)
-              : html`<p>${L("ui.panel.lovelace.cards.todo-list.no_unchecked_items", "No active items")}</p>`}
-            ${completed.length ? html`
-              <h3>${L("ui.panel.lovelace.cards.todo-list.checked_items", "Completed")}</h3>
-              ${completed.map(renderRow)}
-            ` : ""}
-          </ha-card>
+          <section class="assignment-column ${index ? (index % 2 ? "lilac" : "peach") : ""}" aria-label=${title}>
+            <h2>
+              ${index ? html`<span class="avatar" aria-hidden="true">${Array.from(title.trim())[0]?.toLocaleUpperCase(locale)}</span>`
+                : _icon("inbox")}
+              ${title}
+            </h2>
+            ${active.length || completed.length ? html`
+              <ul>${active.map(renderRow)}${completed.map(renderRow)}</ul>
+            ` : html`<p>${_boardText(this.hass)[7]}</p>`}
+          </section>
         `;
       }
 
@@ -1298,7 +1482,7 @@
         const groups = new Map();
         const unassignedItems = [];
         for (const item of this._items) {
-          const assignee = this._assignments[item.uid];
+          const assignee = this._assignments?.[item.uid];
           if (!assignee) {
             unassignedItems.push(item);
             continue;
@@ -1310,28 +1494,35 @@
         const columns = [...groups].map(([id, items]) => [names.get(id) || unavailableUser, items]);
         columns.sort(([a], [b]) => a.localeCompare(b, this.hass.locale?.language));
         return html`
-          <div class="assignment-viewport">
-            <div class="assignment-columns">
-              ${this._renderAssignmentColumn(unassigned, unassignedItems, true)}
-              ${columns.map(([name, items]) => this._renderAssignmentColumn(name, items))}
-            </div>
+          <div class="assignment-columns">
+            ${this._renderAssignmentColumn(unassigned, unassignedItems, 0)}
+            ${columns.map(([name, items], index) => this._renderAssignmentColumn(name, items, index + 1))}
           </div>
-          ${this._actionError ? html`<p role="alert">${this._actionError}</p>` : ""}
         `;
       }
 
-      render() {
-        const L = (k, fb) => this.hass?.localize(k) || fb;
-        const grouped = !!Object.keys(this._assignments || {}).length;
-        return html`
-          ${grouped ? this._renderAssignmentColumns() : this._card
-            ? this._card
-            : html`<ha-card><div class="loading">${L("ui.common.loading", "Loading…")}</div></ha-card>`}
+      get _unavailable() {
+        return ["unknown", "unavailable"].includes(this.hass?.states?.[this.entityId]?.state);
+      }
 
+      render() {
+        const own = this._supportsAssignment;
+        const loading = this.hass?.localize("ui.common.loading") || "Loading…";
+        const ready = !this._loading && !this._itemsError;
+        return html`
+          ${_boardHeading(this.hass, this.entityId, this.hideCompleted,
+            () => this.dispatchEvent(new Event("toggle-completed")),
+            own ? () => this.openCreate() : null, this._unavailable)}
+          ${ready ? _boardProgress(this.hass, this.entityId, this._items) : ""}
+          ${own
+            ? (ready ? this._renderAssignmentColumns()
+              : html`<p role="status">${this._itemsError ? _boardText(this.hass)[9] : loading}</p>`)
+            : (this._card || html`<p role="status">${loading}</p>`)}
+          ${this._actionError ? html`<p role="alert">${this._actionError}</p>` : ""}
           <better-todo-task-dialog
             .hass=${this.hass}
             .entityId=${this.entityId}
-            .supportsAssignment=${this._supportsAssignment}
+            .supportsAssignment=${own}
             .users=${this._users}
             .usersError=${this._usersError}
             @item-saved=${() => this._fetchItems()}
@@ -1340,65 +1531,54 @@
       }
 
       static get styles() {
-        return [css`
-          :host {
-            display: block;
-          }
-          .assignment-viewport { container-type: inline-size; }
+        return [_boardStyles, css`
           .assignment-columns {
-            display: grid;
-            grid-auto-flow: column;
-            grid-auto-columns: minmax(15rem, 1fr);
-            align-items: start;
-            gap: 12px;
-            overflow-x: auto;
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+            align-items: start; gap: 12px;
           }
-          @container (max-width: 510px) {
-            .assignment-columns {
-              grid-auto-flow: row;
-              grid-auto-columns: minmax(0, 1fr);
-              overflow-x: visible;
-            }
+          .assignment-column {
+            background: var(--bt-neutral); border: 1px solid var(--bt-border);
+            border-radius: 16px; min-width: 0; overflow: hidden;
           }
-          .assignment-column { padding-bottom: 8px; min-width: 0; }
-          .assignment-column p, .assignment-column h3 { margin: 8px 16px; }
+          .assignment-column h2 {
+            margin: 0; padding: 12px; display: flex; align-items: center;
+            gap: 10px; font-size: 1.2rem; min-height: 38px; overflow-wrap: anywhere;
+          }
+          .assignment-column.lilac h2 { background: var(--bt-lilac); }
+          .assignment-column.peach h2 { background: var(--bt-peach); }
+          .avatar {
+            display: grid; place-items: center; width: 34px; height: 34px; flex: 0 0 auto;
+            border-radius: 50%; background: var(--bt-avatar); color: var(--bt-ink);
+          }
+          .peach .avatar { background: var(--bt-avatar-warm); }
+          .assignment-column ul {
+            display: grid; gap: 8px; list-style: none; margin: 0; padding: 8px;
+          }
+          .assignment-column p { margin: 8px 12px 16px; color: var(--bt-muted); }
           .task-row {
-            display: flex;
-            align-items: center;
-            padding: 4px 12px;
-            gap: 8px;
-            min-height: 40px;
+            display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start;
+            min-height: 54px; background: var(--bt-surface); border: 1px solid var(--bt-border);
+            border-radius: 12px; padding: 4px 3px 4px 1px;
           }
-          .task-row input { accent-color: var(--primary-color); width: 18px; height: 18px; }
-          .task-row button, .quick-add button {
-            font: inherit;
-            border: 0;
-            background: transparent;
-            color: inherit;
-            cursor: pointer;
-            padding: 4px;
+          .task-row.completed { background: var(--bt-neutral); }
+          .task-summary, .row-actions button {
+            font: inherit; border: 0; background: transparent; color: inherit; cursor: pointer;
           }
-          .task-row button:disabled { cursor: default; }
-          .task-summary { flex: 1; min-width: 0; text-align: start; overflow-wrap: anywhere; }
-          .task-summary small { display: block; color: var(--secondary-text-color); }
-          .completed span { text-decoration: line-through; }
-          .task-delete { color: var(--secondary-text-color); }
-          .quick-add { display: flex; gap: 4px; margin: 0 12px 8px; }
-          .quick-add input {
-            flex: 1;
-            min-width: 0;
-            font: inherit;
-            color: inherit;
-            background: var(--secondary-background-color);
-            border: 1px solid var(--divider-color);
-            border-radius: 4px;
-            padding: 8px;
+          .task-summary { text-align: start; overflow-wrap: anywhere; padding: 11px 3px 8px; }
+          .task-title { font-weight: 650; }
+          .completed .task-title { text-decoration: line-through; color: var(--bt-muted); }
+          .task-notes { display: block; color: var(--bt-muted); margin-top: 4px; white-space: pre-line; }
+          .task-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+          .task-tag {
+            display: inline-flex; align-items: center; gap: 5px; background: var(--bt-peach);
+            padding: 4px 7px; border-radius: 7px; font-size: .82em;
           }
-          .loading {
-            text-align: center;
-            padding: 48px 16px;
-            color: var(--secondary-text-color);
-            font-size: 0.95rem;
+          .task-tag.repeat { background: var(--bt-lilac); }
+          .row-actions { display: flex; }
+          .row-actions button { padding: 0; width: 30px; height: 42px; color: var(--bt-muted); }
+          .row-actions button:disabled, .task-summary:disabled { cursor: default; }
+          @media (pointer: coarse) {
+            .row-actions button, .task-check { width: 44px; height: 44px; }
           }
         `];
       }
@@ -1416,6 +1596,11 @@
         return {
           hass:     { attribute: false },
           entityId: { type: String },
+          hideCompleted: { type: Boolean },
+          _actionError: { state: true },
+          _itemsError: { state: true },
+          _adding: { state: true },
+          _saving: { state: true },
           _items:   { state: true },
           _loading: { state: true },
         };
@@ -1424,9 +1609,24 @@
       constructor() {
         super();
         this._items    = [];
-        this._loading  = false;
+        this._loading  = true;
+        this._pendingItems = new Set();
         this._stateKey = null;
         this._fetchSequence = 0;
+      }
+
+      connectedCallback() {
+        super.connectedCallback();
+        if (this.hasUpdated) {
+          _startItemSubscription(this);
+          this._fetchItems();
+        }
+      }
+
+      disconnectedCallback() {
+        super.disconnectedCallback();
+        _stopItemSubscription(this);
+        this._fetchSequence++;
       }
 
       async _fetchItems() {
@@ -1440,10 +1640,11 @@
           });
           if (fetchSequence === this._fetchSequence && entityId === this.entityId) {
             this._items = res?.items || [];
+            this._itemsError = false;
           }
         } catch {
           if (fetchSequence === this._fetchSequence && entityId === this.entityId) {
-            this._items = [];
+            this._itemsError = true;
           }
         } finally {
           if (fetchSequence === this._fetchSequence) {
@@ -1454,10 +1655,17 @@
 
       updated(changedProps) {
         super.updated(changedProps);
+        if (changedProps.has("entityId") ||
+          (changedProps.has("hass") && changedProps.get("hass")?.connection !== this.hass?.connection)) {
+          _startItemSubscription(this);
+        }
         if (changedProps.has("entityId")) {
           this._fetchSequence++;
           this._items    = [];
           this._stateKey = null;
+          this._pendingItems = new Set();
+          this._actionError = "";
+          this._adding = false;
           this._fetchItems();
           return;
         }
@@ -1472,141 +1680,131 @@
       }
 
       async _toggle(item) {
-        const newStatus = item.status === "completed" ? "needs_action" : "completed";
+        const pending = this._pendingItems;
+        if (pending.has(item.uid)) return;
+        const entityId = this.entityId;
+        pending.add(item.uid);
+        this._actionError = "";
+        this.requestUpdate();
         try {
+          const status = _isComplete(item) ? "needs_action" : "completed";
           await this.hass.callService("todo", "update_item", {
-            entity_id: this.entityId, item: item.uid, status: newStatus,
+            entity_id: entityId, item: item.uid, status,
           });
-        } catch { /* ignore */ }
+          if (entityId === this.entityId) await this._fetchItems();
+        } catch (err) {
+          if (entityId === this.entityId) this._actionError = err?.message || _boardText(this.hass)[9];
+        } finally {
+          pending.delete(item.uid);
+          this.requestUpdate();
+        }
+      }
+
+      async _showAdd() {
+        this._adding = true;
+        this._actionError = "";
+        await this.updateComplete;
+        this.shadowRoot.querySelector(".shopping-add input")?.focus();
+      }
+
+      async _addItem(event) {
+        event.preventDefault();
+        const summary = event.currentTarget.elements.namedItem("summary").value.trim();
+        if (!summary || this._saving) return;
+        const entityId = this.entityId;
+        this._saving = true;
+        this._actionError = "";
+        try {
+          await this.hass.callService("todo", "add_item", { entity_id: entityId, item: summary });
+          if (entityId === this.entityId) {
+            this._adding = false;
+            await this._fetchItems();
+          }
+        } catch (err) {
+          if (entityId === this.entityId) this._actionError = err?.message || this.hass.localize("ui.common.error");
+        } finally {
+          this._saving = false;
+        }
       }
 
       render() {
-        const L       = (k, fb) => this.hass?.localize(k) || fb;
+        const text = _boardText(this.hass);
         const details = this.hass?.states[this.entityId]?.attributes?.task_details || {};
-        const pending = this._items.filter((i) => i.status !== "completed");
-        const done    = this._items.filter((i) => i.status === "completed");
-
-        // Group pending items by category.  Items without a category are
-        // collected under the NO_CAT sentinel and shown after all named groups.
-        const NO_CAT = "__none__";
+        const unavailable = ["unknown", "unavailable"].includes(this.hass?.states[this.entityId]?.state);
         const groups = new Map();
-        for (const item of pending) {
-          const cat = details[item.uid]?.category || NO_CAT;
-          if (!groups.has(cat)) groups.set(cat, []);
-          groups.get(cat).push(item);
+        for (const item of this._items) {
+          if (this.hideCompleted && _isComplete(item)) continue;
+          const category = details[item.uid]?.category || "";
+          if (!groups.has(category)) groups.set(category, []);
+          groups.get(category).push(item);
         }
-
-        // Named categories sorted alphabetically; uncategorised items come last.
-        const cats = [...groups.keys()]
-          .filter((c) => c !== NO_CAT)
-          .sort((a, b) => a.localeCompare(b));
-        if (groups.has(NO_CAT)) cats.push(NO_CAT);
-
-        const renderShopItem = (item, crossed = false) => {
-          const d   = details[item.uid] || {};
-          const qty = [d.quantity, d.unit].filter(Boolean).join(" ");
-          return html`
-            <div class="shop-item ${crossed ? "shop-item--done" : ""}">
-              <ha-checkbox
-                .checked=${crossed}
-                @change=${() => this._toggle(item)}
-              ></ha-checkbox>
-              <span class="shop-name">${item.summary}</span>
-              ${qty ? html`<span class="shop-qty">${qty}</span>` : ""}
-            </div>
-          `;
-        };
+        const locale = this.hass?.locale?.language;
+        const categories = [...groups.keys()].filter(Boolean).sort((a, b) => a.localeCompare(b, locale));
+        if (groups.has("")) categories.push("");
 
         return html`
-          <div class="shop-wrap">
-            ${this._loading && !this._items.length
-              ? html`<div class="placeholder">${L("ui.common.loading", "Loading…")}</div>`
-              : ""}
-            ${!this._loading && !this._items.length
-              ? html`<div class="placeholder">${L("ui.panel.todo.no_items", "No items yet.")}</div>`
-              : ""}
-
-            ${cats.map((cat) => html`
-              <div class="cat-group">
-                ${cat !== NO_CAT
-                  ? html`<div class="cat-header">${cat}</div>`
-                  : ""}
-                ${(groups.get(cat) || []).map((item) => renderShopItem(item))}
-              </div>
-            `)}
-
-            ${done.length ? html`
-              <div class="section-label">
-                ${L("ui.panel.todo.filter.completed", "Completed")}
-              </div>
-              ${done.map((item) => renderShopItem(item, true))}
-            ` : ""}
+          ${_boardHeading(this.hass, this.entityId, this.hideCompleted,
+            () => this.dispatchEvent(new Event("toggle-completed")),
+            () => this._showAdd(), unavailable)}
+          ${this._adding ? html`
+            <form class="shopping-add" @submit=${this._addItem}>
+              <input name="summary" aria-label=${text[2]} placeholder=${text[2]} required ?disabled=${this._saving}>
+              <button type="submit" class="board-button primary" ?disabled=${this._saving}>
+                ${_icon("plus")} ${text[2]}
+              </button>
+              <button type="button" class="board-button" ?disabled=${this._saving}
+                @click=${() => { this._adding = false; }}>
+                ${this.hass.localize("ui.common.cancel") || "Cancel"}
+              </button>
+            </form>
+          ` : ""}
+          ${!this._loading && !this._itemsError ? _boardProgress(this.hass, this.entityId, this._items) : ""}
+          ${this._loading || this._itemsError || !categories.length ? html`
+            <p role="status">${this._loading ? this.hass?.localize("ui.common.loading") || "Loading…"
+              : this._itemsError ? text[9] : text[7]}</p>` : ""}
+          <div class="shopping-categories">
+            ${categories.map((category) => {
+              const items = groups.get(category);
+              const ordered = [...items.filter((item) => !_isComplete(item)), ...items.filter(_isComplete)];
+              return html`
+                <section class="shopping-category">
+                  <h2>${_icon("cartShopping")} ${category || text[8]}</h2>
+                  <ul>${ordered.map((item) => {
+                    const detailsForItem = details[item.uid] || {};
+                    // The backend's quantity already includes the unit.
+                    const quantity = detailsForItem.quantity || detailsForItem.unit;
+                    return html`
+                      <li class=${_isComplete(item) ? "completed" : ""}>
+                        ${_taskCheck(item, unavailable || this._pendingItems.has(item.uid), () => this._toggle(item))}
+                        <span class="shop-name">${item.summary}</span>
+                        ${quantity ? html`<small>${quantity}</small>` : ""}
+                      </li>
+                    `;
+                  })}</ul>
+                </section>
+              `;
+            })}
           </div>
+          ${this._actionError ? html`<p role="alert">${this._actionError}</p>` : ""}
         `;
       }
 
       static get styles() {
-        return [css`
-          :host {
-            display: block;
-          }
-
-          .shop-wrap { padding: 4px 0 16px; }
-
-          .cat-group { margin-bottom: 4px; }
-
-          .cat-header {
-            padding: 14px 16px 4px;
-            font-size: 0.73rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--secondary-text-color);
-            border-bottom: 1px solid var(--divider-color, rgba(0, 0, 0, 0.08));
-            margin-bottom: 2px;
-          }
-
-          .shop-item {
-            display: flex;
-            align-items: center;
-            min-height: 48px;
-            padding: 2px 16px 2px 4px;
-            gap: 4px;
-          }
-
-          .shop-item--done .shop-name,
-          .shop-item--done .shop-qty {
-            text-decoration: line-through;
-            color: var(--secondary-text-color);
-          }
-
-          .shop-name {
-            flex: 1;
-            color: var(--primary-text-color);
-            font-size: 1rem;
-          }
-
-          .shop-qty {
-            color: var(--secondary-text-color);
-            font-size: 0.88rem;
-            white-space: nowrap;
-            margin-left: 8px;
-          }
-
-          .section-label {
-            font-size: 0.73rem;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 0.04em;
-            color: var(--secondary-text-color);
-            padding: 16px 16px 4px;
-          }
-
-          .placeholder {
-            text-align: center;
-            padding: 48px 16px;
-            color: var(--secondary-text-color);
-            font-size: 0.95rem;
+        return [_boardStyles, css`
+          .shopping-categories { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); gap: 12px; align-items: start; }
+          .shopping-category { border-radius: 16px; background: var(--bt-neutral); border: 1px solid var(--bt-border); }
+          .shopping-category h2 { display: flex; align-items: center; gap: 8px; font-size: 1.1rem; margin: 0; padding: 12px; }
+          ul { list-style: none; margin: 0; padding: 8px; display: grid; gap: 8px; }
+          li { display: flex; align-items: center; gap: 6px; padding: 4px; background: var(--bt-surface); border-radius: 10px; border: 1px solid var(--bt-border); }
+          .shop-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+          li small { color: var(--bt-muted); margin-inline-end: 8px; }
+          .completed { background: var(--bt-neutral); }
+          .completed .shop-name, .completed small { color: var(--bt-muted); text-decoration: line-through; }
+          .shopping-add { display: flex; flex-wrap: wrap; gap: 8px; margin-block-end: 12px; }
+          .shopping-add input {
+            flex: 1 1 140px; min-width: 0; border: 1px solid var(--bt-border);
+            border-radius: 10px; background: var(--bt-surface); color: inherit;
+            padding: 8px 12px; font: inherit;
           }
         `];
       }
@@ -1622,40 +1820,37 @@
       static get properties() {
         return {
           hass: { attribute: false },
-          narrow: { type: Boolean, reflect: true },
-          mobile: { type: Boolean, reflect: true },
-          _showPane: { state: true },
-          // true while the user is browsing the list selector on a narrow screen.
-          _paneOnMobile: { state: true },
+          narrow: { type: Boolean },
+          _compact: { state: true },
           _selectedEntityId: { state: true },
+          _hideCompleted: { state: true },
+          _creatingList: { state: true },
+          _savingList: { state: true },
+          _listError: { state: true },
         };
       }
 
       constructor() {
         super();
-        this.narrow = false;
-        this.mobile = false;
-        this._showPane = false;
-        this._paneOnMobile = false;
-        // Restore last selected list from session storage so navigation
-        // back to the panel re-opens the same list.
+        this._compact = false;
+        this._selectedEntityId = null;
+        this._hideCompleted = false;
+        this._creatingList = false;
+        this._savingList = false;
+        this._listError = "";
         try {
-          this._selectedEntityId =
-            sessionStorage.getItem("better-todo-selected-entity") || null;
+          this._selectedEntityId = sessionStorage.getItem("better-todo-selected-entity");
+          this._hideCompleted = sessionStorage.getItem("better-todo-hide-completed") === "true";
         } catch {
-          this._selectedEntityId = null;
+          // Browser storage can be unavailable.
         }
-        this._resizeObserver = null;
-        this._mql = null;
-        this._onMqlChange = null;
         this._todoListsCache = [];
         this._todoStateRefs = new Map();
         this._entityRegistryRef = null;
+        this._resizeObserver = new ResizeObserver(([entry]) => {
+          this._compact = entry.contentRect.width < 760;
+        });
       }
-
-      // -----------------------------------------------------------------------
-      // Helpers
-      // -----------------------------------------------------------------------
 
       /** Returns all todo-domain state objects, sorted alphabetically with the
        *  Better To-do Shopping List pinned to the end of the list. */
@@ -1691,6 +1886,7 @@
       /** Returns true if the given entity_id belongs to the built-in Better
        *  To-do Shopping List (identified via the entity registry unique_id). */
       _isShoppingList(entityId) {
+        if (this.hass?.states?.[entityId]?.attributes?.better_todo_shopping_list) return true;
         const entry = this.hass?.entities?.[entityId];
         return (
           entry?.platform === "better_todo" &&
@@ -1698,341 +1894,221 @@
         );
       }
 
-      // -----------------------------------------------------------------------
-      // Event handlers
-      // -----------------------------------------------------------------------
-
       _setSelectedEntity(entityId) {
         this._selectedEntityId = entityId;
-        // On narrow screens, close the mobile list selector after picking a list.
-        this._paneOnMobile = false;
         try {
           sessionStorage.setItem("better-todo-selected-entity", entityId);
         } catch {
-          // ignore
+          // The current selection still works without browser storage.
         }
       }
 
-      /** Navigate back to the list selector on narrow screens. */
-      _backToLists() {
-        this._paneOnMobile = true;
+      _toggleCompleted() {
+        this._hideCompleted = !this._hideCompleted;
+        try {
+          sessionStorage.setItem("better-todo-hide-completed", String(this._hideCompleted));
+        } catch {
+          // The current filter still works without browser storage.
+        }
       }
 
-      _addItem() {
-        this.shadowRoot
-          ?.querySelector("better-todo-task-list")
-          ?.openCreate();
+      async _revealNewList() {
+        this._creatingList = true;
+        this._listError = "";
+        await this.updateComplete;
+        this.shadowRoot.querySelector(".new-list-form input")?.focus();
       }
 
-      /** Open the Better To-do config flow to create a new list.
-       *  Dispatches the same show-dialog event that ha-panel-todo uses so that
-       *  HA's app shell opens the standard config-flow dialog inline. */
-      _addList() {
-        this.dispatchEvent(
-          new CustomEvent("show-dialog", {
-            bubbles: true,
-            composed: true,
-            detail: {
-              dialogTag: "ha-config-flow",
-              // Resolve immediately if the dialog element is already registered;
-              // otherwise wait up to 2 s for HA to register it (it is loaded
-              // lazily by the config/integrations section).
-              dialogImport: () =>
-                customElements.get("ha-config-flow")
-                  ? Promise.resolve()
-                  : Promise.race([
-                      customElements
-                        .whenDefined("ha-config-flow")
-                        .then(() => {}),
-                      new Promise((resolve) => {
-                        setTimeout(resolve, 2000);
-                      }),
-                    ]),
-              dialogParams: {
-                startFlowHandler: "better_todo",
-                showAdvanced: this.hass?.userData?.showAdvanced ?? false,
-              },
-            },
-          })
-        );
+      async _createList(event) {
+        event.preventDefault();
+        const input = event.currentTarget.elements.namedItem("name");
+        const name = input.value.trim();
+        if (!name || this._savingList) return;
+        this._savingList = true;
+        this._listError = "";
+        const url = "config/config_entries/flow";
+        let flowId;
+        const L = (key, fallback) => this.hass.localize(key) || fallback;
+        try {
+          const flow = await this.hass.callApi("POST", url, { handler: "better_todo" });
+          flowId = flow.flow_id;
+          if (flow.type !== "form" || flow.step_id !== "user") {
+            throw new Error(L("ui.common.error", "Could not create list"));
+          }
+          const result = await this.hass.callApi("POST", `${url}/${flowId}`, { todo_list_name: name });
+          if (result.type !== "create_entry") {
+            throw new Error(result.reason === "already_configured"
+              ? L("ui.panel.config.integrations.config_flow.abort.already_configured", "A list with this name already exists")
+              : L("ui.common.error", "Could not create list"));
+          }
+          flowId = undefined;
+          this._creatingList = false;
+        } catch (err) {
+          this._listError = err?.body?.message || err?.message || L("ui.common.error", "Could not create list");
+        } finally {
+          if (flowId) this.hass.callApi("DELETE", `${url}/${flowId}`).catch(() => {});
+          this._savingList = false;
+        }
       }
-
-      // -----------------------------------------------------------------------
-      // Lifecycle
-      // -----------------------------------------------------------------------
 
       connectedCallback() {
         super.connectedCallback();
-
-        // The panel layout needs the native module even when there are no
-        // task cards yet or the grouped shopping view was selected last.
-        _loadCoreTodoElements().catch((err) => {
-          console.error("Unable to load Home Assistant's To-do panel components", err);
-        });
-
-        // Mirror ha-panel-todo's ResizeController: show left pane when width > 750 px.
-        this._resizeObserver = new ResizeObserver((entries) => {
-          const showPane = (entries[0]?.contentRect.width ?? 0) > 750;
-          if (showPane !== this._showPane) {
-            this._showPane = showPane;
-          }
-        });
         this._resizeObserver.observe(this);
-
-        // Mirror ha-panel-todo's MediaQueryList: detect mobile viewport.
-        this._mql = window.matchMedia(
-          "(max-width: 450px), all and (max-height: 500px)"
-        );
-        this._onMqlChange = (ev) => {
-          this.mobile = ev.matches;
-        };
-        this._mql.addEventListener("change", this._onMqlChange);
-        this.mobile = this._mql.matches;
       }
 
       disconnectedCallback() {
         super.disconnectedCallback();
-        this._resizeObserver?.disconnect();
-        this._resizeObserver = null;
-        this._mql?.removeEventListener("change", this._onMqlChange);
-        this._mql = null;
+        this._resizeObserver.disconnect();
       }
 
       willUpdate(changedProps) {
         super.willUpdate(changedProps);
-        // Auto-select the first available list when nothing is selected (or when
-        // the previously selected entity no longer exists in the state machine).
-        if (this.hass) {
-          const lists = this._getTodoLists();
-          if (
-            !this._selectedEntityId ||
-            !this.hass.states[this._selectedEntityId]
-          ) {
-            const firstId = lists[0]?.entity_id ?? null;
-            if (this._selectedEntityId !== firstId) {
-              this._selectedEntityId = firstId;
-            }
-            // On narrow screens with no valid selection, open the list selector
-            // so the user can pick or create a list.
-            if (!this._showPane && !firstId) {
-              this._paneOnMobile = true;
-            }
-          }
-        }
-
-        // When the layout switches from narrow → wide, the sidebar is always
-        // visible again, so reset the mobile toggle.
-        if (changedProps.has("_showPane") && this._showPane) {
-          this._paneOnMobile = false;
+        if (this.hass && !this.hass.states?.[this._selectedEntityId]) {
+          this._selectedEntityId = this._getTodoLists()[0]?.entity_id ?? null;
         }
       }
 
-      // -----------------------------------------------------------------------
-      // Rendering
-      // -----------------------------------------------------------------------
-
       render() {
         const lists = this._getTodoLists();
-
-        // Reusable helper so each call site gets independent TemplateResult
-        // instances (Lit must not share a single instance across two DOM slots).
-        const makeListItems = () =>
-          lists.map(
-            (list) => html`
-              <ha-list-item
-                graphic="icon"
-                .activated=${list.entity_id === this._selectedEntityId}
-                @click=${() => this._setSelectedEntity(list.entity_id)}
-              >
-                <ha-state-icon
-                  .stateObj=${list}
-                  slot="graphic"
-                ></ha-state-icon>
-                ${_computeStateName(list)}
-              </ha-list-item>
-            `
-          );
-
-        // "Create list" label: reuse HA's own translation key so the label is
-        // automatically localised in every language HA supports.
-        const createListLabel =
-          this.hass?.localize("ui.panel.todo.create_list") || "Create list";
-
-        // ── Layout decisions ────────────────────────────────────────────────
-        // On narrow screens (_showPane=false) the sidebar is hidden by
-        // ha-two-pane-top-app-bar-fixed.  We handle mobile navigation by
-        // rendering either the list selector OR the todo content in the main
-        // slot, controlled by _paneOnMobile.
-        //
-        // Wide screens (_showPane=true): sidebar + content always visible.
-
-        // True while showing the list selector as main content on narrow.
-        const showMobileList =
-          !this._showPane &&
-          (this._paneOnMobile || !this._selectedEntityId);
-
-        // Show a back-arrow instead of the hamburger while viewing list
-        // content on a narrow screen.
-        const showBack =
-          !this._showPane && !showMobileList && !!this._selectedEntityId;
-
-        // Title: selected list name when back-button is shown, otherwise brand.
-        const panelTitle =
-          showBack && this.hass?.states[this._selectedEntityId]
-            ? _computeStateName(this.hass.states[this._selectedEntityId])
-            : "Better ToDo";
-
-        // ── Main content slot ────────────────────────────────────────────────
-        let mainContent;
-        if (showMobileList) {
-          // Mobile list selector (rendered in the main content area).
-          mainContent = html`
-            <ha-list activatable>${makeListItems()}</ha-list>
-            <ha-list-item graphic="icon" @click=${this._addList}>
-              <ha-svg-icon .path=${_mdiPlus} slot="graphic"></ha-svg-icon>
-              ${createListLabel}
-            </ha-list-item>
-          `;
-        } else if (this._selectedEntityId) {
-          // Right pane: render a specialised view depending on list type.
-          const isShopping = this._isShoppingList(this._selectedEntityId);
-          mainContent = html`
-            <div id="columns" class=${Object.keys(this.hass?.states[this._selectedEntityId]?.attributes?.task_assignees || {}).length
-              ? "assignment-layout" : ""}>
-              <div class="column">
-                ${isShopping
-                  ? html`
-                      <better-todo-shopping-list
-                        .hass=${this.hass}
-                        .entityId=${this._selectedEntityId}
-                      ></better-todo-shopping-list>
-                    `
-                  : html`
-                      <better-todo-task-list
-                        .hass=${this.hass}
-                        .entityId=${this._selectedEntityId}
-                      ></better-todo-task-list>
-                    `}
-              </div>
-            </div>
-          `;
-        } else {
-          // No lists exist yet — prompt the user to create one.
-          mainContent = html`
-            <div class="empty-content">
-              <span
-                >${this.hass?.localize("ui.panel.todo.no_lists") ||
-                "No lists found. Create one to get started."}</span
-              >
-            </div>
-          `;
-        }
-
+        const [myLists, newList] = _boardText(this.hass);
+        const isShopping = this._isShoppingList(this._selectedEntityId);
         return html`
-          <ha-two-pane-top-app-bar-fixed
-            .pane=${this._showPane}
-            footer
-            .narrow=${this.narrow}
-          >
-            ${showBack
-              ? html`
-                  <ha-icon-button
-                    slot="navigationIcon"
-                    .path=${_mdiArrowLeft}
-                    .label=${this.hass?.localize("ui.common.back") || "Back"}
-                    @click=${this._backToLists}
-                  ></ha-icon-button>
-                `
-              : html`
-                  <ha-menu-button
-                    slot="navigationIcon"
-                    .hass=${this.hass}
-                    .narrow=${this.narrow}
-                  ></ha-menu-button>
-                `}
-
-            <span slot="title">${panelTitle}</span>
-
-            <!-- Left pane: sorted todo lists (always in sidebar slot) -->
-            <ha-list slot="pane" activatable>${makeListItems()}</ha-list>
-
-            <!-- "Create list" footer (visible only when the sidebar pane is shown) -->
-            ${this._showPane
-              ? html`
-                  <ha-list-item
-                    graphic="icon"
-                    slot="pane-footer"
-                    @click=${this._addList}
-                  >
-                    <ha-svg-icon
-                      .path=${_mdiPlus}
-                      slot="graphic"
-                    ></ha-svg-icon>
-                    ${createListLabel}
-                  </ha-list-item>
-                `
-              : ""}
-
-            <!-- Action menu: hidden until needed -->
-            <div slot="actionItems" hidden></div>
-
-            <!-- Main content area -->
-            ${mainContent}
-
-            ${this._selectedEntityId &&
-            !this._isShoppingList(this._selectedEntityId)
-              ? html`
-                  <ha-button class="fab" size="l" @click=${this._addItem}>
-                    <ha-svg-icon slot="start" .path=${_mdiPlus}></ha-svg-icon>
-                    ${this.hass?.localize("ui.panel.todo.add_item") || "Add item"}
-                  </ha-button>
-                `
-              : ""}
-          </ha-two-pane-top-app-bar-fixed>
+          <div class="shell ${this._compact ? "compact" : ""}" ?data-dark=${this.hass?.themes?.darkMode}>
+            <aside class="sidebar">
+              <div class="brand">
+                ${(this.narrow || this.hass?.dockedSidebar === "always_hidden") &&
+                  !this.hass?.kioskMode && !this.hass?.auth?.external?.config?.hasSidebar
+                  ? html`
+                    <button type="button" class="menu-toggle"
+                      aria-label=${this.hass?.localize("ui.sidebar.sidebar_toggle") || "Toggle sidebar"}
+                      @click=${() => this.dispatchEvent(new Event("hass-toggle-menu", { bubbles: true, composed: true }))}>
+                      ${_icon("bars")}
+                    </button>
+                  ` : ""}
+                <span class="brand-mark">${_icon("squareCheck")}</span>
+                <span>Better ToDo</span>
+              </div>
+              <div class="list-links">
+                <h2>${myLists}</h2>
+                <nav aria-label=${myLists}>
+                  ${lists.map((list) => html`
+                    <button type="button" aria-current=${list.entity_id === this._selectedEntityId ? "true" : "false"}
+                      @click=${() => this._setSelectedEntity(list.entity_id)}>
+                      ${_icon(_listIcon(list))}<span>${_computeStateName(list)}</span>
+                    </button>
+                  `)}
+                </nav>
+              </div>
+              ${this._compact && lists.length ? html`
+                <select class="list-picker" aria-label=${myLists} @change=${(event) => this._setSelectedEntity(event.target.value)}>
+                  ${lists.map((list) => html`<option value=${list.entity_id} .selected=${list.entity_id === this._selectedEntityId}>
+                    ${_computeStateName(list)}
+                  </option>`)}
+                </select>
+              ` : ""}
+              ${this.hass?.user?.is_admin ? html`
+                <div class="list-create">
+                  ${this._creatingList ? html`
+                    <form class="new-list-form" @submit=${this._createList}>
+                      <input name="name" aria-label=${newList} placeholder=${newList} required ?disabled=${this._savingList}>
+                      <div>
+                        <button type="button" ?disabled=${this._savingList}
+                          @click=${() => { this._creatingList = false; }}>
+                          ${this.hass.localize("ui.common.cancel") || "Cancel"}
+                        </button>
+                        <button type="submit" ?disabled=${this._savingList}>${newList}</button>
+                      </div>
+                      ${this._listError ? html`<p role="alert">${this._listError}</p>` : ""}
+                    </form>
+                  ` : html`<button type="button" class="new-list" @click=${this._revealNewList}>${_icon("plus")} ${newList}</button>`}
+                </div>
+              ` : ""}
+            </aside>
+            <main class="workspace">
+              ${this._selectedEntityId ? isShopping ? html`
+                <better-todo-shopping-list .hass=${this.hass} .entityId=${this._selectedEntityId}
+                  .hideCompleted=${this._hideCompleted} @toggle-completed=${this._toggleCompleted}>
+                </better-todo-shopping-list>
+              ` : html`
+                <better-todo-task-list .hass=${this.hass} .entityId=${this._selectedEntityId}
+                  .hideCompleted=${this._hideCompleted} @toggle-completed=${this._toggleCompleted}>
+                </better-todo-task-list>
+              ` : html`<p>${this.hass?.localize("ui.panel.todo.no_lists") || "No lists found."}</p>`}
+            </main>
+          </div>
         `;
       }
 
       static get styles() {
-        return [
-          css`
-            :host {
-              display: block;
-            }
-            #columns {
-              display: flex;
-              flex-direction: row;
-              justify-content: center;
-              margin: 8px;
-              padding-bottom: 70px;
-            }
-            .column {
-              flex: 1 0 0;
-              max-width: 500px;
-              min-width: 0;
-            }
-            .assignment-layout .column { max-width: 1200px; }
-            .fab {
-              position: fixed;
-              right: calc(16px + var(--safe-area-inset-right, 0px));
-              bottom: calc(16px + var(--safe-area-inset-bottom, 0px));
-              inset-inline-end: calc(16px + var(--safe-area-inset-right, 0px));
-              inset-inline-start: initial;
-              --ha-button-box-shadow: var(--ha-box-shadow-l);
-            }
-            better-todo-task-list,
-            better-todo-shopping-list {
-              display: block;
-            }
-            .empty-content {
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              padding: 48px 16px;
-              text-align: center;
-              color: var(--secondary-text-color);
-            }
-          `,
-        ];
+        return [css`
+          :host { display: block; }
+          .shell {
+            --bt-canvas: #fbf5ef; --bt-surface: #fffcf9; --bt-ink: #271629; --bt-muted: #685a69;
+            --bt-neutral: #f2eae4; --bt-border: #e9dcd9; --bt-accent: #5b2167;
+            --bt-primary: #732487; --bt-lilac: #eadaf6; --bt-peach: #fbe3d0;
+            --bt-avatar: #d3a5ee; --bt-avatar-warm: #ffc59c; --bt-done: #628723;
+            min-height: 100dvh; box-sizing: border-box; display: grid;
+            grid-template-columns: clamp(165px, 19%, 248px) minmax(0, 1fr);
+            background: var(--bt-canvas); color: var(--bt-ink);
+          }
+          .shell[data-dark] {
+            --bt-canvas: #211b25; --bt-surface: #33283a; --bt-ink: #f8eefb; --bt-muted: #d4c4d5;
+            --bt-neutral: #2c2231; --bt-border: #55465c; --bt-accent: #e3b0f3;
+            --bt-primary: #8734a0; --bt-lilac: #48304f; --bt-peach: #573a34;
+            --bt-avatar: #755089; --bt-avatar-warm: #8e5544; --bt-done: #c0ed5e;
+          }
+          .sidebar {
+            display: flex; flex-direction: column; gap: 22px; min-width: 0; padding: 20px 12px;
+            color: #fff6ff; background: #35123e;
+            border-start-end-radius: 16px; border-end-end-radius: 16px;
+          }
+          .brand { display: flex; align-items: center; gap: 8px; font-size: clamp(1rem, 2vw, 1.4rem); font-weight: 750; }
+          .brand-mark { display: grid; place-items: center; color: #e1bdff; font-size: 1.25em; }
+          .list-links h2 { margin: 0 0 9px 8px; font-size: .95rem; color: #e8cbed; }
+          nav { display: grid; gap: 5px; }
+          .sidebar button, .sidebar input, .list-picker {
+            font: inherit; color: inherit; border: 0; background: transparent; border-radius: 9px;
+          }
+          .sidebar button { cursor: pointer; min-height: 42px; }
+          .sidebar button:disabled { opacity: .65; cursor: default; }
+          .sidebar button:focus-visible, .sidebar input:focus-visible, .list-picker:focus-visible {
+            outline: 2px solid #d6eb77; outline-offset: 2px;
+          }
+          nav button {
+            display: flex; align-items: center; gap: 10px; padding: 8px; width: 100%;
+            text-align: start; font-weight: 550;
+          }
+          nav button span { min-width: 0; overflow-wrap: anywhere; }
+          nav button svg { flex: 0 0 auto; }
+          nav button[aria-current="true"] { background: #81468c; font-weight: 700; }
+          nav button:hover:not([aria-current="true"]) { background: #53265e; }
+          .menu-toggle { padding-inline: 8px; }
+          .list-create { margin-block-start: auto; }
+          .new-list {
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            width: 100%; padding: 8px;
+          }
+          .sidebar .new-list, .new-list-form button[type="submit"] { background: #ecd6f9; color: #35123e; font-weight: 700; }
+          .new-list-form { display: grid; gap: 8px; }
+          .new-list-form input, .list-picker { min-width: 0; width: 100%; box-sizing: border-box; padding: 9px; background: #53265e; }
+          .new-list-form div { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+          .new-list-form p { margin: 0; overflow-wrap: anywhere; }
+          .sidebar input::placeholder { color: #e8cbed; }
+          .workspace {
+            width: 100%; max-width: 1480px; min-width: 0; box-sizing: border-box; margin-inline: auto;
+            padding: clamp(14px, 3vw, 36px) clamp(12px, 2.5vw, 30px) 36px;
+          }
+          .compact { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
+          .compact .sidebar {
+            display: grid; grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center; gap: 8px; border-radius: 0; padding: 10px 12px;
+          }
+          .compact .list-links { display: none; }
+          .compact .list-picker { grid-column: 1; }
+          .compact .list-create { grid-column: 2; grid-row: 2; margin-block-start: 0; }
+          .compact .list-create:has(.new-list-form) { grid-column: 1 / -1; grid-row: auto; }
+          .list-picker option { color: #fff6ff; background: #35123e; }
+        `];
       }
     }
 

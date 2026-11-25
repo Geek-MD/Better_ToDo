@@ -532,7 +532,9 @@ class BetterTodoListEntity(TodoListEntity):
                     entry["repeat"] = repeat
                 details[todo.uid] = entry
         attrs: dict[str, Any] = {}
-        if not isinstance(self, ShoppingListTodoListEntity):
+        if isinstance(self, ShoppingListTodoListEntity):
+            attrs["better_todo_shopping_list"] = True
+        else:
             attrs["task_assignees"] = assignees
         if recurrence:
             attrs["task_recurrence"] = recurrence
