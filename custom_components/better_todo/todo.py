@@ -3,11 +3,9 @@
 Key design decisions
 --------------------
 * Storage format: iCalendar (.ics) via the ``ical`` library (same as local_todo).
-* Recurrence:  An RRULE is stored directly on the VTODO component.
-  When a recurring task is marked *completed*, it is **not** removed; instead
-  its due date is automatically advanced to the **next** occurrence and its
-  status is reset to NEEDS_ACTION.  This gives a "rolling" behaviour that
-  works with the standard HA todo UI.
+* Recurrence: An RRULE is stored directly on the VTODO component. Completing
+  a recurring task records the finished occurrence and advances the active
+  task's due date when another occurrence is scheduled.
 * Custom service ``better_todo.set_task_recurrence`` lets automations set or
   clear the RRULE string on any task by its UID.
 * Extra state attributes expose per-task recurrence info so custom Lovelace
@@ -20,6 +18,7 @@ import dataclasses
 import datetime
 import logging
 import re
+from calendar import monthrange
 from pathlib import Path
 from typing import Any
 
@@ -52,6 +51,7 @@ from homeassistant.helpers.entity_platform import (
     AddEntitiesCallback,
     async_get_current_platform,
 )
+from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -61,7 +61,10 @@ from .const import (
     ATTR_QUANTITY,
     ATTR_RRULE,
     ATTR_UNIT,
+    CONF_COMPLETED_CLEANUP_ENABLED,
+    CONF_COMPLETED_RETENTION_MONTHS,
     DATA_DEFAULT_LIST_ADDED,
+    DEFAULT_COMPLETED_RETENTION_MONTHS,
     DEFAULT_SHOPPING_LIST_KEY,
     DEFAULT_SHOPPING_LIST_NAME,
     DESC_CATEGORY_PREFIX,
@@ -78,6 +81,21 @@ from .store import BetterTodoListStore
 
 _LOGGER = logging.getLogger(__name__)
 _ASSIGNEE_CATEGORY_PREFIX = "better-todo-assignee:"
+
+
+def _completion_expired(
+    completed: datetime.datetime, now: datetime.datetime, zone: datetime.tzinfo, months: int
+) -> bool:
+    """Check whether the configured calendar-month retention has elapsed."""
+    if completed.tzinfo is None:
+        completed = completed.replace(tzinfo=datetime.UTC)
+    local = completed.astimezone(zone)
+    year, month_index = divmod(local.year * 12 + local.month - 1 + months, 12)
+    if year > datetime.MAXYEAR:
+        return False
+    month = month_index + 1
+    day = min(local.day, monthrange(year, month)[1])
+    return local.replace(year=year, month=month, day=day).astimezone(datetime.UTC) < now
 
 
 def _get_assignee(todo: Todo) -> str | None:
@@ -304,6 +322,7 @@ async def async_setup_entry(
         calendar=calendar,
         name=name,
         unique_id=config_entry.entry_id,
+        config_entry=config_entry,
     )
 
     entities = [entity]
@@ -324,6 +343,7 @@ async def async_setup_entry(
                 calendar=shopping_calendar,
                 name=DEFAULT_SHOPPING_LIST_NAME,
                 unique_id=f"{config_entry.domain}_{DEFAULT_SHOPPING_LIST_KEY}",
+                config_entry=config_entry,
             )
         )
         domain_data[DATA_DEFAULT_LIST_ADDED] = True
@@ -418,11 +438,13 @@ class BetterTodoListEntity(TodoListEntity):
         calendar: Calendar,
         name: str,
         unique_id: str,
+        config_entry: ConfigEntry | None = None,
     ) -> None:
         """Initialize the entity."""
         self._store = store
         self._calendar = calendar
         self._calendar_lock = asyncio.Lock()
+        self._config_entry = config_entry
         self._attr_name = name
         self._attr_unique_id = unique_id
 
@@ -431,8 +453,52 @@ class BetterTodoListEntity(TodoListEntity):
     # ------------------------------------------------------------------
 
     async def async_added_to_hass(self) -> None:
-        """Populate todo items from the in-memory calendar when first added."""
+        """Prune expired tasks on startup and schedule a daily check."""
+        await super().async_added_to_hass()
+        await self._async_purge_completed(dt_util.now())
         await self.async_update()
+        self.async_on_remove(async_track_time_interval(
+            self.hass, self._async_cleanup_completed, datetime.timedelta(days=1)
+        ))
+
+    async def _async_cleanup_completed(self, now: datetime.datetime) -> None:
+        """Publish the updated list if the daily cleanup removed any tasks."""
+        if await self._async_purge_completed(now):
+            await self.async_update_ha_state(force_refresh=True)
+
+    async def _async_purge_completed(self, now: datetime.datetime) -> bool:
+        """Remove only completed items with a known, expired completion date."""
+        zone = dt_util.get_default_time_zone()
+        now = now.astimezone(datetime.UTC)
+        async with self._calendar_lock:
+            # Read the saved options at cleanup time so changes apply without a reload.
+            options = self._config_entry.options if self._config_entry is not None else {}
+            if not options.get(CONF_COMPLETED_CLEANUP_ENABLED, True):
+                return False
+            retention = options.get(
+                CONF_COMPLETED_RETENTION_MONTHS, DEFAULT_COMPLETED_RETENTION_MONTHS
+            )
+            previous = list(self._calendar.todos)
+            retained = [
+                todo for todo in previous
+                if not (
+                    todo.status == TodoStatus.COMPLETED
+                    and todo.completed is not None
+                    and _completion_expired(todo.completed, now, zone, retention)
+                )
+            ]
+            if len(retained) == len(previous):
+                return False
+            # Filter exact records instead of using TodoStore.delete, which can
+            # cascade to related tasks that are still open.
+            self._calendar.todos[:] = retained
+            try:
+                await self._async_save()
+            except (OSError, CalendarError):
+                self._calendar.todos[:] = previous
+                _LOGGER.exception("Could not save expired task cleanup for %s", self._attr_name)
+                return False
+        return True
 
     # ------------------------------------------------------------------
     # State helpers
@@ -451,33 +517,22 @@ class BetterTodoListEntity(TodoListEntity):
     @staticmethod
     def _next_occurrence(todo: Todo) -> datetime.date | datetime.datetime | None:
         """Return the next occurrence date for a recurring todo, or None."""
-        if not todo.rrule:
+        due = todo.due
+        if not todo.rrule or due is None:
             return None
 
-        anchor: datetime.date | datetime.datetime | None = todo.due
-        if anchor is None:
-            # No DUE set – cannot advance
-            return None
+        now = dt_util.now()
+        cutoff: datetime.date
+        if isinstance(due, datetime.datetime):
+            cutoff = max(due, now if due.tzinfo else now.replace(tzinfo=None))
+        else:
+            cutoff = max(due, now.date())
 
         try:
-            occurrences = list(todo.as_rrule() or [])  # type: ignore[arg-type]
+            # The iterator is ordered and rules without an end can be very large.
+            return next((occ for occ in todo.as_rrule() or () if occ > cutoff), None)
         except (CalendarError, ValueError):
             return None
-
-        if not occurrences:
-            return None
-
-        now: datetime.date | datetime.datetime
-        if isinstance(anchor, datetime.datetime):
-            now = dt_util.now()
-        else:
-            now = dt_util.now().date()
-
-        for occ in sorted(occurrences):
-            if occ > now:
-                return occ
-
-        return None
 
     # ------------------------------------------------------------------
     # HA state / extra attributes
@@ -559,36 +614,33 @@ class BetterTodoListEntity(TodoListEntity):
         await self.async_update_ha_state(force_refresh=True)
 
     async def async_update_todo_item(self, item: TodoItem) -> None:
-        """Update an existing task.
-
-        Special behaviour for recurring tasks
-        --------------------------------------
-        If the task being completed has an RRULE, instead of marking it
-        done we advance its DUE date to the next occurrence and reset the
-        status to NEEDS_ACTION.  This gives a "rolling" recurrence that
-        works with the standard HA todo UI.
-        """
+        """Update a task and retain completed occurrences when a series advances."""
         async with self._calendar_lock:
             existing = self._find_ical_todo(item.uid)  # type: ignore[arg-type]
+            completed_occurrence = None
 
-            # --- Recurrence auto-advance ---
             if (
                 item.status == TodoItemStatus.COMPLETED
                 and existing is not None
-                and existing.rrule is not None
+                and existing.status != TodoStatus.COMPLETED
             ):
                 next_due = self._next_occurrence(existing)
                 if next_due is not None:
-                    # Advance instead of completing
+                    quantity, unit, category, _, notes = _decode_description_structured(
+                        existing.description
+                    )
+                    completed_occurrence = Todo(
+                        summary=existing.summary,
+                        due=existing.due,
+                        status=TodoStatus.COMPLETED,
+                        completed=dt_util.now().astimezone(datetime.UTC),
+                        description=_encode_description(quantity, category, notes, unit=unit),
+                        categories=existing.categories.copy(),
+                    )
                     item = dataclasses.replace(
                         item,
                         status=TodoItemStatus.NEEDS_ACTION,
                         due=next_due,
-                    )
-                    _LOGGER.debug(
-                        "Recurring task '%s' auto-advanced to %s",
-                        item.summary,
-                        next_due,
                     )
 
             todo = _ha_item_to_ical(item)
@@ -600,10 +652,17 @@ class BetterTodoListEntity(TodoListEntity):
                 todo.rrule = existing.rrule
 
             todo_store = self._new_todo_store()
-            await self.hass.async_add_executor_job(
-                todo_store.edit, todo.uid, todo
-            )
-            await self._async_save()
+            previous_todos = self._calendar.todos.copy()
+            previous_timezones = self._calendar.timezones.copy()
+            try:
+                await self.hass.async_add_executor_job(todo_store.edit, todo.uid, todo)
+                if completed_occurrence is not None:
+                    await self.hass.async_add_executor_job(todo_store.add, completed_occurrence)
+                await self._async_save()
+            except Exception:
+                self._calendar.todos[:] = previous_todos
+                self._calendar.timezones[:] = previous_timezones
+                raise
         await self.async_update_ha_state(force_refresh=True)
 
     async def async_delete_todo_items(self, uids: list[str]) -> None:
@@ -854,9 +913,10 @@ class ShoppingListTodoListEntity(BetterTodoListEntity):
         calendar: Calendar,
         name: str,
         unique_id: str,
+        config_entry: ConfigEntry | None = None,
     ) -> None:
         """Initialize the Shopping List entity with a translated name."""
-        super().__init__(store, calendar, name, unique_id)
+        super().__init__(store, calendar, name, unique_id, config_entry)
         # Let HA resolve the friendly name from translations instead of using
         # the hard-coded DEFAULT_SHOPPING_LIST_NAME constant.
         self._attr_name = None

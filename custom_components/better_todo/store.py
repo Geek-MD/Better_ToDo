@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 from homeassistant.core import HomeAssistant
 
@@ -33,4 +34,14 @@ class BetterTodoListStore:
 
     def _store(self, ics_content: str) -> None:
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        self._path.write_text(ics_content, encoding="utf-8")
+        # Write beside the original so the final replace is atomic.
+        with NamedTemporaryFile(
+            mode="w", encoding="utf-8", dir=self._path.parent, delete=False
+        ) as stream:
+            temporary = Path(stream.name)
+            try:
+                stream.write(ics_content)
+                stream.close()
+                temporary.replace(self._path)
+            finally:
+                temporary.unlink(missing_ok=True)

@@ -13,12 +13,13 @@ class LitElement extends HTMLElement {
   dispatchEvent() {}
 }
 
-function loadPanel() {
+function loadPanel(globals = {}) {
   const legacy = class extends LitElement {};
   const elements = new Map([
     ["ha-card", class extends LitElement {}],
     ["better-todo-panel", legacy],
     ["better-todo-task-dialog", legacy],
+    ["better-todo-panel-v080", legacy],
   ]);
   runInNewContext(source, {
     HTMLElement,
@@ -30,15 +31,16 @@ function loadPanel() {
         elements.set(tag, constructor);
       },
     },
+    ...globals,
   });
   assert.equal(elements.get("better-todo-panel"), legacy);
-  assert.ok(elements.has("better-todo-panel-v080"));
+  assert.ok(elements.has("better-todo-panel-v090"));
   return elements;
 }
 
 test("only Better ToDo task lists offer assignment, even without state attributes", () => {
   const elements = loadPanel();
-  const list = new (elements.get("better-todo-task-list-v080"))();
+  const list = new (elements.get("better-todo-task-list-v090"))();
   list.hass = {
     states: { "todo.home": { attributes: {} } },
     entities: {
@@ -55,9 +57,101 @@ test("only Better ToDo task lists offer assignment, even without state attribute
   assert.equal(list._supportsAssignment, false);
 });
 
+function renderContent(part) {
+  if (Array.isArray(part)) return part.map(renderContent).join("");
+  if (!part?.strings) return typeof part === "string" || typeof part === "number" ? String(part) : "";
+  return part.strings.reduce((text, fragment, index) =>
+    text + fragment + renderContent(part.values[index]), "");
+}
+
+test("deadline sections and list progress use the same local seven-day window", () => {
+  let now = Date.parse("2026-11-26T23:59:30-03:00");
+  class Clock extends Date {
+    static now() { return now; }
+  }
+  const elements = loadPanel({ Date: Clock });
+  const list = new (elements.get("better-todo-task-list-v090"))();
+  list.entityId = "todo.home";
+  list.hass = {
+    locale: { language: "es", time_zone: "server" },
+    localize: () => "",
+    config: { time_zone: "America/Santiago" },
+    states: { "todo.home": { entity_id: "todo.home", attributes: { task_assignees: { upcoming: "ana" } } } },
+  };
+  const task = (uid, due, status = "needs_action") => ({ uid, summary: uid, due, status });
+  const dueToday = task("DateOnlyToday", "2026-11-26");
+  list._items = [
+    task("NoDue"), task("InvalidDue", "2026-02-30"),
+    task("OverdueTimed", "2026-11-27T02:59:00Z"),
+    task("ExactDeadline", "2026-11-27T02:59:30Z"),
+    dueToday, task("upcoming", "2026-12-03"),
+    task("DayEight", "2026-12-04"),
+    task("OldCompleted", "2026-01-01", "completed"),
+    task("CompletedEarly", "2026-12-04", "completed"),
+  ];
+  list._users = [{ id: "ana", name: "Ana" }];
+  list._loading = false;
+  const content = renderContent(list.render());
+  assert.match(content, /1 de 7 completadas/);
+  assert.match(content, /<strong>14%<\/strong>/);
+  const sections = new Map([...content.matchAll(/data-due-status=(\w+)>([\s\S]*?)<\/ul>/g)]
+    .map(([, key, rows]) => [key, rows]));
+  for (const [category, item] of [
+    ["overdue", "OverdueTimed"], ["overdue", "ExactDeadline"],
+    ["today", "DateOnlyToday"], ["soon", "upcoming"],
+    ["scheduled", "DayEight"], ["pending", "NoDue"], ["pending", "InvalidDue"],
+  ]) {
+    assert.ok(sections.get(category)?.includes(item), `${item} belongs in ${category}`);
+  }
+  assert.match(content, /Vencen hoy/);
+  assert.match(content, /Próximas a vencer/);
+  assert.ok(content.indexOf("OldCompleted") < content.lastIndexOf("Ana"));
+  assert.ok(content.lastIndexOf("upcoming") > content.lastIndexOf("Ana"));
+  list.hideCompleted = true;
+  const hidden = renderContent(list.render());
+  assert.doesNotMatch(hidden, /OldCompleted|CompletedEarly/);
+  assert.match(hidden, /1 de 7 completadas/);
+
+  now += 30_000;
+  const rolled = renderContent(list.render());
+  assert.match(rolled, /2 de 9 completadas/);
+  assert.match(rolled, /<strong>22%<\/strong>/);
+  assert.match(rolled, /data-due-status=overdue[\s\S]*DateOnlyToday/);
+  assert.doesNotMatch(rolled, /data-due-status=today/);
+
+  list._items = [task("ScheduledOnly", "2026-12-05")];
+  const emptyProgress = renderContent(list.render());
+  assert.match(emptyProgress, /0 de 0 completadas/);
+  assert.match(emptyProgress, /<strong>0%<\/strong>/);
+});
+
+test("the visible board refresh timer targets an exact upcoming deadline", () => {
+  const now = Date.parse("2026-11-26T12:00:02Z");
+  const delays = [];
+  class Clock extends Date {
+    static now() { return now; }
+  }
+  const elements = loadPanel({
+    Date: Clock, document: { hidden: false },
+    clearTimeout() {},
+    setTimeout(callback, delay) { delays.push(delay); },
+  });
+  const list = new (elements.get("better-todo-task-list-v090"))();
+  list.isConnected = true;
+  list.entityId = "todo.home";
+  list.hass = { states: { "todo.home": { attributes: { task_assignees: {} } } } };
+  list._items = [{ due: "2026-11-26T12:00:15Z" }];
+  list._scheduleDeadlineRefresh();
+  assert.deepEqual(delays, [13_000]);
+
+  list._items = [{ due: "2026-12-04", status: "completed" }];
+  list._scheduleDeadlineRefresh();
+  assert.deepEqual(delays, [13_000, 58_000]);
+});
+
 test("create, reassign and clear an assignee with the appropriate service", async () => {
   const elements = loadPanel();
-  const dialog = new (elements.get("better-todo-task-dialog-v080"))();
+  const dialog = new (elements.get("better-todo-task-dialog-v090"))();
   const calls = [];
   dialog.entityId = "todo.home";
   dialog.supportsAssignment = true;

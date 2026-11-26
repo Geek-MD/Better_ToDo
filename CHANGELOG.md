@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-11-26
+
+### Added
+- Group open tasks in each unassigned or assignee column into Overdue, Due today, Due soon, Scheduled, and Pending. Empty sections are hidden.
+- Refresh deadline groups as time passes, using the Home Assistant time-zone preference and an inclusive seven-calendar-day window.
+- Remove expired completed tasks at startup and daily. Each integration entry can turn cleanup on or off and choose the default one-calendar-month retention period or a custom period. Tasks without a recorded completion date are retained.
+
+### Changed
+- Exclude tasks due more than seven calendar days away from list progress until they enter the same due-date window as the task board.
+
+### Fixed
+- Show completed recurring occurrences in their original list and assignee column while the active task advances to its next due date.
+
 ## [0.8.0] - 2026-11-25
 
 ### Added

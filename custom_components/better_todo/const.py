@@ -4,6 +4,9 @@ DOMAIN = "better_todo"
 
 CONF_TODO_LIST_NAME = "todo_list_name"
 CONF_STORAGE_KEY = "storage_key"
+CONF_COMPLETED_CLEANUP_ENABLED = "completed_cleanup_enabled"
+CONF_COMPLETED_RETENTION_MONTHS = "completed_retention_months"
+DEFAULT_COMPLETED_RETENTION_MONTHS = 1
 
 STORAGE_PATH = ".storage/better_todo.{key}.ics"
 DEFAULT_SHOPPING_LIST_NAME = "Shopping List"

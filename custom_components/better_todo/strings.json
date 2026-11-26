@@ -20,6 +20,32 @@
       "already_configured": "[%key:common::config_flow::abort::already_configured_service%]"
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Completed-task cleanup",
+        "data": {
+          "completed_cleanup_enabled": "Enable automatic cleanup"
+        }
+      },
+      "retention": {
+        "title": "Retention period",
+        "menu_options": {
+          "default_retention": "Use the default (1 calendar month)",
+          "custom_retention": "Set a custom period"
+        }
+      },
+      "custom_retention": {
+        "title": "Custom retention period",
+        "data": {
+          "completed_retention_months": "Retention in calendar months"
+        },
+        "data_description": {
+          "completed_retention_months": "Tasks are removed after this many months from their completion date."
+        }
+      }
+    }
+  },
   "services": {
     "set_task_assignee": {
       "name": "Set task assignee",

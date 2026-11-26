@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import datetime
+from dataclasses import replace
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -16,6 +17,8 @@ from custom_components.better_todo.const import (
     ATTR_UNIT,
     ATTR_CATEGORY,
     ATTR_NOTES,
+    CONF_COMPLETED_CLEANUP_ENABLED,
+    CONF_COMPLETED_RETENTION_MONTHS,
     CONF_STORAGE_KEY,
 )
 from custom_components.better_todo.todo import (
@@ -72,8 +75,14 @@ def test_ha_item_to_ical_basic() -> None:
 
 
 @pytest.mark.asyncio
-async def test_assignment_survives_reload_and_completion(tmp_path, mock_hass):
+async def test_assignment_survives_reload_and_completion(tmp_path, mock_hass, monkeypatch):
     """Assignments use the task UID and survive reopening its calendar."""
+    from custom_components.better_todo import todo as todo_module
+
+    monkeypatch.setattr(
+        todo_module.dt_util, "now",
+        lambda: datetime.datetime(2026, 11, 25, 12, tzinfo=datetime.UTC),
+    )
     mock_hass.auth.async_get_user = AsyncMock(
         return_value=SimpleNamespace(is_active=True, system_generated=False)
     )
@@ -100,10 +109,15 @@ async def test_assignment_survives_reload_and_completion(tmp_path, mock_hass):
         (tmp_path / "test.ics").read_text(encoding="utf-8")
     )
     await entity.async_update()
+    completed = next(
+        task for task in entity._attr_todo_items if task.status is TodoItemStatus.COMPLETED
+    )
     assert entity.extra_state_attributes["task_assignees"] == {
-        assigned.uid: "user-two", recurring.uid: "user-two",
+        assigned.uid: "user-two", recurring.uid: "user-two", completed.uid: "user-two",
     }
-    assert entity._attr_todo_items[-1].status is TodoItemStatus.NEEDS_ACTION
+    assert completed.due == recurring.due
+    active = next(task for task in entity._attr_todo_items if task.uid == recurring.uid)
+    assert active.status is TodoItemStatus.NEEDS_ACTION
 
 
 @pytest.mark.asyncio
@@ -179,6 +193,88 @@ async def test_update_todo_item_status(tmp_path: Path, mock_hass) -> None:
     await entity.async_update()
     completed = next(t for t in entity._attr_todo_items if t.uid == task.uid)
     assert completed.status == TodoItemStatus.COMPLETED
+    assert completed.completed is not None
+
+
+@pytest.mark.asyncio
+async def test_completed_task_cleanup_runs_at_startup_and_daily(tmp_path, mock_hass, monkeypatch):
+    """Purge only expired completed tasks and persist the result."""
+    from custom_components.better_todo import todo as todo_module
+
+    entity = _make_entity(tmp_path, mock_hass)
+    now = datetime.datetime(2028, 2, 29, 10, tzinfo=datetime.UTC)
+    monkeypatch.setattr(todo_module.dt_util, "now", lambda: now)
+    unsubscribe = MagicMock()
+    schedule = MagicMock(return_value=unsubscribe)
+    entity.async_on_remove = MagicMock()
+    monkeypatch.setattr(todo_module, "async_track_time_interval", schedule)
+
+    def stored_task(uid, status, completion=None):
+        task = _ha_item_to_ical(TodoItem(uid=uid, summary=uid, status=status))
+        task.completed = completion
+        return task
+
+    complete = TodoItemStatus.COMPLETED
+    open_status = TodoItemStatus.NEEDS_ACTION
+    january = datetime.datetime(2028, 1, 31, 10, tzinfo=datetime.UTC)
+    entity._calendar.todos.extend([
+        stored_task("expired", complete, january - datetime.timedelta(minutes=1)),
+        stored_task("limit", complete, january),
+        stored_task("legacy", complete),
+        stored_task("open", open_status, january),
+    ])
+    await entity.async_added_to_hass()
+    assert [item.uid for item in entity._attr_todo_items] == ["limit", "legacy", "open"]
+    entity.async_on_remove.assert_called_once_with(unsubscribe)
+    _, callback, interval = schedule.call_args.args
+    assert interval == datetime.timedelta(days=1)
+    await callback(now + interval)
+    assert [item.uid for item in entity._attr_todo_items] == ["legacy", "open"]
+    restored = IcsCalendarStream.calendar_from_ics(await entity._store.async_load())
+    assert [item.uid for item in restored.todos] == ["legacy", "open"]
+
+
+@pytest.mark.asyncio
+async def test_failed_cleanup_keeps_the_completed_task(tmp_path, mock_hass):
+    """A failed write leaves the calendar intact."""
+    entity = _make_entity(tmp_path, mock_hass)
+    task = _ha_item_to_ical(TodoItem(uid="old", status=TodoItemStatus.COMPLETED))
+    task.completed = datetime.datetime(2026, 1, 1, tzinfo=datetime.UTC)
+    entity._calendar.todos.append(task)
+    await entity._async_save()
+    original = await entity._store.async_load()
+    entity._store.async_store = AsyncMock(side_effect=OSError("write failed"))
+
+    assert not await entity._async_purge_completed(datetime.datetime(2026, 3, 1, tzinfo=datetime.UTC))
+    assert entity._calendar.todos == [task]
+    assert await entity._store.async_load() == original
+
+
+@pytest.mark.asyncio
+async def test_disabled_cleanup_preserves_tasks_until_reenabled(tmp_path, mock_hass, monkeypatch):
+    """Both startup and daily cleanup respect changes to the enabled option."""
+    from custom_components.better_todo import todo as todo_module
+
+    entry = SimpleNamespace(options={CONF_COMPLETED_CLEANUP_ENABLED: False})
+    entity = _make_entity(tmp_path, mock_hass)
+    entity._config_entry = entry
+    now = datetime.datetime(2026, 11, 25, 12, tzinfo=datetime.UTC)
+    monkeypatch.setattr(todo_module.dt_util, "now", lambda: now)
+    task = _ha_item_to_ical(TodoItem(uid="old", status=TodoItemStatus.COMPLETED))
+    task.completed = now.replace(month=7)
+    entity._calendar.todos.append(task)
+    await entity._async_save()
+    saved = await entity._store.async_load()
+
+    await entity.async_added_to_hass()
+    await entity._async_cleanup_completed(now + datetime.timedelta(days=1))
+    assert [item.uid for item in entity._attr_todo_items] == ["old"]
+    assert await entity._store.async_load() == saved
+
+    entry.options = {CONF_COMPLETED_CLEANUP_ENABLED: True}
+    await entity._async_cleanup_completed(now + datetime.timedelta(days=2))
+    assert entity._attr_todo_items == []
+    assert IcsCalendarStream.calendar_from_ics(await entity._store.async_load()).todos == []
 
 
 # ---------------------------------------------------------------------------
@@ -209,28 +305,89 @@ async def test_set_task_recurrence_service(tmp_path: Path, mock_hass) -> None:
 
 
 @pytest.mark.asyncio
-async def test_recurring_task_auto_advances(tmp_path: Path, mock_hass) -> None:
-    """Completing a recurring task advances it to the next occurrence."""
+@pytest.mark.parametrize("timed", [False, True])
+async def test_recurring_task_auto_advances(tmp_path: Path, mock_hass, monkeypatch, timed) -> None:
+    """Completing an unbounded series records each occurrence and advances it."""
+    from custom_components.better_todo import todo as todo_module
+
     entity = _make_entity(tmp_path, mock_hass)
-    today = datetime.date.today()
-    item = TodoItem(summary="Daily standup", status=TodoItemStatus.NEEDS_ACTION, due=today)
+    now = datetime.datetime(2026, 11, 25, 12, tzinfo=datetime.UTC)
+    monkeypatch.setattr(todo_module.dt_util, "now", lambda: now)
+    due = now if timed else now.date()
+    day = datetime.timedelta(days=1)
+    item = TodoItem(
+        summary="Daily standup", status=TodoItemStatus.NEEDS_ACTION, due=due,
+        description="[category:Work]\n\nPrepare notes",
+    )
     await entity.async_create_todo_item(item)
-    await entity.async_update()
     uid = entity._attr_todo_items[0].uid
 
-    await entity._async_set_task_recurrence(item=uid, rrule="FREQ=DAILY;COUNT=10")
+    await entity._async_set_task_recurrence(item=uid, rrule="FREQ=DAILY")
 
-    updated = TodoItem(uid=uid, summary="Daily standup", status=TodoItemStatus.COMPLETED)
+    # Complete one due today and another early. Both should advance forward.
+    for _ in range(2):
+        active = next(task for task in entity._attr_todo_items if task.uid == uid)
+        await entity.async_update_todo_item(replace(active, status=TodoItemStatus.COMPLETED))
+
+    active, *completed = entity._attr_todo_items
+    assert active.uid == uid
+    assert active.status is TodoItemStatus.NEEDS_ACTION
+    assert active.due == due + 2 * day
+    assert entity.extra_state_attributes["task_recurrence"].keys() == {uid}
+    assert len({task.uid for task in entity._attr_todo_items}) == 3
+    assert [task.due for task in completed] == [due, due + day]
+    for task in completed:
+        assert task.summary == active.summary
+        assert task.status is TodoItemStatus.COMPLETED
+        assert task.completed == now
+        assert task.description == item.description
+
+    await entity._async_cleanup_completed(now.replace(month=12, day=26))
+    assert [task.uid for task in entity._attr_todo_items] == [uid]
+
+
+@pytest.mark.asyncio
+async def test_final_recurring_occurrence_is_only_completed_once(tmp_path, mock_hass, monkeypatch):
+    """A series with no future occurrence keeps a single completed record."""
+    from custom_components.better_todo import todo as todo_module
+
+    now = datetime.datetime(2026, 11, 25, 12, tzinfo=datetime.UTC)
+    monkeypatch.setattr(todo_module.dt_util, "now", lambda: now)
+    entity = _make_entity(tmp_path, mock_hass)
+    await entity.async_create_todo_item(TodoItem(summary="Last task", due=now.date()))
+    uid = entity._attr_todo_items[0].uid
+    await entity._async_set_task_recurrence(item=uid, rrule="FREQ=DAILY;COUNT=1")
+    updated = replace(entity._attr_todo_items[0], status=TodoItemStatus.COMPLETED)
     await entity.async_update_todo_item(updated)
-    await entity.async_update()
+    await entity.async_update_todo_item(updated)
 
-    task = next((t for t in entity._attr_todo_items if t.uid == uid), None)
-    assert task is not None, "Task must not be deleted on completion of recurring task"
-    assert task.status == TodoItemStatus.NEEDS_ACTION, (
-        "Recurring task should reset to NEEDS_ACTION after completion"
-    )
-    assert task.due is not None
-    assert task.due > today, "Due date must advance past today"
+    [completed] = entity._attr_todo_items
+    assert completed.uid == uid
+    assert completed.due == now.date()
+    assert completed.status is TodoItemStatus.COMPLETED
+    assert completed.completed is not None
+
+
+@pytest.mark.asyncio
+async def test_failed_recurring_completion_rolls_back(tmp_path, mock_hass, monkeypatch):
+    """A failed write keeps both the saved calendar and the active occurrence intact."""
+    from custom_components.better_todo import todo as todo_module
+
+    now = datetime.datetime(2026, 11, 25, 12, tzinfo=datetime.UTC)
+    monkeypatch.setattr(todo_module.dt_util, "now", lambda: now)
+    entity = _make_entity(tmp_path, mock_hass)
+    await entity.async_create_todo_item(TodoItem(summary="Repeat task", due=now.date()))
+    await entity._async_set_task_recurrence(item=entity._attr_todo_items[0].uid, rrule="FREQ=DAILY")
+    [active] = entity._attr_todo_items
+    original = await entity._store.async_load()
+    entity._store.async_store = AsyncMock(side_effect=OSError("write failed"))
+
+    with pytest.raises(OSError, match="write failed"):
+        await entity.async_update_todo_item(replace(active, status=TodoItemStatus.COMPLETED))
+
+    await entity.async_update()
+    assert entity._attr_todo_items == [active]
+    assert await entity._store.async_load() == original
 
 
 @pytest.mark.asyncio
@@ -254,29 +411,32 @@ async def test_remove_recurrence(tmp_path: Path, mock_hass) -> None:
 
 
 @pytest.mark.asyncio
-async def test_setup_entry_adds_default_shopping_list_once(mock_hass) -> None:
+async def test_setup_entry_adds_default_shopping_list_once(tmp_path, mock_hass) -> None:
     """Setting up entries always includes one default Shopping List entity."""
     mock_hass.data = {}
+    mock_hass.config.path = lambda *parts: str(tmp_path.joinpath(*parts))
     added_entities: list[list[BetterTodoListEntity]] = []
 
     def _add_entities(entities, update_before_add=False) -> None:  # noqa: ANN001, ARG001
         added_entities.append(list(entities))
 
     entry_one = SimpleNamespace(
-        runtime_data=_make_entity(Path("/tmp"), mock_hass)._store,
+        runtime_data=_make_entity(tmp_path / "my_tasks", mock_hass)._store,
         title="My Tasks",
         entry_id="entry-1",
         domain="better_todo",
         data={CONF_STORAGE_KEY: "my_tasks"},
+        options={},
     )
     await async_setup_entry(mock_hass, entry_one, _add_entities)
 
     entry_two = SimpleNamespace(
-        runtime_data=_make_entity(Path("/tmp"), mock_hass)._store,
+        runtime_data=_make_entity(tmp_path / "work", mock_hass)._store,
         title="Work",
         entry_id="entry-2",
         domain="better_todo",
         data={CONF_STORAGE_KEY: "work"},
+        options={},
     )
     await async_setup_entry(mock_hass, entry_two, _add_entities)
 
@@ -287,6 +447,22 @@ async def test_setup_entry_adds_default_shopping_list_once(mock_hass) -> None:
         isinstance(e, ShoppingListTodoListEntity) for e in added_entities[0]
     ), "First setup must include a ShoppingListTodoListEntity"
     assert second_names == ["Work"]
+
+    # Change the first entry's options after setup and run the next daily cleanup.
+    entry_one.options = {CONF_COMPLETED_RETENTION_MONTHS: 2}
+    completed_at = datetime.datetime(2028, 1, 31, 10, tzinfo=datetime.UTC)
+    for entity in [*added_entities[0], *added_entities[1]]:
+        entity.hass = mock_hass
+        task = _ha_item_to_ical(TodoItem(summary="Done", status=TodoItemStatus.COMPLETED))
+        task.completed = completed_at
+        entity._calendar.todos.append(task)
+        await entity._async_cleanup_completed(datetime.datetime(2028, 3, 1, tzinfo=datetime.UTC))
+        assert bool(entity._calendar.todos) == (entity in added_entities[0])
+
+    limit = datetime.datetime(2028, 3, 31, 10, tzinfo=datetime.UTC)
+    for entity in added_entities[0]:
+        assert not await entity._async_purge_completed(limit)
+        assert await entity._async_purge_completed(limit + datetime.timedelta(seconds=1))
 
 
 # ---------------------------------------------------------------------------
@@ -596,6 +772,7 @@ async def test_setup_entry_shopping_list_uses_shopping_entity(tmp_path, mock_has
         entry_id="entry-shopping-test",
         domain="better_todo",
         data={CONF_STORAGE_KEY: "my_tasks"},
+        options={},
     )
     await async_setup_entry(mock_hass, entry, _add_entities)
 

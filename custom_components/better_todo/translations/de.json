@@ -20,6 +20,32 @@
       "already_configured": "Diese Aufgabenliste ist bereits konfiguriert."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Erledigte Aufgaben automatisch löschen",
+        "data": {
+          "completed_cleanup_enabled": "Automatisches Löschen aktivieren"
+        }
+      },
+      "retention": {
+        "title": "Aufbewahrungsdauer",
+        "menu_options": {
+          "default_retention": "Standard verwenden (1 Kalendermonat)",
+          "custom_retention": "Benutzerdefinierte Dauer festlegen"
+        }
+      },
+      "custom_retention": {
+        "title": "Benutzerdefinierte Aufbewahrungsdauer",
+        "data": {
+          "completed_retention_months": "Aufbewahrungsdauer in Kalendermonaten"
+        },
+        "data_description": {
+          "completed_retention_months": "Erledigte Aufgaben werden nach dieser Anzahl von Monaten ab dem Abschlussdatum gelöscht."
+        }
+      }
+    }
+  },
   "services": {
     "set_task_recurrence": {
       "name": "Aufgabenwiederholung festlegen",
