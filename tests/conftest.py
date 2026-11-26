@@ -38,6 +38,7 @@ def _register_ha_stubs() -> None:
 
     class ConfigEntry:
         runtime_data = None
+        options = {}
 
         def __init_subclass__(cls, domain=None, **kw):
             cls._domain = domain
@@ -52,8 +53,11 @@ def _register_ha_stubs() -> None:
         def async_create_entry(self, *, title, data):
             return {"type": "create_entry", "title": title, "data": data}
 
-        def async_show_form(self, *, step_id, data_schema, errors):
-            return {"type": "form", "step_id": step_id, "errors": errors}
+        def async_show_form(self, *, step_id, data_schema, errors=None):
+            return {"type": "form", "step_id": step_id, "errors": errors or {}, "data_schema": data_schema}
+
+        def async_show_menu(self, *, step_id, menu_options):
+            return {"type": "menu", "step_id": step_id, "menu_options": menu_options}
 
         def _async_abort_entries_match(self, match):
             pass
@@ -61,6 +65,7 @@ def _register_ha_stubs() -> None:
     ha_cfg.ConfigEntry = ConfigEntry
     ha_cfg.ConfigFlow = ConfigFlow
     ha_cfg.ConfigFlowResult = dict
+    ha_cfg.OptionsFlow = ConfigFlow
     sys.modules.setdefault("homeassistant.config_entries", ha_cfg)
 
     # --- homeassistant.exceptions ---
@@ -155,6 +160,9 @@ def _register_ha_stubs() -> None:
         async def async_added_to_hass(self) -> None:
             pass
 
+        def async_on_remove(self, callback):
+            pass
+
         async def async_update_ha_state(self, force_refresh=False):
             if force_refresh:
                 await self.async_update()
@@ -193,6 +201,9 @@ def _register_ha_stubs() -> None:
     ha_hep.async_get_current_platform = lambda: _FakePlatform()
     sys.modules.setdefault("homeassistant.helpers", types.ModuleType("homeassistant.helpers"))
     sys.modules.setdefault("homeassistant.helpers.entity_platform", ha_hep)
+    ha_event = types.ModuleType("homeassistant.helpers.event")
+    ha_event.async_track_time_interval = lambda *_args: lambda: None
+    sys.modules.setdefault("homeassistant.helpers.event", ha_event)
 
     # --- homeassistant.helpers.config_validation ---
     ha_cv = types.ModuleType("homeassistant.helpers.config_validation")

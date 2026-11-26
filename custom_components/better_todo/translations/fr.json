@@ -20,6 +20,32 @@
       "already_configured": "Cette liste de tâches est déjà configurée."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Nettoyage des tâches terminées",
+        "data": {
+          "completed_cleanup_enabled": "Activer le nettoyage automatique"
+        }
+      },
+      "retention": {
+        "title": "Durée de conservation",
+        "menu_options": {
+          "default_retention": "Utiliser la valeur par défaut (1 mois calendaire)",
+          "custom_retention": "Définir une durée personnalisée"
+        }
+      },
+      "custom_retention": {
+        "title": "Durée de conservation personnalisée",
+        "data": {
+          "completed_retention_months": "Durée de conservation en mois calendaires"
+        },
+        "data_description": {
+          "completed_retention_months": "Les tâches sont supprimées après ce nombre de mois à compter de leur date de fin."
+        }
+      }
+    }
+  },
   "services": {
     "set_task_recurrence": {
       "name": "Définir la récurrence d'une tâche",

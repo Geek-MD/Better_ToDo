@@ -29,7 +29,7 @@
   function _definePanel() {
     // Keep this release's tags separate from older bundles already registered
     // by Home Assistant in the same browser tab.
-    if (customElements.get("better-todo-panel-v080")) return;
+    if (customElements.get("better-todo-panel-v090")) return;
 
     const LitElement = _getLitElementBase();
     if (!LitElement) return;
@@ -108,6 +108,44 @@
     const _boardText = (hass) => _boardTranslations[hass?.locale?.language?.split("-")[0]] || _boardTranslations.en;
     const _isComplete = (item) => item.status === "completed";
 
+    const _dueSections = ["overdue", "today", "soon", "scheduled", "pending"];
+    const _dueLabels = {
+      en: ["Overdue", "Due today", "Due soon", "Scheduled", "Pending"],
+      es: ["Vencidas", "Vencen hoy", "Próximas a vencer", "Programadas", "Pendientes"],
+      de: ["Überfällig", "Heute fällig", "Bald fällig", "Geplant", "Offen"],
+      fr: ["En retard", "Pour aujourd’hui", "Échéance proche", "Planifiées", "En attente"],
+      pt: ["Vencidas", "Vencem hoje", "Próximas do vencimento", "Programadas", "Pendentes"],
+    };
+    const _dayMs = 86_400_000;
+
+    function _parseDue(value) {
+      if (!value) return null;
+      const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value);
+      const timestamp = Date.parse(value);
+      if (!Number.isFinite(timestamp)) return null;
+      // Date-only due dates are calendar days. Keep their original day in all zones.
+      if (dateOnly && new Date(timestamp).toISOString().slice(0, 10) !== value) return null;
+      return { timestamp, dateOnly };
+    }
+
+    function _calendarDay(formatter, timestamp) {
+      const parts = formatter.formatToParts(timestamp);
+      const year = parts.find(({ type }) => type === "year").value.padStart(4, "0");
+      const month = parts.find(({ type }) => type === "month").value;
+      const day = parts.find(({ type }) => type === "day").value;
+      return Date.parse(`${year}-${month}-${day}`) / _dayMs;
+    }
+
+    function _dueSection(due, { formatter, today, now }) {
+      if (!due) return "pending";
+      if (!due.dateOnly && due.timestamp <= now) return "overdue";
+      const dueDay = due.dateOnly ? due.timestamp / _dayMs : _calendarDay(formatter, due.timestamp);
+      const daysRemaining = dueDay - today;
+      if (daysRemaining < 0) return "overdue";
+      if (!daysRemaining) return "today";
+      return daysRemaining <= 7 ? "soon" : "scheduled";
+    }
+
     function _isBetterTodoShoppingList(hass, entityId) {
       if (hass?.states?.[entityId]?.attributes?.better_todo_shopping_list) return true;
       const entry = hass?.entities?.[entityId];
@@ -151,10 +189,13 @@
       `;
     }
 
-    function _boardProgress(hass, entityId, items) {
+    function _boardProgress(hass, entityId, items, deadlineContext) {
       const [, , , , , title, progressLabel] = _boardText(hass);
-      const done = items.filter(_isComplete).length;
-      const total = items.length;
+      const counted = deadlineContext
+        ? items.filter((item) => _dueSection(_parseDue(item.due), deadlineContext) !== "scheduled")
+        : items;
+      const done = counted.filter(_isComplete).length;
+      const total = counted.length;
       const percent = total ? Math.round((100 * done) / total) : 0;
       return html`
         <section class="board-progress" aria-label=${title}>
@@ -1222,7 +1263,7 @@
       }
     }
 
-    customElements.define("better-todo-task-dialog-v080", BetterTodoTaskDialog);
+    customElements.define("better-todo-task-dialog-v090", BetterTodoTaskDialog);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // BetterTodoTaskList
@@ -1259,10 +1300,16 @@
         this._actionError = "";
         this._usersSequence = 0;
         this._pendingItems = new Set();
+        this._refreshDeadlines = () => {
+          this.requestUpdate();
+          this._scheduleDeadlineRefresh();
+        };
       }
 
       connectedCallback() {
         super.connectedCallback();
+        document.addEventListener("visibilitychange", this._refreshDeadlines);
+        this._refreshDeadlines();
         if (this.hasUpdated) {
           _startItemSubscription(this);
           this._fetchItems();
@@ -1271,6 +1318,8 @@
 
       disconnectedCallback() {
         super.disconnectedCallback();
+        document.removeEventListener("visibilitychange", this._refreshDeadlines);
+        clearTimeout(this._deadlineTimer);
         _stopItemSubscription(this);
         this._fetchSequence++;
       }
@@ -1322,6 +1371,9 @@
 
       updated(changedProps) {
         super.updated(changedProps);
+        if (changedProps.has("_items") || changedProps.has("hass") || changedProps.has("entityId")) {
+          this._scheduleDeadlineRefresh();
+        }
         // Full reset when the displayed list changes.
         if (changedProps.has("entityId")) {
           this._fetchSequence++;
@@ -1393,7 +1445,7 @@
       }
 
       _dialog() {
-        return this.shadowRoot?.querySelector("better-todo-task-dialog-v080");
+        return this.shadowRoot?.querySelector("better-todo-task-dialog-v090");
       }
 
       _openCreate() {
@@ -1442,27 +1494,61 @@
       }
 
       _moveTaskUp(item, previousItem) {
+        const preceding = this._items[this._items.findIndex(({ uid }) => uid === previousItem.uid) - 1];
         return this._runTaskAction(item, ({ entity_id }) =>
           this.hass.callWS({
             type: "todo/item/move",
             entity_id,
             uid: item.uid,
-            ...(previousItem ? { previous_uid: previousItem.uid } : {}),
+            ...(preceding ? { previous_uid: preceding.uid } : {}),
           }));
       }
 
+      _scheduleDeadlineRefresh() {
+        clearTimeout(this._deadlineTimer);
+        if (!this.isConnected || document.hidden || !this._supportsAssignment) return;
+        const now = Date.now();
+        // Refresh at a clock minute boundary for calendar-day rollovers, or
+        // sooner if a task reaches its exact timed deadline.
+        let next = now + 60_000 - (now % 60_000);
+        let hasDatedTasks = false;
+        for (const item of this._items) {
+          const due = _parseDue(item.due);
+          if (!due) continue;
+          hasDatedTasks = true;
+          if (!_isComplete(item) && !due.dateOnly && due.timestamp > now) {
+            next = Math.min(next, due.timestamp);
+          }
+        }
+        if (hasDatedTasks) this._deadlineTimer = setTimeout(this._refreshDeadlines, next - now);
+      }
 
-      _renderAssignmentColumn(title, items, index) {
+      _deadlineContext() {
+        const timeZone = this.hass?.locale?.time_zone === "local"
+          ? undefined : this.hass?.config?.time_zone;
+        const formatter = new Intl.DateTimeFormat("en-CA", {
+          year: "numeric", month: "2-digit", day: "2-digit", timeZone,
+        });
+        const now = Date.now();
+        return { formatter, now, today: _calendarDay(formatter, now), timeZone };
+      }
+
+      _renderAssignmentColumn(title, items, index, deadlineContext) {
         const L = (key, fallback) => this.hass?.localize(key) || fallback;
-        const active = items.filter((item) => !_isComplete(item));
         const completed = this.hideCompleted ? [] : items.filter(_isComplete);
+        const sections = new Map(_dueSections.map((section) => [section, []]));
+        for (const item of items) {
+          if (_isComplete(item)) continue;
+          const due = _parseDue(item.due);
+          sections.get(_dueSection(due, deadlineContext)).push({ item, due });
+        }
         const moveUp = L("ui.common.move_up", "Move up");
         const remove = L("ui.common.delete", "Delete");
         const locale = this.hass?.locale?.language;
-        const renderRow = (item, position) => {
+        const labels = _dueLabels[locale?.split("-")[0]] || _dueLabels.en;
+        const renderRow = (item, due, previousItem) => {
           const done = _isComplete(item);
           const notes = _parseDescriptionNotes(item.description);
-          const due = item.due && new Date(item.due.includes("T") ? item.due : item.due + "T00:00:00");
           const rrule = this.hass?.states[this.entityId]?.attributes?.task_recurrence?.[item.uid];
           const recurrence = rrule && _parseRrule(rrule).preset;
           const disabled = this._unavailable || this._pendingItems.has(item.uid);
@@ -1475,10 +1561,10 @@
                 ${!done && (due || rrule) ? html`
                   <span class="task-tags">
                     ${due ? html`<span class="task-tag">${_icon("calendarDays")}
-                      ${due.toLocaleString(locale, {
-                        day: "numeric", month: "short",
-                        ...(due.getFullYear() !== new Date().getFullYear() ? { year: "numeric" } : {}),
-                        ...(item.due.includes("T") ? { hour: "numeric", minute: "2-digit" } : {}),
+                      ${new Date(due.timestamp).toLocaleString(locale, {
+                        day: "numeric", month: "short", year: "numeric",
+                        timeZone: due.dateOnly ? "UTC" : deadlineContext.timeZone,
+                        ...(!due.dateOnly ? { hour: "numeric", minute: "2-digit" } : {}),
                       })}
                     </span>` : ""}
                     ${rrule ? html`<span class="task-tag repeat">${_icon("repeat")}
@@ -1489,9 +1575,9 @@
                 ` : ""}
               </button>
               <div class="row-actions">
-                ${!done && position > 0 ? html`
+                ${previousItem ? html`
                   <button type="button" aria-label=${moveUp} title=${moveUp} ?disabled=${disabled}
-                    @click=${() => this._moveTaskUp(item, active[position - 2])}>${_icon("arrowUp")}</button>
+                    @click=${() => this._moveTaskUp(item, previousItem)}>${_icon("arrowUp")}</button>
                 ` : ""}
                 <button type="button" aria-label=${remove} title=${remove} ?disabled=${disabled}
                   @click=${() => this._deleteTask(item)}>${_icon("trash")}</button>
@@ -1506,14 +1592,23 @@
                 : _icon("inbox")}
               ${title}
             </h2>
-            ${active.length || completed.length ? html`
-              <ul>${active.map(renderRow)}${completed.map(renderRow)}</ul>
-            ` : html`<p>${_boardText(this.hass)[7]}</p>`}
+            ${_dueSections.map((key, position) => {
+              const entries = sections.get(key);
+              return entries.length ? html`
+                <div class="due-section" data-due-status=${key}>
+                  <h3>${labels[position]}</h3>
+                  <ul>${entries.map(({ item, due }, row) => renderRow(item, due, entries[row - 1]?.item))}</ul>
+                </div>
+              ` : "";
+            })}
+            ${completed.length ? html`<ul>${completed.map((item) => renderRow(item))}</ul>` : ""}
+            ${!items.some((item) => !_isComplete(item)) && !completed.length
+              ? html`<p>${_boardText(this.hass)[7]}</p>` : ""}
           </section>
         `;
       }
 
-      _renderAssignmentColumns() {
+      _renderAssignmentColumns(deadlineContext) {
         const [, unassigned, unavailableUser] = _assignmentText(this.hass);
         const groups = new Map();
         const unassignedItems = [];
@@ -1531,8 +1626,8 @@
         columns.sort(([a], [b]) => a.localeCompare(b, this.hass.locale?.language));
         return html`
           <div class="assignment-columns">
-            ${this._renderAssignmentColumn(unassigned, unassignedItems, 0)}
-            ${columns.map(([name, items], index) => this._renderAssignmentColumn(name, items, index + 1))}
+            ${this._renderAssignmentColumn(unassigned, unassignedItems, 0, deadlineContext)}
+            ${columns.map(([name, items], index) => this._renderAssignmentColumn(name, items, index + 1, deadlineContext))}
           </div>
         `;
       }
@@ -1545,24 +1640,25 @@
         const own = this._supportsAssignment;
         const loading = this.hass?.localize("ui.common.loading") || "Loading…";
         const ready = !this._loading && !this._itemsError;
+        const deadlineContext = own && ready ? this._deadlineContext() : undefined;
         return html`
           ${_boardHeading(this.hass, this.entityId, this.hideCompleted,
             () => this.dispatchEvent(new Event("toggle-completed")),
             own ? () => this.openCreate() : null, this._unavailable)}
-          ${ready ? _boardProgress(this.hass, this.entityId, this._items) : ""}
+          ${ready ? _boardProgress(this.hass, this.entityId, this._items, deadlineContext) : ""}
           ${own
-            ? (ready ? this._renderAssignmentColumns()
+            ? (ready ? this._renderAssignmentColumns(deadlineContext)
               : html`<p role="status">${this._itemsError ? _boardText(this.hass)[9] : loading}</p>`)
             : (this._card || html`<p role="status">${loading}</p>`)}
           ${this._actionError ? html`<p role="alert">${this._actionError}</p>` : ""}
-          <better-todo-task-dialog-v080
+          <better-todo-task-dialog-v090
             .hass=${this.hass}
             .entityId=${this.entityId}
             .supportsAssignment=${own}
             .users=${this._users}
             .usersError=${this._usersError}
             @item-saved=${() => this._fetchItems()}
-          ></better-todo-task-dialog-v080>
+          ></better-todo-task-dialog-v090>
         `;
       }
 
@@ -1590,6 +1686,13 @@
           .assignment-column ul {
             display: grid; gap: 8px; list-style: none; margin: 0; padding: 8px;
           }
+          .due-section h3 {
+            margin: 9px 9px 0; padding: 4px 8px; border-radius: 7px;
+            width: fit-content; color: var(--bt-muted); font-size: .86em;
+          }
+          [data-due-status="overdue"] h3 { color: var(--error-color, #bd3232); background: var(--bt-surface); }
+          [data-due-status="today"] h3 { color: var(--bt-ink); background: var(--bt-peach); }
+          [data-due-status="soon"] h3 { color: var(--bt-ink); background: var(--bt-lilac); }
           .assignment-column p { margin: 8px 12px 16px; color: var(--bt-muted); }
           .task-row {
             display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start;
@@ -1620,7 +1723,7 @@
       }
     }
 
-    customElements.define("better-todo-task-list-v080", BetterTodoTaskList);
+    customElements.define("better-todo-task-list-v090", BetterTodoTaskList);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // BetterTodoShoppingList
@@ -1846,7 +1949,7 @@
       }
     }
 
-    customElements.define("better-todo-shopping-list-v080", BetterTodoShoppingList);
+    customElements.define("better-todo-shopping-list-v090", BetterTodoShoppingList);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // BetterTodoPanel
@@ -2057,13 +2160,13 @@
             </aside>
             <main class="workspace">
               ${this._selectedEntityId ? isShopping ? html`
-                <better-todo-shopping-list-v080 .hass=${this.hass} .entityId=${this._selectedEntityId}
+                <better-todo-shopping-list-v090 .hass=${this.hass} .entityId=${this._selectedEntityId}
                   .hideCompleted=${this._hideCompleted} @toggle-completed=${this._toggleCompleted}>
-                </better-todo-shopping-list-v080>
+                </better-todo-shopping-list-v090>
               ` : html`
-                <better-todo-task-list-v080 .hass=${this.hass} .entityId=${this._selectedEntityId}
+                <better-todo-task-list-v090 .hass=${this.hass} .entityId=${this._selectedEntityId}
                   .hideCompleted=${this._hideCompleted} @toggle-completed=${this._toggleCompleted}>
-                </better-todo-task-list-v080>
+                </better-todo-task-list-v090>
               ` : html`<p>${this.hass?.localize("ui.panel.todo.no_lists") || "No lists found."}</p>`}
             </main>
           </div>
@@ -2143,7 +2246,7 @@
       }
     }
 
-    customElements.define("better-todo-panel-v080", BetterTodoPanel);
+    customElements.define("better-todo-panel-v090", BetterTodoPanel);
   }
 
   // ── Registration entry point ────────────────────────────────────────────────

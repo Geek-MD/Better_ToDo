@@ -20,6 +20,32 @@
       "already_configured": "Esta lista de tareas ya está configurada."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Limpieza de tareas completadas",
+        "data": {
+          "completed_cleanup_enabled": "Activar limpieza automática"
+        }
+      },
+      "retention": {
+        "title": "Plazo de retención",
+        "menu_options": {
+          "default_retention": "Usar el valor predeterminado (1 mes calendario)",
+          "custom_retention": "Configurar un plazo personalizado"
+        }
+      },
+      "custom_retention": {
+        "title": "Plazo de retención personalizado",
+        "data": {
+          "completed_retention_months": "Retención en meses calendario"
+        },
+        "data_description": {
+          "completed_retention_months": "Las tareas se eliminan una vez transcurridos estos meses desde su fecha de finalización."
+        }
+      }
+    }
+  },
   "services": {
     "set_task_assignee": {
       "name": "Asignar tarea",
