@@ -6,13 +6,13 @@
 [![License](https://img.shields.io/badge/License-MIT-blue)](https://github.com/Geek-MD/Better_ToDo/blob/main/LICENSE)
 [![HACS Custom Repository](https://img.shields.io/badge/HACS-Custom%20Repository-blue)](https://hacs.xyz/)
 
-<!-- ha-marketplace:exclude-start -->
-[![Open your Home Assistant instance and open Better To-do in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=Geek-MD&repository=Better_ToDo&category=integration)
-<!-- ha-marketplace:exclude-end -->
-
 [![Ruff + Mypy + Hassfest](https://github.com/Geek-MD/Better_ToDo/actions/workflows/ci.yaml/badge.svg)](https://github.com/Geek-MD/Better_ToDo/actions/workflows/ci.yaml)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![Checked with mypy](https://www.mypy-lang.org/static/mypy_badge.svg)](https://mypy-lang.org/)
+
+<!-- ha-marketplace:exclude-start -->
+[![Open your Home Assistant instance and open Better To-do in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=Geek-MD&repository=Better_ToDo&category=integration)
+<!-- ha-marketplace:exclude-end -->
 
 <img width="200" height="200" alt="image" src="https://github.com/Geek-MD/Better_ToDo/blob/main/custom_components/better_todo/brand/icon.png?raw=true" />
 
