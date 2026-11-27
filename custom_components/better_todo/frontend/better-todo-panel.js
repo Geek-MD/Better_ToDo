@@ -29,7 +29,7 @@
   function _definePanel() {
     // Keep this release's tags separate from older bundles already registered
     // by Home Assistant in the same browser tab.
-    if (customElements.get("better-todo-panel-v090")) return;
+    if (customElements.get("better-todo-panel-v091")) return;
 
     const LitElement = _getLitElementBase();
     if (!LitElement) return;
@@ -60,6 +60,7 @@
     // Font Awesome Free 6.7.2 Solid, Fonticons, Inc. (CC BY 4.0).
     // Original paths: https://github.com/FortAwesome/Font-Awesome/tree/6.7.2/svgs/solid
     const _icons = {
+      gear: [512,512,"M495.9 166.6c3.2 8.7 .5 18.4-6.4 24.6l-43.3 39.4c1.1 8.3 1.7 16.8 1.7 25.4s-.6 17.1-1.7 25.4l43.3 39.4c6.9 6.2 9.6 15.9 6.4 24.6c-4.4 11.9-9.7 23.3-15.8 34.3l-4.7 8.1c-6.6 11-14 21.4-22.1 31.2c-5.9 7.2-15.7 9.6-24.5 6.8l-55.7-17.7c-13.4 10.3-28.2 18.9-44 25.4l-12.5 57.1c-2 9.1-9 16.3-18.2 17.8c-13.8 2.3-28 3.5-42.5 3.5s-28.7-1.2-42.5-3.5c-9.2-1.5-16.2-8.7-18.2-17.8l-12.5-57.1c-15.8-6.5-30.6-15.1-44-25.4L83.1 425.9c-8.8 2.8-18.6 .3-24.5-6.8c-8.1-9.8-15.5-20.2-22.1-31.2l-4.7-8.1c-6.1-11-11.4-22.4-15.8-34.3c-3.2-8.7-.5-18.4 6.4-24.6l43.3-39.4C64.6 273.1 64 264.6 64 256s.6-17.1 1.7-25.4L22.4 191.2c-6.9-6.2-9.6-15.9-6.4-24.6c4.4-11.9 9.7-23.3 15.8-34.3l4.7-8.1c6.6-11 14-21.4 22.1-31.2c5.9-7.2 15.7-9.6 24.5-6.8l55.7 17.7c13.4-10.3 28.2-18.9 44-25.4l12.5-57.1c2-9.1 9-16.3 18.2-17.8C227.3 1.2 241.5 0 256 0s28.7 1.2 42.5 3.5c9.2 1.5 16.2 8.7 18.2 17.8l12.5 57.1c15.8 6.5 30.6 15.1 44 25.4l55.7-17.7c8.8-2.8 18.6-.3 24.5 6.8c8.1 9.8 15.5 20.2 22.1 31.2l4.7 8.1c6.1 11 11.4 22.4 15.8 34.3zM256 336a80 80 0 1 0 0-160 80 80 0 1 0 0 160z"],
       house: [576,512,"M575.8 255.5c0 18-15 32.1-32 32.1l-32 0 .7 160.2c0 2.7-.2 5.4-.5 8.1l0 16.2c0 22.1-17.9 40-40 40l-16 0c-1.1 0-2.2 0-3.3-.1c-1.4 .1-2.8 .1-4.2 .1L416 512l-24 0c-22.1 0-40-17.9-40-40l0-24 0-64c0-17.7-14.3-32-32-32l-64 0c-17.7 0-32 14.3-32 32l0 64 0 24c0 22.1-17.9 40-40 40l-24 0-31.9 0c-1.5 0-3-.1-4.5-.2c-1.2 .1-2.4 .2-3.6 .2l-16 0c-22.1 0-40-17.9-40-40l0-112c0-.9 0-1.9 .1-2.8l0-69.7-32 0c-18 0-32-14-32-32.1c0-9 3-17 10-24L266.4 8c7-7 15-8 22-8s15 2 21 7L564.8 231.5c8 7 12 15 11 24z"],
       circleCheck: [512,512,"M256 512A256 256 0 1 0 256 0a256 256 0 1 0 0 512zM369 209L241 337c-9.4 9.4-24.6 9.4-33.9 0l-64-64c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l47 47L335 175c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9z"],
       squareCheck: [448,512,"M64 32C28.7 32 0 60.7 0 96L0 416c0 35.3 28.7 64 64 64l320 0c35.3 0 64-28.7 64-64l0-320c0-35.3-28.7-64-64-64L64 32zM337 209L209 337c-9.4 9.4-24.6 9.4-33.9 0l-64-64c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0l47 47L303 175c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9z"],
@@ -107,6 +108,16 @@
     };
     const _boardText = (hass) => _boardTranslations[hass?.locale?.language?.split("-")[0]] || _boardTranslations.en;
     const _isComplete = (item) => item.status === "completed";
+
+    const _listSettingsTranslations = {
+      en: ["List settings", "List name", "Automatic cleanup", "Retention", "Default (1 calendar month)", "Custom period", "Calendar months", "The shopping list shares cleanup settings with the list that hosts it.", "Could not load list settings", "Could not save list settings"],
+      es: ["Configurar lista", "Nombre de la lista", "Limpieza automática", "Retención", "Predeterminado (1 mes calendario)", "Plazo personalizado", "Meses calendario", "La lista de compras comparte la limpieza automática con la lista que la contiene.", "No se pudo cargar la configuración de la lista", "No se pudo guardar la configuración de la lista"],
+      de: ["Listeneinstellungen", "Listenname", "Automatisches Löschen", "Aufbewahrung", "Standard (1 Kalendermonat)", "Benutzerdefinierte Dauer", "Kalendermonate", "Die Einkaufsliste verwendet die Einstellungen der zugehörigen Liste.", "Listeneinstellungen konnten nicht geladen werden", "Listeneinstellungen konnten nicht gespeichert werden"],
+      fr: ["Paramètres de la liste", "Nom de la liste", "Nettoyage automatique", "Durée de conservation", "Par défaut (1 mois calendaire)", "Durée personnalisée", "Mois calendaires", "La liste de courses partage les paramètres de nettoyage de la liste qui l’héberge.", "Impossible de charger les paramètres de la liste", "Impossible d’enregistrer les paramètres de la liste"],
+      pt: ["Configurar lista", "Nome da lista", "Limpeza automática", "Retenção", "Padrão (1 mês de calendário)", "Prazo personalizado", "Meses de calendário", "A lista de compras compartilha as configurações de limpeza com a lista que a contém.", "Não foi possível carregar as configurações da lista", "Não foi possível salvar as configurações da lista"],
+    };
+    const _listSettingsText = (hass) =>
+      _listSettingsTranslations[hass?.locale?.language?.split("-")[0]] || _listSettingsTranslations.en;
 
     const _dueSections = ["overdue", "today", "soon", "scheduled", "pending"];
     const _dueLabels = {
@@ -169,13 +180,18 @@
       return "listCheck";
     }
 
-    function _boardHeading(hass, entityId, hideCompleted, toggle, add, unavailable = false) {
+    function _boardHeading(hass, entityId, hideCompleted, toggle, add, unavailable, configure) {
       const [, , addLabel, hide, show] = _boardText(hass);
       const state = hass?.states?.[entityId];
       return html`
         <header class="board-heading">
           <h1>${state ? _computeStateName(state) : ""}</h1>
           <div class="board-actions">
+            ${configure ? html`
+              <button type="button" class="board-button" @click=${configure}>
+                ${_icon("gear")} ${_listSettingsText(hass)[0]}
+              </button>
+            ` : ""}
             <button type="button" class="board-button" @click=${toggle}>
               ${_icon(hideCompleted ? "eye" : "eyeSlash")} ${hideCompleted ? show : hide}
             </button>
@@ -1263,7 +1279,7 @@
       }
     }
 
-    customElements.define("better-todo-task-dialog-v090", BetterTodoTaskDialog);
+    customElements.define("better-todo-task-dialog-v091", BetterTodoTaskDialog);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // BetterTodoTaskList
@@ -1276,6 +1292,7 @@
           hass:     { attribute: false },
           entityId: { type: String },
           hideCompleted: { type: Boolean },
+          canConfigure: { type: Boolean },
           _items:   { state: true },
           _loading: { state: true },
           _itemsError: { state: true },
@@ -1445,7 +1462,7 @@
       }
 
       _dialog() {
-        return this.shadowRoot?.querySelector("better-todo-task-dialog-v090");
+        return this.shadowRoot?.querySelector("better-todo-task-dialog-v091");
       }
 
       _openCreate() {
@@ -1644,21 +1661,22 @@
         return html`
           ${_boardHeading(this.hass, this.entityId, this.hideCompleted,
             () => this.dispatchEvent(new Event("toggle-completed")),
-            own ? () => this.openCreate() : null, this._unavailable)}
+            own ? () => this.openCreate() : null, this._unavailable,
+            this.canConfigure ? () => this.dispatchEvent(new Event("configure-list")) : null)}
           ${ready ? _boardProgress(this.hass, this.entityId, this._items, deadlineContext) : ""}
           ${own
             ? (ready ? this._renderAssignmentColumns(deadlineContext)
               : html`<p role="status">${this._itemsError ? _boardText(this.hass)[9] : loading}</p>`)
             : (this._card || html`<p role="status">${loading}</p>`)}
           ${this._actionError ? html`<p role="alert">${this._actionError}</p>` : ""}
-          <better-todo-task-dialog-v090
+          <better-todo-task-dialog-v091
             .hass=${this.hass}
             .entityId=${this.entityId}
             .supportsAssignment=${own}
             .users=${this._users}
             .usersError=${this._usersError}
             @item-saved=${() => this._fetchItems()}
-          ></better-todo-task-dialog-v090>
+          ></better-todo-task-dialog-v091>
         `;
       }
 
@@ -1723,7 +1741,7 @@
       }
     }
 
-    customElements.define("better-todo-task-list-v090", BetterTodoTaskList);
+    customElements.define("better-todo-task-list-v091", BetterTodoTaskList);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // BetterTodoShoppingList
@@ -1736,6 +1754,7 @@
           hass:     { attribute: false },
           entityId: { type: String },
           hideCompleted: { type: Boolean },
+          canConfigure: { type: Boolean },
           _actionError: { state: true },
           _itemsError: { state: true },
           _adding: { state: true },
@@ -1884,7 +1903,8 @@
         return html`
           ${_boardHeading(this.hass, this.entityId, this.hideCompleted,
             () => this.dispatchEvent(new Event("toggle-completed")),
-            () => this._showAdd(), unavailable)}
+            () => this._showAdd(), unavailable,
+            this.canConfigure ? () => this.dispatchEvent(new Event("configure-list")) : null)}
           ${this._adding ? html`
             <form class="shopping-add" @submit=${this._addItem}>
               <input name="summary" aria-label=${text[2]} placeholder=${text[2]} required ?disabled=${this._saving}>
@@ -1949,7 +1969,7 @@
       }
     }
 
-    customElements.define("better-todo-shopping-list-v090", BetterTodoShoppingList);
+    customElements.define("better-todo-shopping-list-v091", BetterTodoShoppingList);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // BetterTodoPanel
@@ -1966,6 +1986,7 @@
           _creatingList: { state: true },
           _savingList: { state: true },
           _listError: { state: true },
+          _listSettings: { state: true },
         };
       }
 
@@ -1977,6 +1998,7 @@
         this._creatingList = false;
         this._savingList = false;
         this._listError = "";
+        this._listSettings = null;
         try {
           this._selectedEntityId = sessionStorage.getItem("better-todo-selected-entity");
           this._hideCompleted = sessionStorage.getItem("better-todo-hide-completed") === "true";
@@ -2026,6 +2048,133 @@
        *  To-do Shopping List (identified via the entity registry unique_id). */
       _isShoppingList(entityId) {
         return _isBetterTodoShoppingList(this.hass, entityId);
+      }
+
+      get _canConfigureList() {
+        const entityId = this._selectedEntityId;
+        return Boolean(this.hass?.user?.is_admin && entityId &&
+          (_canAssignTasks(this.hass, entityId) || this._isShoppingList(entityId)));
+      }
+
+      async _openListSettings() {
+        if (!this._canConfigureList || this._listSettings) return;
+        const request = { entityId: this._selectedEntityId, loading: true };
+        this._listSettings = request;
+        await this.updateComplete;
+        if (this._listSettings !== request) return;
+        this.shadowRoot.querySelector(".list-settings").showModal();
+        try {
+          const result = await this.hass.callWS({
+            type: "better_todo/list_settings", entity_id: request.entityId,
+          });
+          if (this._listSettings !== request) return;
+          this._listSettings = {
+            entityId: request.entityId,
+            original: result,
+            name: result.name,
+            enabled: result.cleanup_enabled,
+            months: result.retention_months,
+            custom: result.retention_months !== 1,
+            sharedCleanup: result.shared_cleanup,
+          };
+          await this.updateComplete;
+          this.shadowRoot.querySelector("#better-todo-list-name")?.focus();
+        } catch {
+          if (this._listSettings === request) {
+            this._listSettings = { error: _listSettingsText(this.hass)[8] };
+          }
+        }
+      }
+
+      _closeListSettings() {
+        this.shadowRoot?.querySelector(".list-settings")?.close();
+        this._listSettings = null;
+      }
+
+      async _saveListSettings(event) {
+        event.preventDefault();
+        const current = this._listSettings;
+        const name = current?.name?.trim();
+        if (!name || current.saving) return;
+        const months = current.custom ? current.months : 1;
+        if (current.enabled && (!Number.isInteger(months) || months < 1)) return;
+        const settings = {};
+        if (name !== current.original.name) settings.name = name;
+        if (current.enabled !== current.original.cleanup_enabled) settings.cleanup_enabled = current.enabled;
+        if (current.enabled && months !== current.original.retention_months) settings.retention_months = months;
+        if (!Object.keys(settings).length) {
+          this._closeListSettings();
+          return;
+        }
+        const request = { ...current, saving: true, error: "" };
+        this._listSettings = request;
+        try {
+          await this.hass.callWS({
+            type: "better_todo/list_settings", entity_id: current.entityId, settings,
+          });
+          if (this._listSettings === request) this._closeListSettings();
+        } catch {
+          if (this._listSettings === request) {
+            this._listSettings = { ...current, error: _listSettingsText(this.hass)[9] };
+          }
+        }
+      }
+
+      _renderListSettings() {
+        const [title, name, cleanup, retention, defaultPeriod, customPeriod, months, shared] = _listSettingsText(this.hass);
+        const current = this._listSettings;
+        const L = (key, fallback) => this.hass?.localize(key) || fallback;
+        return html`
+          <dialog class="list-settings" aria-labelledby="better-todo-list-settings-title"
+            @cancel=${(event) => {
+              event.preventDefault();
+              if (!this._listSettings?.saving) this._closeListSettings();
+            }}>
+            ${current ? html`
+              <h2 id="better-todo-list-settings-title">${title}</h2>
+              <form @submit=${this._saveListSettings}>
+                ${current.loading ? html`<p role="status">${L("ui.common.loading", "Loading…")}</p>` : ""}
+                ${current.name !== undefined ? html`
+                  <fieldset ?disabled=${current.saving}>
+                    <label for="better-todo-list-name">${name}</label>
+                    <input id="better-todo-list-name" name="name" .value=${current.name} required
+                      @input=${(event) => { this._listSettings = { ...current, name: event.target.value }; }}>
+                    <label class="cleanup-toggle">
+                      <input type="checkbox" .checked=${current.enabled}
+                        @change=${(event) => { this._listSettings = { ...current, enabled: event.target.checked }; }}>
+                      ${cleanup}
+                    </label>
+                    ${current.enabled ? html`
+                      <label for="better-todo-list-retention">${retention}</label>
+                      <select id="better-todo-list-retention" .value=${current.custom ? "custom" : "default"}
+                        @change=${(event) => { this._listSettings = { ...current, custom: event.target.value === "custom" }; }}>
+                        <option value="default">${defaultPeriod}</option>
+                        <option value="custom">${customPeriod}</option>
+                      </select>
+                      ${current.custom ? html`
+                        <label for="better-todo-list-months">${months}</label>
+                        <input id="better-todo-list-months" type="number" min="1" step="1" required
+                          .value=${Number.isNaN(current.months) ? "" : String(current.months)}
+                          @input=${(event) => { this._listSettings = { ...current, months: event.target.valueAsNumber }; }}>
+                      ` : ""}
+                    ` : ""}
+                    ${current.sharedCleanup ? html`<p class="settings-help">${shared}</p>` : ""}
+                  </fieldset>
+                ` : ""}
+                ${current.error ? html`<p role="alert">${current.error}</p>` : ""}
+                <div class="settings-actions">
+                  <button type="button" class="board-button" ?disabled=${current.saving}
+                    @click=${this._closeListSettings}>${L("ui.common.cancel", "Cancel")}</button>
+                  ${current.name !== undefined ? html`
+                    <button type="submit" class="board-button primary" ?disabled=${current.saving || !current.name.trim()}>
+                      ${L("ui.common.save", "Save")}
+                    </button>
+                  ` : ""}
+                </div>
+              </form>
+            ` : ""}
+          </dialog>
+        `;
       }
 
       _setSelectedEntity(entityId) {
@@ -2093,6 +2242,7 @@
       disconnectedCallback() {
         super.disconnectedCallback();
         this._resizeObserver.disconnect();
+        if (this._listSettings) this._closeListSettings();
       }
 
       willUpdate(changedProps) {
@@ -2160,21 +2310,24 @@
             </aside>
             <main class="workspace">
               ${this._selectedEntityId ? isShopping ? html`
-                <better-todo-shopping-list-v090 .hass=${this.hass} .entityId=${this._selectedEntityId}
-                  .hideCompleted=${this._hideCompleted} @toggle-completed=${this._toggleCompleted}>
-                </better-todo-shopping-list-v090>
+                <better-todo-shopping-list-v091 .hass=${this.hass} .entityId=${this._selectedEntityId}
+                  .hideCompleted=${this._hideCompleted} .canConfigure=${this._canConfigureList}
+                  @toggle-completed=${this._toggleCompleted} @configure-list=${this._openListSettings}>
+                </better-todo-shopping-list-v091>
               ` : html`
-                <better-todo-task-list-v090 .hass=${this.hass} .entityId=${this._selectedEntityId}
-                  .hideCompleted=${this._hideCompleted} @toggle-completed=${this._toggleCompleted}>
-                </better-todo-task-list-v090>
+                <better-todo-task-list-v091 .hass=${this.hass} .entityId=${this._selectedEntityId}
+                  .hideCompleted=${this._hideCompleted} .canConfigure=${this._canConfigureList}
+                  @toggle-completed=${this._toggleCompleted} @configure-list=${this._openListSettings}>
+                </better-todo-task-list-v091>
               ` : html`<p>${this.hass?.localize("ui.panel.todo.no_lists") || "No lists found."}</p>`}
             </main>
+            ${this._renderListSettings()}
           </div>
         `;
       }
 
       static get styles() {
-        return [css`
+        return [_boardStyles, css`
           :host { display: block; }
           .shell {
             --bt-canvas: #fbf5ef; --bt-surface: #fffcf9; --bt-ink: #271629; --bt-muted: #685a69;
@@ -2232,6 +2385,27 @@
             width: 100%; max-width: 1480px; min-width: 0; box-sizing: border-box; margin-inline: auto;
             padding: clamp(14px, 3vw, 36px) clamp(12px, 2.5vw, 30px) 36px;
           }
+          .list-settings {
+            width: min(430px, calc(100% - 28px)); max-height: calc(100dvh - 28px);
+            box-sizing: border-box; padding: clamp(16px, 5vw, 24px); overflow: auto;
+            border: 1px solid var(--bt-border); border-radius: 16px;
+            background: var(--bt-surface); color: var(--bt-ink); box-shadow: 0 20px 60px #0004;
+          }
+          .list-settings::backdrop { background: #160b1a99; }
+          .list-settings h2 { margin: 0 0 16px; font-size: 1.25rem; }
+          .list-settings form, .list-settings fieldset { display: grid; gap: 8px; }
+          .list-settings fieldset { min-width: 0; border: 0; margin: 0; padding: 0; }
+          .list-settings p { margin: 0; }
+          .list-settings label { font-weight: 600; }
+          .list-settings input:not([type="checkbox"]), .list-settings select {
+            box-sizing: border-box; width: 100%; padding: 9px; font: inherit;
+            border: 1px solid var(--bt-border); border-radius: 8px;
+            background: var(--bt-neutral); color: var(--bt-ink);
+          }
+          .cleanup-toggle { display: flex; align-items: center; gap: 8px; padding-block: 6px; }
+          .cleanup-toggle input { inline-size: 1.1em; block-size: 1.1em; accent-color: var(--bt-primary); }
+          .settings-help { color: var(--bt-muted); font-size: .9rem; }
+          .settings-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 8px; }
           .compact { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto 1fr; }
           .compact .sidebar {
             display: grid; grid-template-columns: minmax(0, 1fr) auto;
@@ -2246,7 +2420,7 @@
       }
     }
 
-    customElements.define("better-todo-panel-v090", BetterTodoPanel);
+    customElements.define("better-todo-panel-v091", BetterTodoPanel);
   }
 
   // ── Registration entry point ────────────────────────────────────────────────
