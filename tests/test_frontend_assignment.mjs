@@ -24,6 +24,7 @@ function loadPanel(globals = {}) {
   runInNewContext(source, {
     HTMLElement,
     CustomEvent: class {},
+    ResizeObserver: class {},
     customElements: {
       get: (tag) => elements.get(tag),
       define(tag, constructor) {
@@ -34,13 +35,13 @@ function loadPanel(globals = {}) {
     ...globals,
   });
   assert.equal(elements.get("better-todo-panel"), legacy);
-  assert.ok(elements.has("better-todo-panel-v090"));
+  assert.ok(elements.has("better-todo-panel-v091"));
   return elements;
 }
 
 test("only Better ToDo task lists offer assignment, even without state attributes", () => {
   const elements = loadPanel();
-  const list = new (elements.get("better-todo-task-list-v090"))();
+  const list = new (elements.get("better-todo-task-list-v091"))();
   list.hass = {
     states: { "todo.home": { attributes: {} } },
     entities: {
@@ -70,7 +71,7 @@ test("deadline sections and list progress use the same local seven-day window", 
     static now() { return now; }
   }
   const elements = loadPanel({ Date: Clock });
-  const list = new (elements.get("better-todo-task-list-v090"))();
+  const list = new (elements.get("better-todo-task-list-v091"))();
   list.entityId = "todo.home";
   list.hass = {
     locale: { language: "es", time_zone: "server" },
@@ -136,7 +137,7 @@ test("the visible board refresh timer targets an exact upcoming deadline", () =>
     clearTimeout() {},
     setTimeout(callback, delay) { delays.push(delay); },
   });
-  const list = new (elements.get("better-todo-task-list-v090"))();
+  const list = new (elements.get("better-todo-task-list-v091"))();
   list.isConnected = true;
   list.entityId = "todo.home";
   list.hass = { states: { "todo.home": { attributes: { task_assignees: {} } } } };
@@ -151,7 +152,7 @@ test("the visible board refresh timer targets an exact upcoming deadline", () =>
 
 test("create, reassign and clear an assignee with the appropriate service", async () => {
   const elements = loadPanel();
-  const dialog = new (elements.get("better-todo-task-dialog-v090"))();
+  const dialog = new (elements.get("better-todo-task-dialog-v091"))();
   const calls = [];
   dialog.entityId = "todo.home";
   dialog.supportsAssignment = true;
@@ -184,4 +185,53 @@ test("create, reassign and clear an assignee with the appropriate service", asyn
     ["better_todo", "set_task_assignee", { entity_id: "todo.home", item: "existing", user_id: "mateo" }],
     ["better_todo", "set_task_assignee", { entity_id: "todo.home", item: "existing", user_id: null }],
   ]);
+});
+
+test("administrators can edit Better ToDo list settings and retry a failed save", async () => {
+  const elements = loadPanel();
+  const panel = new (elements.get("better-todo-panel-v091"))();
+  const calls = [];
+  let open = false;
+  let fail = true;
+  const dialog = { showModal() { open = true; }, close() { open = false; } };
+  panel.shadowRoot = { querySelector: (selector) => selector === ".list-settings" ? dialog : null };
+  panel._selectedEntityId = "todo.home";
+  panel.hass = {
+    user: { is_admin: false },
+    entities: { "todo.home": { platform: "better_todo" } },
+    localize: () => "",
+    async callWS(message) {
+      calls.push(JSON.parse(JSON.stringify(message)));
+      if (!message.settings) return { name: "Home", cleanup_enabled: true, retention_months: 4 };
+      if (fail) throw new Error("Update failed");
+    },
+  };
+
+  await panel._openListSettings();
+  assert.equal(calls.length, 0);
+  panel.hass.user.is_admin = true;
+  panel._selectedEntityId = "todo.external";
+  await panel._openListSettings();
+  assert.equal(calls.length, 0);
+
+  panel._selectedEntityId = "todo.home";
+  await panel._openListSettings();
+  assert.equal(open, true);
+  assert.match(renderContent(panel._renderListSettings()), /Custom period/);
+  assert.match(renderContent(panel._renderListSettings()), /Calendar months/);
+  panel._listSettings = { ...panel._listSettings, name: " Household ", custom: false };
+  const event = { preventDefault() {} };
+  await panel._saveListSettings(event);
+  assert.equal(open, true);
+  assert.match(renderContent(panel._renderListSettings()), /Could not save list settings/);
+
+  fail = false;
+  await panel._saveListSettings(event);
+  const update = {
+    type: "better_todo/list_settings", entity_id: "todo.home",
+    settings: { name: "Household", retention_months: 1 },
+  };
+  assert.deepEqual(calls.slice(-2), [update, update]);
+  assert.equal(open, false);
+  assert.equal(panel._listSettings, null);
 });

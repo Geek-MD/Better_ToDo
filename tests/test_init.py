@@ -8,6 +8,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from custom_components.better_todo.const import (
+    CONF_COMPLETED_CLEANUP_ENABLED,
+    CONF_COMPLETED_RETENTION_MONTHS,
+    CONF_STORAGE_KEY,
+    CONF_TODO_LIST_NAME,
+    DEFAULT_SHOPPING_LIST_KEY,
+)
+
 
 @pytest.mark.asyncio
 async def test_async_setup_registers_static_path_and_panel(mock_hass):
@@ -43,7 +51,7 @@ async def test_async_setup_registers_static_path_and_panel(mock_hass):
     # Panel registered
     mock_register.assert_called_once()
     kwargs = mock_register.call_args.kwargs
-    assert kwargs["webcomponent_name"] == "better-todo-panel-v090"
+    assert kwargs["webcomponent_name"] == "better-todo-panel-v091"
     assert kwargs["frontend_url_path"] == "better-todo"
     assert kwargs["sidebar_title"] == "Better ToDo"
     assert kwargs["js_url"] == static_config.url_path
@@ -93,3 +101,79 @@ async def test_assignee_directory_respects_list_access(mock_hass, monkeypatch):
     connection.user.permissions.check_entity.return_value = True
     await _async_assignees(mock_hass, connection, msg)
     connection.send_result.assert_called_once_with(1, [{"id": "human", "name": "Ana"}])
+
+
+def test_list_settings_rename_and_update_cleanup(mock_hass, monkeypatch):
+    """Update the registry name and entry options without changing the storage key."""
+    from custom_components.better_todo import _async_list_settings, er
+
+    registry = MagicMock()
+    monkeypatch.setattr(er, "async_get", lambda _hass: registry, raising=False)
+    entity = SimpleNamespace(
+        domain="todo", platform="better_todo", config_entry_id="home-entry",
+        unique_id="home-entry", name=None,
+    )
+    registry.async_get.return_value = entity
+    entry = SimpleNamespace(
+        entry_id="home-entry", domain="better_todo", title="Home",
+        data={CONF_STORAGE_KEY: "home", CONF_TODO_LIST_NAME: "Home"},
+        options={CONF_COMPLETED_RETENTION_MONTHS: 2},
+    )
+    mock_hass.config_entries.async_get_entry.return_value = entry
+    mock_hass.states.get.return_value = SimpleNamespace(attributes={"friendly_name": "Home"})
+    connection = MagicMock()
+    msg = {"id": 1, "entity_id": "todo.home"}
+
+    connection.user.is_admin = False
+    _async_list_settings(mock_hass, connection, msg)
+    connection.send_error.assert_called_once_with(1, "unauthorized", "Administrator access is required")
+    registry.async_get.assert_not_called()
+
+    connection.user.is_admin = True
+    _async_list_settings(mock_hass, connection, msg)
+    connection.send_result.assert_called_once_with(1, {
+        "name": "Home", "cleanup_enabled": True, "retention_months": 2, "shared_cleanup": False,
+    })
+    mock_hass.config_entries.async_update_entry.assert_not_called()
+
+    _async_list_settings(mock_hass, connection, {
+        **msg, "settings": {"name": "Household", "cleanup_enabled": False},
+    })
+    registry.async_update_entity.assert_called_once_with("todo.home", name="Household")
+    mock_hass.config_entries.async_update_entry.assert_called_once_with(
+        entry, title="Household", data={CONF_STORAGE_KEY: "home", CONF_TODO_LIST_NAME: "Household"},
+        options={CONF_COMPLETED_RETENTION_MONTHS: 2, CONF_COMPLETED_CLEANUP_ENABLED: False},
+    )
+
+    registry.async_update_entity.reset_mock()
+    mock_hass.config_entries.async_update_entry.reset_mock()
+    entity.unique_id = f"better_todo_{DEFAULT_SHOPPING_LIST_KEY}"
+    _async_list_settings(mock_hass, connection, {
+        **msg, "entity_id": "todo.shopping", "settings": {"name": "Groceries", "retention_months": 3},
+    })
+    registry.async_update_entity.assert_called_once_with("todo.shopping", name="Groceries")
+    mock_hass.config_entries.async_update_entry.assert_called_once_with(
+        entry, options={CONF_COMPLETED_RETENTION_MONTHS: 3},
+    )
+    assert connection.send_result.call_args.args[1]["shared_cleanup"] is True
+
+    entity.platform = "local_todo"
+    _async_list_settings(mock_hass, connection, {**msg, "settings": {"name": "Invalid"}})
+    assert connection.send_error.call_args.args[1] == "not_found"
+    assert registry.async_update_entity.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_remove_renamed_list_uses_original_storage_key(mock_hass, tmp_path):
+    """Removing a renamed list only removes its original data file."""
+    from custom_components.better_todo import async_remove_entry
+
+    mock_hass.config.path = lambda filename: str(tmp_path / Path(filename).name)
+    original = tmp_path / "better_todo.old.ics"
+    other = tmp_path / "better_todo.new.ics"
+    original.touch()
+    other.touch()
+    entry = SimpleNamespace(data={CONF_STORAGE_KEY: "old", CONF_TODO_LIST_NAME: "New"})
+    await async_remove_entry(mock_hass, entry)
+    assert not original.exists()
+    assert other.exists()

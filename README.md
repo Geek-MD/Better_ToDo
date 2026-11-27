@@ -22,7 +22,7 @@ A custom Home Assistant integration that provides a **local, file-based to-do li
 
 It builds on the built-in Local To-do integration. When you complete a recurring task, Better ToDo keeps the finished occurrence in the list and schedules the next one. [Local To-do documentation](https://www.home-assistant.io/integrations/local_todo)
 
-Version **0.9.0** groups tasks by due date and adds automatic cleanup of completed tasks with a default retention of one calendar month.
+Version **0.9.1** lets administrators rename Better ToDo lists and manage their automatic cleanup directly from the panel.
 
 ---
 
@@ -33,6 +33,7 @@ Version **0.9.0** groups tasks by due date and adds automatic cleanup of complet
 - **Due-date sections** – each unassigned or assignee column on Better ToDo task lists shows overdue tasks, tasks due today, tasks due from tomorrow through the next seven calendar days, tasks scheduled further out, and tasks without a due date. Each task appears once and empty sections are hidden. Date-only tasks remain due through the end of their day. Timed tasks become overdue at their due time. The panel uses the time zone selected in Home Assistant.
 - **List progress** – on Better ToDo task lists, the percentage includes tasks without a due date and tasks due by the end of the next seven calendar days, across all assignee columns. Tasks due later enter the count when their due date comes within that window, including tasks completed early.
 - **Automatic cleanup** – enabled by default with a retention period of one calendar month from completion. When enabled, the cleanup runs at startup and daily while Home Assistant runs. Tasks without a recorded completion date are retained.
+- **List settings in the panel** – select a Better ToDo list and open **List settings** to rename it or set its completed-task retention. The list keeps its entity ID and existing tasks.
 - **Full to-do list entity** – integrates natively with the Home Assistant [To-do list dashboard card](https://www.home-assistant.io/dashboards/todo-list/) and all built-in `todo.*` services.
 - **Task assignment** – choose an active Home Assistant user in the task editor. Unassigned tasks stay in the selected list's left column. Assigned tasks appear once, under the user's name on the right. On narrow screens, the columns stack. Tasks stay in their original entity, and clearing the assignee returns a task to the unassigned column. The assignment persists when a recurring task advances. This view applies to regular Better ToDo lists.
 - **Recurring tasks (RRULE)** – attach any iCalendar RRULE string to a task (e.g. `FREQ=WEEKLY;BYDAY=MO`, `FREQ=DAILY`, `FREQ=MONTHLY;BYMONTHDAY=1`). When the task is marked done it rolls forward to the next occurrence automatically.
@@ -100,6 +101,8 @@ On the **first setup**, a built-in **Shopping List** (`todo.shopping_list`) is a
 You can add multiple custom lists by repeating the setup process. Removing an integration entry deletes its associated `.ics` file from `.storage/`.
 
 To adjust automatic cleanup, open **Settings → Devices & Services → Better To-do**, then select **Configure** on the list's entry. Turn **Enable automatic cleanup** on or off. When enabling it, select **Use the default (1 calendar month)** or **Set a custom period** and enter a positive whole number of calendar months. Disabling cleanup preserves completed tasks and remembers the last selected period. The saved settings apply at the next daily cleanup or when Home Assistant starts. The built-in Shopping List shares the settings of the entry that contains its entity.
+
+Administrators can also apply these settings from **Better ToDo → select a list → List settings**. The panel lets you rename regular Better ToDo lists and the built-in Shopping List. The latter keeps its own name and shares cleanup settings with the entry that hosts it.
 
 ---
 
