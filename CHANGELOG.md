@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-11-28
+
+### Added
+- Add products to the built-in Shopping List with a name and required quantity.
+- Automatically group products into translated, predefined shopping categories; categories without products stay hidden.
+- Edit a product's name, quantity, or category, and drag products between visible categories.
+- Learn category corrections by product name and reuse them for future additions.
+
+### Changed
+- Reclassify shopping products when their names change unless the user has chosen a category, and migrate existing products into the predefined groups.
+- Strip due dates and recurrence from Shopping List items while leaving regular task lists unchanged.
+
 ## [0.9.1] - 2026-11-26
 
 ### Added

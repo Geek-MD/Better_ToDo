@@ -19,6 +19,7 @@ from custom_components.better_todo.const import (
     ATTR_NOTES,
     CONF_COMPLETED_CLEANUP_ENABLED,
     CONF_COMPLETED_RETENTION_MONTHS,
+    CONF_SHOPPING_CATEGORY_OVERRIDES,
     CONF_STORAGE_KEY,
 )
 from custom_components.better_todo.todo import (
@@ -28,6 +29,7 @@ from custom_components.better_todo.todo import (
     _encode_description,
     _decode_description,
     _ha_item_to_ical,
+    _shopping_category_for_product,
     async_setup_entry,
 )
 from homeassistant.components.todo import TodoItem, TodoItemStatus
@@ -52,6 +54,24 @@ def _make_entity(tmp_path: Path, mock_hass) -> BetterTodoListEntity:
         calendar=calendar,
         name="Test List",
         unique_id="test-uid-001",
+    )
+    entity.hass = mock_hass
+    return entity
+
+
+def _make_shopping_entity(
+    tmp_path: Path, mock_hass, config_entry=None  # noqa: ANN001
+) -> ShoppingListTodoListEntity:
+    """Create the built-in Shopping List entity backed by a temp file."""
+    from custom_components.better_todo.store import BetterTodoListStore
+
+    store = BetterTodoListStore(mock_hass, tmp_path / "shopping.ics")
+    entity = ShoppingListTodoListEntity(
+        store=store,
+        calendar=IcsCalendarStream.calendar_from_ics(_EMPTY_ICS),
+        name="Shopping List",
+        unique_id="shopping-list-test",
+        config_entry=config_entry,
     )
     entity.hass = mock_hass
     return entity
@@ -463,6 +483,110 @@ async def test_setup_entry_adds_default_shopping_list_once(tmp_path, mock_hass) 
     for entity in added_entities[0]:
         assert not await entity._async_purge_completed(limit)
         assert await entity._async_purge_completed(limit + datetime.timedelta(seconds=1))
+
+
+@pytest.mark.parametrize(
+    ("product", "category"),
+    [
+        ("Manzanas verdes", "produce"),
+        ("2 botellas de leche", "dairy_eggs"),
+        ("Papel higiénico", "household"),
+        ("Cat food", "pets"),
+        ("Algo totalmente nuevo", "other"),
+    ],
+)
+def test_shopping_products_are_automatically_categorized(
+    product: str, category: str
+) -> None:
+    """Product matching is predefined, accent-insensitive and has a fallback."""
+    assert _shopping_category_for_product(product) == category
+
+
+@pytest.mark.asyncio
+async def test_shopping_item_stores_quantity_category_and_no_due_date(
+    tmp_path: Path, mock_hass
+) -> None:
+    """Creating a product applies shopping metadata and removes deadlines."""
+    entity = _make_shopping_entity(tmp_path, mock_hass)
+    await entity.async_create_todo_item(TodoItem(
+        summary="Leche entera",
+        due=datetime.date(2026, 12, 1),
+        description="[quantity:2] [unit:L]",
+        status=TodoItemStatus.NEEDS_ACTION,
+    ))
+
+    item = entity._attr_todo_items[0]
+    assert item.due is None
+    assert entity.extra_state_attributes["task_details"][item.uid] == {
+        "quantity": "2 L",
+        "unit": "L",
+        "category": "dairy_eggs",
+    }
+    assert entity.extra_state_attributes["shopping_categories"][-1] == "other"
+
+
+@pytest.mark.asyncio
+async def test_renaming_shopping_item_moves_it_to_new_category(
+    tmp_path: Path, mock_hass
+) -> None:
+    """Changing a product name automatically recalculates its category."""
+    entity = _make_shopping_entity(tmp_path, mock_hass)
+    await entity.async_create_todo_item(TodoItem(
+        summary="Pan integral",
+        description="[quantity:1]",
+        status=TodoItemStatus.NEEDS_ACTION,
+    ))
+    original = entity._attr_todo_items[0]
+
+    await entity.async_update_todo_item(TodoItem(
+        uid=original.uid,
+        summary="Shampoo",
+        due=datetime.date(2026, 12, 1),
+        description=original.description,
+        status=original.status,
+    ))
+
+    updated = entity._attr_todo_items[0]
+    assert updated.due is None
+    assert entity.extra_state_attributes["task_details"][updated.uid]["category"] == (
+        "personal_care"
+    )
+
+
+@pytest.mark.asyncio
+async def test_shopping_list_learns_manual_product_category(
+    tmp_path: Path, mock_hass
+) -> None:
+    """A manual move becomes the default category for that product name."""
+    entry = SimpleNamespace(options={})
+    entity = _make_shopping_entity(tmp_path, mock_hass, entry)
+    await entity.async_create_todo_item(TodoItem(
+        summary="Leche entera",
+        description="[quantity:1 L]",
+        status=TodoItemStatus.NEEDS_ACTION,
+    ))
+    original = entity._attr_todo_items[0]
+    await entity.async_update_todo_item(TodoItem(
+        uid=original.uid,
+        summary=original.summary,
+        description=(
+            "[quantity:1 L] [category:produce] [category_mode:manual]"
+        ),
+        status=original.status,
+    ))
+
+    await entity.async_create_todo_item(TodoItem(
+        summary="LECHE ENTERA",
+        description="[quantity:2 L]",
+        status=TodoItemStatus.NEEDS_ACTION,
+    ))
+
+    categories = entity.extra_state_attributes["task_details"]
+    assert all(details["category"] == "produce" for details in categories.values())
+    saved_options = mock_hass.config_entries.async_update_entry.call_args.kwargs["options"]
+    assert saved_options[CONF_SHOPPING_CATEGORY_OVERRIDES] == {
+        "leche entera": "produce"
+    }
 
 
 # ---------------------------------------------------------------------------

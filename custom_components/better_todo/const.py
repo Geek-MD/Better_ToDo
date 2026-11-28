@@ -6,12 +6,29 @@ CONF_TODO_LIST_NAME = "todo_list_name"
 CONF_STORAGE_KEY = "storage_key"
 CONF_COMPLETED_CLEANUP_ENABLED = "completed_cleanup_enabled"
 CONF_COMPLETED_RETENTION_MONTHS = "completed_retention_months"
+CONF_SHOPPING_CATEGORY_OVERRIDES = "shopping_category_overrides"
 DEFAULT_COMPLETED_RETENTION_MONTHS = 1
 
 STORAGE_PATH = ".storage/better_todo.{key}.ics"
 DEFAULT_SHOPPING_LIST_NAME = "Shopping List"
 DEFAULT_SHOPPING_LIST_KEY = "default_shopping_list"
 DATA_DEFAULT_LIST_ADDED = "default_list_added"
+
+# Stable category identifiers used by the built-in Shopping List. The frontend
+# translates these labels and only renders categories that contain products.
+SHOPPING_CATEGORIES = (
+    "produce",
+    "bakery",
+    "meat_seafood",
+    "dairy_eggs",
+    "pantry",
+    "frozen",
+    "beverages",
+    "household",
+    "personal_care",
+    "pets",
+    "other",
+)
 
 # Custom service names
 SERVICE_SET_TASK_RECURRENCE = "set_task_recurrence"
@@ -33,4 +50,5 @@ DESC_CATEGORY_PREFIX = "Category: "
 DESC_TAG_QUANTITY = "quantity"
 DESC_TAG_UNIT = "unit"
 DESC_TAG_CATEGORY = "category"
+DESC_TAG_CATEGORY_MODE = "category_mode"
 DESC_TAG_REPEAT = "repeat"

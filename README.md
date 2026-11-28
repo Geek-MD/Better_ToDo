@@ -22,7 +22,7 @@ A custom Home Assistant integration that provides a **local, file-based to-do li
 
 It builds on the built-in Local To-do integration. When you complete a recurring task, Better ToDo keeps the finished occurrence in the list and schedules the next one. [Local To-do documentation](https://www.home-assistant.io/integrations/local_todo)
 
-Version **0.9.1** lets administrators rename Better ToDo lists and manage their automatic cleanup directly from the panel.
+Version **0.10.0** adds product quantities and automatic category grouping to the built-in Shopping List.
 
 ---
 
@@ -41,7 +41,7 @@ Version **0.9.1** lets administrators rename Better ToDo lists and manage their 
 - **`task_recurrence` attribute** – the entity exposes a `{uid: rrule_string}` dictionary so custom Lovelace cards and automations can read per-task recurrence rules.
 - **`better_todo.set_task_details` service** – attach structured metadata tags (`quantity`, `unit`, `category`, `repeat`, plus free-text notes) to any task. Data is encoded in the standard `description` field and is immediately visible in the HA Tasks panel without a custom card.
 - **`task_details` attribute** – the entity exposes a `{uid: {quantity, unit, category, repeat}}` dictionary so automations and scripts can read per-task metadata.
-- **Default `Shopping List`** – a `todo.shopping_list` entity is created automatically on first setup, separate from any custom lists you create. Shopping List items support only a **description** field (no due date), matching typical shopping-list behaviour. Its visible name is localized using your Home Assistant language (e.g. Spanish: *Lista de la compra*).
+- **Default `Shopping List`** – a `todo.shopping_list` entity is created automatically on first setup, separate from any custom lists you create. Each product has a name and quantity, is automatically placed into a predefined translated category, and never uses a due date. Products can be edited or dragged between visible categories; manual corrections are remembered for future products with the same normalized name. Empty categories remain hidden. Its visible name is localized using your Home Assistant language (e.g. Spanish: *Lista de la compra*).
 - **Local iCalendar storage** – each list is persisted as a `.ics` file in the Home Assistant `.storage` directory; no cloud, no external services.
 - **Config-flow setup** – configure entirely through the UI; no YAML needed.
 - **Multiple lists** – add as many Better To-do lists as you need, each stored in its own file.
@@ -111,7 +111,7 @@ Administrators can also apply these settings from **Better ToDo → select a lis
 | Entity | Domain | Description |
 |--------|--------|-------------|
 | `todo.<name>` | `todo` | The to-do list. Displays all tasks, supports create / update / delete / reorder from the UI. |
-| `todo.shopping_list` | `todo` | Built-in Shopping List created automatically on first setup. Items support only a **description** (no due date). |
+| `todo.shopping_list` | `todo` | Built-in Shopping List with product quantities, automatic categories, and no due dates. |
 
 ### State attributes
 
