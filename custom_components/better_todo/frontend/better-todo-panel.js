@@ -29,7 +29,7 @@
   function _definePanel() {
     // Keep this release's tags separate from older bundles already registered
     // by Home Assistant in the same browser tab.
-    if (customElements.get("better-todo-panel-v091")) return;
+    if (customElements.get("better-todo-panel-v0100")) return;
 
     const LitElement = _getLitElementBase();
     if (!LitElement) return;
@@ -109,6 +109,41 @@
     const _boardText = (hass) => _boardTranslations[hass?.locale?.language?.split("-")[0]] || _boardTranslations.en;
     const _isComplete = (item) => item.status === "completed";
 
+    const _shoppingTranslations = {
+      en: { product: "Product", quantity: "Quantity", add: "Add product", categories: {
+        produce: "Fruit and vegetables", bakery: "Bakery", meat_seafood: "Meat and seafood",
+        dairy_eggs: "Dairy and eggs", pantry: "Pantry", frozen: "Frozen foods",
+        beverages: "Beverages", household: "Household", personal_care: "Personal care",
+        pets: "Pets", other: "Other",
+      } },
+      es: { product: "Producto", quantity: "Cantidad", add: "Añadir producto", categories: {
+        produce: "Frutas y verduras", bakery: "Panadería", meat_seafood: "Carnes y pescados",
+        dairy_eggs: "Lácteos y huevos", pantry: "Despensa", frozen: "Congelados",
+        beverages: "Bebidas", household: "Hogar y limpieza", personal_care: "Cuidado personal",
+        pets: "Mascotas", other: "Otros",
+      } },
+      de: { product: "Produkt", quantity: "Menge", add: "Produkt hinzufügen", categories: {
+        produce: "Obst und Gemüse", bakery: "Bäckerei", meat_seafood: "Fleisch und Fisch",
+        dairy_eggs: "Milchprodukte und Eier", pantry: "Vorrat", frozen: "Tiefkühlkost",
+        beverages: "Getränke", household: "Haushalt", personal_care: "Körperpflege",
+        pets: "Haustiere", other: "Sonstiges",
+      } },
+      fr: { product: "Produit", quantity: "Quantité", add: "Ajouter un produit", categories: {
+        produce: "Fruits et légumes", bakery: "Boulangerie", meat_seafood: "Viandes et poissons",
+        dairy_eggs: "Produits laitiers et œufs", pantry: "Épicerie", frozen: "Surgelés",
+        beverages: "Boissons", household: "Maison", personal_care: "Hygiène",
+        pets: "Animaux", other: "Autres",
+      } },
+      pt: { product: "Produto", quantity: "Quantidade", add: "Adicionar produto", categories: {
+        produce: "Frutas e legumes", bakery: "Padaria", meat_seafood: "Carnes e peixes",
+        dairy_eggs: "Laticínios e ovos", pantry: "Despensa", frozen: "Congelados",
+        beverages: "Bebidas", household: "Casa e limpeza", personal_care: "Cuidados pessoais",
+        pets: "Animais", other: "Outros",
+      } },
+    };
+    const _shoppingText = (hass) =>
+      _shoppingTranslations[hass?.locale?.language?.split("-")[0]] || _shoppingTranslations.en;
+
     const _listSettingsTranslations = {
       en: ["List settings", "List name", "Automatic cleanup", "Retention", "Default (1 calendar month)", "Custom period", "Calendar months", "The shopping list shares cleanup settings with the list that hosts it.", "Could not load list settings", "Could not save list settings"],
       es: ["Configurar lista", "Nombre de la lista", "Limpieza automática", "Retención", "Predeterminado (1 mes calendario)", "Plazo personalizado", "Meses calendario", "La lista de compras comparte la limpieza automática con la lista que la contiene.", "No se pudo cargar la configuración de la lista", "No se pudo guardar la configuración de la lista"],
@@ -180,7 +215,7 @@
       return "listCheck";
     }
 
-    function _boardHeading(hass, entityId, hideCompleted, toggle, add, unavailable, configure) {
+    function _boardHeading(hass, entityId, hideCompleted, toggle, add, unavailable, configure, addText) {
       const [, , addLabel, hide, show] = _boardText(hass);
       const state = hass?.states?.[entityId];
       return html`
@@ -197,7 +232,7 @@
             </button>
             ${add ? html`
               <button type="button" class="board-button primary" @click=${add} ?disabled=${unavailable}>
-                ${_icon("plus")} ${addLabel}
+                ${_icon("plus")} ${addText || addLabel}
               </button>
             ` : ""}
           </div>
@@ -336,6 +371,15 @@
         }
       }
       return notes.join("\n").trim();
+    }
+
+    function _shoppingDescription(quantity, category = "", notes = "", manual = false) {
+      const safe = (value) => String(value || "").replaceAll("[", "(").replaceAll("]", ")").trim();
+      const tags = [];
+      if (safe(quantity)) tags.push(`[quantity:${safe(quantity)}]`);
+      if (safe(category)) tags.push(`[category:${safe(category)}]`);
+      if (manual && category) tags.push("[category_mode:manual]");
+      return [tags.join(" "), notes.trim()].filter(Boolean).join("\n\n");
     }
 
     const _FREQ_BY_UNIT = {
@@ -1279,7 +1323,7 @@
       }
     }
 
-    customElements.define("better-todo-task-dialog-v091", BetterTodoTaskDialog);
+    customElements.define("better-todo-task-dialog-v0100", BetterTodoTaskDialog);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // BetterTodoTaskList
@@ -1462,7 +1506,7 @@
       }
 
       _dialog() {
-        return this.shadowRoot?.querySelector("better-todo-task-dialog-v091");
+        return this.shadowRoot?.querySelector("better-todo-task-dialog-v0100");
       }
 
       _openCreate() {
@@ -1669,14 +1713,14 @@
               : html`<p role="status">${this._itemsError ? _boardText(this.hass)[9] : loading}</p>`)
             : (this._card || html`<p role="status">${loading}</p>`)}
           ${this._actionError ? html`<p role="alert">${this._actionError}</p>` : ""}
-          <better-todo-task-dialog-v091
+          <better-todo-task-dialog-v0100
             .hass=${this.hass}
             .entityId=${this.entityId}
             .supportsAssignment=${own}
             .users=${this._users}
             .usersError=${this._usersError}
             @item-saved=${() => this._fetchItems()}
-          ></better-todo-task-dialog-v091>
+          ></better-todo-task-dialog-v0100>
         `;
       }
 
@@ -1741,7 +1785,7 @@
       }
     }
 
-    customElements.define("better-todo-task-list-v091", BetterTodoTaskList);
+    customElements.define("better-todo-task-list-v0100", BetterTodoTaskList);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // BetterTodoShoppingList
@@ -1759,6 +1803,9 @@
           _itemsError: { state: true },
           _adding: { state: true },
           _saving: { state: true },
+          _editingUid: { state: true },
+          _editDraft: { state: true },
+          _dragging: { state: true },
           _items:   { state: true },
           _loading: { state: true },
         };
@@ -1771,6 +1818,9 @@
         this._pendingItems = new Set();
         this._stateKey = null;
         this._fetchSequence = 0;
+        this._editingUid = "";
+        this._editDraft = null;
+        this._dragging = false;
       }
 
       connectedCallback() {
@@ -1824,6 +1874,8 @@
           this._pendingItems = new Set();
           this._actionError = "";
           this._adding = false;
+          this._editingUid = "";
+          this._editDraft = null;
           this._fetchItems();
           return;
         }
@@ -1862,18 +1914,25 @@
         this._adding = true;
         this._actionError = "";
         await this.updateComplete;
-        this.shadowRoot.querySelector(".shopping-add input")?.focus();
+        this.shadowRoot.querySelector('.shopping-add input[name="summary"]')?.focus();
       }
 
       async _addItem(event) {
         event.preventDefault();
         const summary = event.currentTarget.elements.namedItem("summary").value.trim();
-        if (!summary || this._saving) return;
+        const quantity = event.currentTarget.elements.namedItem("quantity").value.trim();
+        if (!summary || !quantity || this._saving) return;
         const entityId = this.entityId;
         this._saving = true;
         this._actionError = "";
         try {
-          await this.hass.callService("todo", "add_item", { entity_id: entityId, item: summary });
+          // Quantity is stored as interoperable description metadata. The
+          // Shopping List entity assigns the category from the product name.
+          await this.hass.callService("todo", "add_item", {
+            entity_id: entityId,
+            item: summary,
+            description: _shoppingDescription(quantity),
+          });
           if (entityId === this.entityId) {
             this._adding = false;
             await this._fetchItems();
@@ -1885,9 +1944,77 @@
         }
       }
 
+      _editItem(item, detailsForItem) {
+        this._editingUid = item.uid;
+        this._editDraft = {
+          summary: item.summary,
+          quantity: detailsForItem.quantity || "1",
+          category: detailsForItem.category || "other",
+        };
+        this._actionError = "";
+      }
+
+      async _updateShoppingItem(item, { summary, quantity, category }) {
+        const entityId = this.entityId;
+        const details = this.hass?.states[entityId]?.attributes?.task_details?.[item.uid] || {};
+        const nextSummary = (summary ?? item.summary).trim();
+        const nextQuantity = (quantity ?? details.quantity ?? "1").trim();
+        const nextCategory = category ?? details.category ?? "other";
+        if (!nextSummary || !nextQuantity || this._saving) return;
+        this._saving = true;
+        this._actionError = "";
+        try {
+          await this.hass.callService("todo", "update_item", {
+            entity_id: entityId,
+            item: item.uid,
+            ...(nextSummary !== item.summary ? { rename: nextSummary } : {}),
+            description: _shoppingDescription(
+              nextQuantity, nextCategory, _parseDescriptionNotes(item.description), true
+            ),
+          });
+          if (entityId === this.entityId) {
+            this._editingUid = "";
+            this._editDraft = null;
+            await this._fetchItems();
+          }
+        } catch (err) {
+          if (entityId === this.entityId) {
+            this._actionError = err?.message || this.hass.localize("ui.common.error");
+          }
+        } finally {
+          this._saving = false;
+        }
+      }
+
+      async _saveEdit(event, item) {
+        event.preventDefault();
+        await this._updateShoppingItem(item, this._editDraft);
+      }
+
+      _startDrag(event, item) {
+        this._draggedUid = item.uid;
+        this._dragging = true;
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", item.uid);
+      }
+
+      async _dropInCategory(event, category) {
+        event.preventDefault();
+        const uid = event.dataTransfer.getData("text/plain") || this._draggedUid;
+        this._draggedUid = "";
+        this._dragging = false;
+        const item = this._items.find((candidate) => candidate.uid === uid);
+        const current = this.hass?.states[this.entityId]?.attributes?.task_details?.[uid]?.category;
+        if (item && category && category !== current) {
+          await this._updateShoppingItem(item, { category });
+        }
+      }
+
       render() {
         const text = _boardText(this.hass);
-        const details = this.hass?.states[this.entityId]?.attributes?.task_details || {};
+        const shoppingText = _shoppingText(this.hass);
+        const attributes = this.hass?.states[this.entityId]?.attributes || {};
+        const details = attributes.task_details || {};
         const unavailable = ["unknown", "unavailable"].includes(this.hass?.states[this.entityId]?.state);
         const groups = new Map();
         for (const item of this._items) {
@@ -1897,19 +2024,30 @@
           groups.get(category).push(item);
         }
         const locale = this.hass?.locale?.language;
-        const categories = [...groups.keys()].filter(Boolean).sort((a, b) => a.localeCompare(b, locale));
+        const predefined = attributes.shopping_categories || Object.keys(shoppingText.categories);
+        const categories = this._dragging
+          ? [...predefined]
+          : predefined.filter((category) => groups.has(category));
+        const predefinedSet = new Set(predefined);
+        categories.push(...[...groups.keys()]
+          .filter((category) => category && !predefinedSet.has(category))
+          .sort((a, b) => a.localeCompare(b, locale)));
         if (groups.has("")) categories.push("");
 
         return html`
           ${_boardHeading(this.hass, this.entityId, this.hideCompleted,
             () => this.dispatchEvent(new Event("toggle-completed")),
             () => this._showAdd(), unavailable,
-            this.canConfigure ? () => this.dispatchEvent(new Event("configure-list")) : null)}
+            this.canConfigure ? () => this.dispatchEvent(new Event("configure-list")) : null,
+            shoppingText.add)}
           ${this._adding ? html`
             <form class="shopping-add" @submit=${this._addItem}>
-              <input name="summary" aria-label=${text[2]} placeholder=${text[2]} required ?disabled=${this._saving}>
+              <input name="summary" aria-label=${shoppingText.product}
+                placeholder=${shoppingText.product} required ?disabled=${this._saving}>
+              <input name="quantity" aria-label=${shoppingText.quantity}
+                placeholder=${shoppingText.quantity} value="1" required ?disabled=${this._saving}>
               <button type="submit" class="board-button primary" ?disabled=${this._saving}>
-                ${_icon("plus")} ${text[2]}
+                ${_icon("plus")} ${shoppingText.add}
               </button>
               <button type="button" class="board-button" ?disabled=${this._saving}
                 @click=${() => { this._adding = false; }}>
@@ -1923,19 +2061,52 @@
               : this._itemsError ? text[9] : text[7]}</p>` : ""}
           <div class="shopping-categories">
             ${categories.map((category) => {
-              const items = groups.get(category);
+              const items = groups.get(category) || [];
               const ordered = [...items.filter((item) => !_isComplete(item)), ...items.filter(_isComplete)];
               return html`
-                <section class="shopping-category">
-                  <h2>${_icon("cartShopping")} ${category || text[8]}</h2>
+                <section class="shopping-category"
+                  @dragover=${(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }}
+                  @drop=${(event) => this._dropInCategory(event, category)}>
+                  <h2>${_icon("cartShopping")}
+                    ${shoppingText.categories[category] || category || text[8]}</h2>
                   <ul>${ordered.map((item) => {
                     const detailsForItem = details[item.uid] || {};
                     // The backend's quantity already includes the unit.
                     const quantity = detailsForItem.quantity || detailsForItem.unit;
+                    if (this._editingUid === item.uid) return html`
+                      <li class="editing">
+                        <form class="shopping-edit" @submit=${(event) => this._saveEdit(event, item)}>
+                          <input aria-label=${shoppingText.product} .value=${this._editDraft.summary}
+                            required ?disabled=${this._saving}
+                            @input=${(event) => { this._editDraft = { ...this._editDraft, summary: event.target.value }; }}>
+                          <input aria-label=${shoppingText.quantity} .value=${this._editDraft.quantity}
+                            required ?disabled=${this._saving}
+                            @input=${(event) => { this._editDraft = { ...this._editDraft, quantity: event.target.value }; }}>
+                          <select aria-label=${text[8]} .value=${this._editDraft.category}
+                            ?disabled=${this._saving}
+                            @change=${(event) => { this._editDraft = { ...this._editDraft, category: event.target.value }; }}>
+                            ${predefined.map((key) => html`
+                              <option value=${key}>${shoppingText.categories[key] || key}</option>
+                            `)}
+                          </select>
+                          <button type="submit" class="board-button primary" ?disabled=${this._saving}>
+                            ${this.hass.localize("ui.common.save") || "Save"}
+                          </button>
+                          <button type="button" class="board-button" ?disabled=${this._saving}
+                            @click=${() => { this._editingUid = ""; this._editDraft = null; }}>
+                            ${this.hass.localize("ui.common.cancel") || "Cancel"}
+                          </button>
+                        </form>
+                      </li>
+                    `;
                     return html`
-                      <li class=${_isComplete(item) ? "completed" : ""}>
+                      <li class=${_isComplete(item) ? "completed" : ""}
+                        .draggable=${!_isComplete(item) && !this._saving}
+                        @dragstart=${(event) => this._startDrag(event, item)}
+                        @dragend=${() => { this._dragging = false; this._draggedUid = ""; }}>
                         ${_taskCheck(item, unavailable || this._pendingItems.has(item.uid), () => this._toggle(item))}
-                        <span class="shop-name">${item.summary}</span>
+                        <button type="button" class="shop-name" ?disabled=${this._saving}
+                          @click=${() => this._editItem(item, detailsForItem)}>${item.summary}</button>
                         ${quantity ? html`<small>${quantity}</small>` : ""}
                       </li>
                     `;
@@ -1955,21 +2126,30 @@
           .shopping-category h2 { display: flex; align-items: center; gap: 8px; font-size: 1.1rem; margin: 0; padding: 12px; }
           ul { list-style: none; margin: 0; padding: 8px; display: grid; gap: 8px; }
           li { display: flex; align-items: center; gap: 6px; padding: 4px; background: var(--bt-surface); border-radius: 10px; border: 1px solid var(--bt-border); }
-          .shop-name { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+          .shop-name { flex: 1; min-width: 0; overflow-wrap: anywhere; border: 0; padding: 6px 2px; background: transparent; color: inherit; text-align: start; font: inherit; cursor: pointer; }
           li small { color: var(--bt-muted); margin-inline-end: 8px; }
           .completed { background: var(--bt-neutral); }
           .completed .shop-name, .completed small { color: var(--bt-muted); text-decoration: line-through; }
+          li[draggable="true"] { cursor: grab; }
+          li[draggable="true"]:active { cursor: grabbing; }
+          .editing { padding: 8px; }
+          .shopping-edit { display: grid; grid-template-columns: minmax(100px, 2fr) minmax(80px, 1fr); gap: 8px; width: 100%; }
+          .shopping-edit select { grid-column: 1 / -1; }
           .shopping-add { display: flex; flex-wrap: wrap; gap: 8px; margin-block-end: 12px; }
-          .shopping-add input {
+          .shopping-add input, .shopping-edit input, .shopping-edit select {
             flex: 1 1 140px; min-width: 0; border: 1px solid var(--bt-border);
             border-radius: 10px; background: var(--bt-surface); color: inherit;
             padding: 8px 12px; font: inherit;
+          }
+          @media (max-width: 520px) {
+            .shopping-edit { grid-template-columns: 1fr; }
+            .shopping-edit select { grid-column: auto; }
           }
         `];
       }
     }
 
-    customElements.define("better-todo-shopping-list-v091", BetterTodoShoppingList);
+    customElements.define("better-todo-shopping-list-v0100", BetterTodoShoppingList);
 
     // ═══════════════════════════════════════════════════════════════════════════
     // BetterTodoPanel
@@ -2310,15 +2490,15 @@
             </aside>
             <main class="workspace">
               ${this._selectedEntityId ? isShopping ? html`
-                <better-todo-shopping-list-v091 .hass=${this.hass} .entityId=${this._selectedEntityId}
+                <better-todo-shopping-list-v0100 .hass=${this.hass} .entityId=${this._selectedEntityId}
                   .hideCompleted=${this._hideCompleted} .canConfigure=${this._canConfigureList}
                   @toggle-completed=${this._toggleCompleted} @configure-list=${this._openListSettings}>
-                </better-todo-shopping-list-v091>
+                </better-todo-shopping-list-v0100>
               ` : html`
-                <better-todo-task-list-v091 .hass=${this.hass} .entityId=${this._selectedEntityId}
+                <better-todo-task-list-v0100 .hass=${this.hass} .entityId=${this._selectedEntityId}
                   .hideCompleted=${this._hideCompleted} .canConfigure=${this._canConfigureList}
                   @toggle-completed=${this._toggleCompleted} @configure-list=${this._openListSettings}>
-                </better-todo-task-list-v091>
+                </better-todo-task-list-v0100>
               ` : html`<p>${this.hass?.localize("ui.panel.todo.no_lists") || "No lists found."}</p>`}
             </main>
             ${this._renderListSettings()}
@@ -2420,7 +2600,7 @@
       }
     }
 
-    customElements.define("better-todo-panel-v091", BetterTodoPanel);
+    customElements.define("better-todo-panel-v0100", BetterTodoPanel);
   }
 
   // ── Registration entry point ────────────────────────────────────────────────

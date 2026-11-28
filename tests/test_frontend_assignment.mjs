@@ -35,13 +35,13 @@ function loadPanel(globals = {}) {
     ...globals,
   });
   assert.equal(elements.get("better-todo-panel"), legacy);
-  assert.ok(elements.has("better-todo-panel-v091"));
+  assert.ok(elements.has("better-todo-panel-v0100"));
   return elements;
 }
 
 test("only Better ToDo task lists offer assignment, even without state attributes", () => {
   const elements = loadPanel();
-  const list = new (elements.get("better-todo-task-list-v091"))();
+  const list = new (elements.get("better-todo-task-list-v0100"))();
   list.hass = {
     states: { "todo.home": { attributes: {} } },
     entities: {
@@ -58,6 +58,81 @@ test("only Better ToDo task lists offer assignment, even without state attribute
   assert.equal(list._supportsAssignment, false);
 });
 
+test("shopping products include a quantity and only occupied categories are shown", async () => {
+  const elements = loadPanel();
+  const list = new (elements.get("better-todo-shopping-list-v0100"))();
+  const calls = [];
+  list.entityId = "todo.shopping";
+  list._loading = false;
+  list._adding = true;
+  list._items = [
+    { uid: "apple", summary: "Manzanas", status: "needs_action" },
+    { uid: "mystery", summary: "Producto especial", status: "needs_action" },
+  ];
+  list.hass = {
+    locale: { language: "es" },
+    localize: () => "",
+    states: { "todo.shopping": {
+      entity_id: "todo.shopping", state: "2", attributes: {
+        friendly_name: "Lista de la compra",
+        shopping_categories: ["produce", "bakery", "other"],
+        task_details: {
+          apple: { category: "produce", quantity: "2 kg" },
+          mystery: { category: "other", quantity: "1" },
+        },
+      },
+    } },
+    async callService(domain, service, data) {
+      calls.push([domain, service, JSON.parse(JSON.stringify(data))]);
+    },
+    async callWS() { return { items: [] }; },
+  };
+
+  const content = renderContent(list.render());
+  assert.match(content, /Frutas y verduras/);
+  assert.match(content, /Otros/);
+  assert.doesNotMatch(content, /Panadería/);
+  assert.match(content, /Manzanas[\s\S]*2 kg/);
+  assert.match(content, /Producto[\s\S]*Cantidad/);
+  assert.match(content, /\.draggable=/);
+
+  list._startDrag({ dataTransfer: { effectAllowed: "", setData() {} } }, list._items[0]);
+  assert.match(renderContent(list.render()), /Panadería/);
+  list._dragging = false;
+
+  list._editItem(list._items[0], { category: "produce", quantity: "2 kg" });
+  const editor = renderContent(list.render());
+  assert.match(editor, /Frutas y verduras[\s\S]*Panadería[\s\S]*Otros/);
+  list._editDraft = { summary: "Manzanas verdes", quantity: "3 kg", category: "bakery" };
+  await list._saveEdit({ preventDefault() {} }, list._items[0]);
+
+  list._items = [{ uid: "apple", summary: "Manzanas", status: "needs_action" }];
+  await list._dropInCategory({
+    preventDefault() {},
+    dataTransfer: { getData: () => "apple" },
+  }, "other");
+
+  await list._addItem({
+    preventDefault() {},
+    currentTarget: { elements: { namedItem: (name) => ({
+      value: name === "summary" ? "Leche" : "2 L",
+    }) } },
+  });
+  assert.deepEqual(calls, [
+    ["todo", "update_item", {
+      entity_id: "todo.shopping", item: "apple", rename: "Manzanas verdes",
+      description: "[quantity:3 kg] [category:bakery] [category_mode:manual]",
+    }],
+    ["todo", "update_item", {
+      entity_id: "todo.shopping", item: "apple",
+      description: "[quantity:2 kg] [category:other] [category_mode:manual]",
+    }],
+    ["todo", "add_item", {
+      entity_id: "todo.shopping", item: "Leche", description: "[quantity:2 L]",
+    }],
+  ]);
+});
+
 function renderContent(part) {
   if (Array.isArray(part)) return part.map(renderContent).join("");
   if (!part?.strings) return typeof part === "string" || typeof part === "number" ? String(part) : "";
@@ -71,7 +146,7 @@ test("deadline sections and list progress use the same local seven-day window", 
     static now() { return now; }
   }
   const elements = loadPanel({ Date: Clock });
-  const list = new (elements.get("better-todo-task-list-v091"))();
+  const list = new (elements.get("better-todo-task-list-v0100"))();
   list.entityId = "todo.home";
   list.hass = {
     locale: { language: "es", time_zone: "server" },
@@ -137,7 +212,7 @@ test("the visible board refresh timer targets an exact upcoming deadline", () =>
     clearTimeout() {},
     setTimeout(callback, delay) { delays.push(delay); },
   });
-  const list = new (elements.get("better-todo-task-list-v091"))();
+  const list = new (elements.get("better-todo-task-list-v0100"))();
   list.isConnected = true;
   list.entityId = "todo.home";
   list.hass = { states: { "todo.home": { attributes: { task_assignees: {} } } } };
@@ -152,7 +227,7 @@ test("the visible board refresh timer targets an exact upcoming deadline", () =>
 
 test("create, reassign and clear an assignee with the appropriate service", async () => {
   const elements = loadPanel();
-  const dialog = new (elements.get("better-todo-task-dialog-v091"))();
+  const dialog = new (elements.get("better-todo-task-dialog-v0100"))();
   const calls = [];
   dialog.entityId = "todo.home";
   dialog.supportsAssignment = true;
@@ -189,7 +264,7 @@ test("create, reassign and clear an assignee with the appropriate service", asyn
 
 test("administrators can edit Better ToDo list settings and retry a failed save", async () => {
   const elements = loadPanel();
-  const panel = new (elements.get("better-todo-panel-v091"))();
+  const panel = new (elements.get("better-todo-panel-v0100"))();
   const calls = [];
   let open = false;
   let fail = true;

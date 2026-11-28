@@ -18,6 +18,7 @@ import dataclasses
 import datetime
 import logging
 import re
+import unicodedata
 from calendar import monthrange
 from pathlib import Path
 from typing import Any
@@ -63,11 +64,13 @@ from .const import (
     ATTR_UNIT,
     CONF_COMPLETED_CLEANUP_ENABLED,
     CONF_COMPLETED_RETENTION_MONTHS,
+    CONF_SHOPPING_CATEGORY_OVERRIDES,
     DATA_DEFAULT_LIST_ADDED,
     DEFAULT_COMPLETED_RETENTION_MONTHS,
     DEFAULT_SHOPPING_LIST_KEY,
     DEFAULT_SHOPPING_LIST_NAME,
     DESC_CATEGORY_PREFIX,
+    DESC_TAG_CATEGORY_MODE,
     DESC_QUANTITY_PREFIX,
     DESC_TAG_CATEGORY,
     DESC_TAG_QUANTITY,
@@ -75,12 +78,91 @@ from .const import (
     DESC_TAG_UNIT,
     SERVICE_SET_TASK_DETAILS,
     SERVICE_SET_TASK_RECURRENCE,
+    SHOPPING_CATEGORIES,
     STORAGE_PATH,
 )
 from .store import BetterTodoListStore
 
 _LOGGER = logging.getLogger(__name__)
 _ASSIGNEE_CATEGORY_PREFIX = "better-todo-assignee:"
+
+# Ordered from the most specific groups to the broadest. Product names are
+# normalized before matching, so accented and mixed-case names work too.
+_SHOPPING_CATEGORY_KEYWORDS: dict[str, tuple[str, ...]] = {
+    "produce": (
+        "fruta", "frutas", "verdura", "verduras", "manzana", "manzanas", "platano", "banana",
+        "naranja", "limon", "tomate", "lechuga", "cebolla", "papa", "patata",
+        "zanahoria", "palta", "aguacate", "fruit", "vegetable", "apple", "orange",
+        "lemon", "lettuce", "onion", "potato", "carrot", "avocado", "legume",
+        "obst", "gemuse",
+    ),
+    "bakery": (
+        "pan", "hallulla", "marraqueta", "tortilla", "croissant", "pastel", "torta",
+        "bread", "bakery", "cake", "boulangerie", "baguette", "brot", "backerei",
+        "padaria", "bolo",
+    ),
+    "meat_seafood": (
+        "carne", "pollo", "pavo", "cerdo", "vacuno", "hamburguesa", "pescado",
+        "salmon", "atun", "marisco", "meat", "chicken", "turkey", "pork", "beef",
+        "fish", "seafood", "viande", "poisson", "fleisch", "fisch", "frango", "peixe",
+    ),
+    "dairy_eggs": (
+        "leche", "queso", "yogur", "yogurt", "mantequilla", "huevo", "huevos",
+        "crema", "milk", "cheese", "butter", "egg", "eggs", "lait", "fromage",
+        "oeuf", "milch", "kase", "ei", "eier", "queijo", "ovo", "ovos",
+    ),
+    "frozen": (
+        "congelado", "congelados", "helado", "hielo", "frozen", "ice cream",
+        "surgeles", "glace", "tiefkuhl", "eis", "congelados", "sorvete",
+    ),
+    "beverages": (
+        "agua", "jugo", "zumo", "bebida", "refresco", "gaseosa", "cerveza", "vino",
+        "water", "juice", "soda", "beer", "wine", "boisson", "biere", "eau",
+        "getrank", "wasser", "bier", "suco", "refrigerante",
+    ),
+    "household": (
+        "detergente", "lavaloza", "limpiador", "cloro", "esponja", "servilleta",
+        "papel higienico", "bolsa basura", "basura", "cleaner", "detergent", "sponge",
+        "toilet paper", "trash bag", "essuie", "lessive", "reiniger", "waschmittel",
+        "papel higienico", "saco de lixo",
+    ),
+    "personal_care": (
+        "shampoo", "champu", "jabon", "desodorante", "dentifrico", "pasta dental",
+        "cepillo dental", "afeitadora", "soap", "deodorant", "toothpaste", "toothbrush",
+        "savon", "zahnpasta", "seife", "sabonete",
+    ),
+    "pets": (
+        "mascota", "perro", "gato", "alimento perro", "alimento gato", "arena gato",
+        "pet", "dog food", "cat food", "cat litter", "chien", "chat", "tierfutter",
+        "hundefutter", "katzenfutter", "racao",
+    ),
+    "pantry": (
+        "arroz", "pasta", "fideo", "harina", "azucar", "sal", "aceite", "cereal",
+        "avena", "cafe", "te", "lenteja", "poroto", "garbanzo", "conserva", "salsa",
+        "rice", "flour", "sugar", "oil", "coffee", "tea", "beans", "lentils", "sauce",
+        "riz", "farine", "sucre", "huile", "reis", "mehl", "zucker", "kaffee",
+        "farinha", "acucar", "feijao",
+    ),
+}
+
+
+def _normalize_product_name(value: str) -> str:
+    """Return a case- and accent-insensitive product name for matching."""
+    decomposed = unicodedata.normalize("NFKD", value.casefold())
+    return " ".join(
+        re.sub(r"[^a-z0-9]+", " ", "".join(
+            char for char in decomposed if not unicodedata.combining(char)
+        )).split()
+    )
+
+
+def _shopping_category_for_product(product_name: str) -> str:
+    """Choose one predefined Shopping List category for a product name."""
+    normalized = _normalize_product_name(product_name)
+    for category, keywords in _SHOPPING_CATEGORY_KEYWORDS.items():
+        if any(re.search(rf"\b{re.escape(keyword)}\b", normalized) for keyword in keywords):
+            return category
+    return "other"
 
 
 def _completion_expired(
@@ -257,6 +339,7 @@ def _encode_description(
     *,
     unit: str | None = None,
     repeat: str | None = None,
+    category_mode: str | None = None,
 ) -> str | None:
     """Build a description string encoding tag metadata and optional notes.
 
@@ -279,6 +362,10 @@ def _encode_description(
     if category_value:
         tags.append(f"[{DESC_TAG_CATEGORY}:{category_value}]")
 
+    category_mode_value = category_mode.strip() if category_mode else ""
+    if category_mode_value:
+        tags.append(f"[{DESC_TAG_CATEGORY_MODE}:{category_mode_value}]")
+
     repeat_value = repeat.strip() if repeat else ""
     if repeat_value:
         tags.append(f"[{DESC_TAG_REPEAT}:{repeat_value}]")
@@ -288,6 +375,19 @@ def _encode_description(
     if metadata and notes_stripped:
         return f"{metadata}\n\n{notes_stripped}"
     return metadata or notes_stripped or None
+
+
+def _description_tag(description: str | None, wanted: str) -> str | None:
+    """Read one leading structured-description tag without changing its API."""
+    if not description:
+        return None
+    for line in description.splitlines():
+        parsed = _try_parse_tag_line(line.strip())
+        if parsed is None:
+            break
+        if value := parsed.get(wanted):
+            return value
+    return None
 
 
 def _decode_description(
@@ -583,12 +683,15 @@ class BetterTodoListEntity(TodoListEntity):
                     entry["unit"] = unit
                 if category is not None:
                     entry["category"] = category
+                    if _description_tag(todo.description, DESC_TAG_CATEGORY_MODE) == "manual":
+                        entry["category_mode"] = "manual"
                 if repeat is not None:
                     entry["repeat"] = repeat
                 details[todo.uid] = entry
         attrs: dict[str, Any] = {}
         if isinstance(self, ShoppingListTodoListEntity):
             attrs["better_todo_shopping_list"] = True
+            attrs["shopping_categories"] = list(SHOPPING_CATEGORIES)
         else:
             attrs["task_assignees"] = assignees
         if recurrence:
@@ -757,9 +860,17 @@ class BetterTodoListEntity(TodoListEntity):
                 notes,
                 unit=unit,
                 repeat=old_repeat,
+                category_mode=(
+                    "manual"
+                    if isinstance(self, ShoppingListTodoListEntity)
+                    and new_category is not None
+                    else _description_tag(existing.description, DESC_TAG_CATEGORY_MODE)
+                ),
             )
             await self._async_save()
 
+        if isinstance(self, ShoppingListTodoListEntity) and new_category is not None:
+            self._remember_product_category(existing.summary or "", new_category)
         await self.async_update_ha_state(force_refresh=True)
 
     # ------------------------------------------------------------------
@@ -901,7 +1012,7 @@ class BetterTodoListEntity(TodoListEntity):
 # ---------------------------------------------------------------------------
 
 class ShoppingListTodoListEntity(BetterTodoListEntity):
-    """Shopping List variant: items have only a description, no due date."""
+    """Shopping List variant with quantities and automatic categorization."""
 
     _attr_supported_features = _SHOPPING_LIST_FEATURES
     _attr_has_entity_name = True
@@ -920,3 +1031,120 @@ class ShoppingListTodoListEntity(BetterTodoListEntity):
         # Let HA resolve the friendly name from translations instead of using
         # the hard-coded DEFAULT_SHOPPING_LIST_NAME constant.
         self._attr_name = None
+
+        saved_overrides = (
+            config_entry.options.get(CONF_SHOPPING_CATEGORY_OVERRIDES, {})
+            if config_entry is not None
+            else {}
+        )
+        self._shopping_category_overrides: dict[str, str] = {
+            str(product): str(category)
+            for product, category in saved_overrides.items()
+            if category in SHOPPING_CATEGORIES
+        }
+
+    def _category_for_product(self, product_name: str) -> str:
+        """Use a learned correction before falling back to keyword matching."""
+        normalized = _normalize_product_name(product_name)
+        return self._shopping_category_overrides.get(
+            normalized, _shopping_category_for_product(product_name)
+        )
+
+    def _remember_product_category(self, product_name: str, category: str) -> None:
+        """Persist a user's category correction for future matching products."""
+        normalized = _normalize_product_name(product_name)
+        if not normalized or category not in SHOPPING_CATEGORIES:
+            return
+        if self._shopping_category_overrides.get(normalized) == category:
+            return
+        self._shopping_category_overrides[normalized] = category
+        if self._config_entry is not None:
+            self.hass.config_entries.async_update_entry(
+                self._config_entry,
+                options={
+                    **self._config_entry.options,
+                    CONF_SHOPPING_CATEGORY_OVERRIDES: dict(
+                        self._shopping_category_overrides
+                    ),
+                },
+            )
+
+    def _normalize_item(self, item: TodoItem) -> TodoItem:
+        """Remove deadlines and assign the product's predefined category."""
+        quantity, unit, category, _repeat, notes = _decode_description_structured(
+            item.description
+        )
+        category_mode = _description_tag(item.description, DESC_TAG_CATEGORY_MODE)
+        manual_category = (
+            category if category_mode == "manual" and category in SHOPPING_CATEGORIES else None
+        )
+        return dataclasses.replace(
+            item,
+            due=None,
+            description=_encode_description(
+                quantity,
+                manual_category or self._category_for_product(item.summary or ""),
+                notes,
+                unit=unit,
+                category_mode="manual" if manual_category else None,
+            ),
+        )
+
+    async def async_added_to_hass(self) -> None:
+        """Migrate saved products to categorized, deadline-free shopping items."""
+        changed = False
+        async with self._calendar_lock:
+            for todo in self._calendar.todos:
+                quantity, unit, category, repeat, notes = (
+                    _decode_description_structured(todo.description)
+                )
+                automatic_category = self._category_for_product(todo.summary or "")
+                category_mode = _description_tag(
+                    todo.description, DESC_TAG_CATEGORY_MODE
+                )
+                # Preserve explicit overrides from this version and legacy
+                # custom categories that were never part of the predefined set.
+                manual_category = category_mode == "manual" or (
+                    category is not None and category not in SHOPPING_CATEGORIES
+                )
+                target_category = category if manual_category else automatic_category
+                if (
+                    todo.due is not None
+                    or todo.rrule is not None
+                    or category != target_category
+                    or repeat is not None
+                    or (manual_category and category_mode != "manual")
+                ):
+                    todo.due = None
+                    todo.rrule = None
+                    todo.description = _encode_description(
+                        quantity,
+                        target_category,
+                        notes,
+                        unit=unit,
+                        category_mode="manual" if manual_category else None,
+                    )
+                    changed = True
+            if changed:
+                await self._async_save()
+        await super().async_added_to_hass()
+
+    async def async_create_todo_item(self, item: TodoItem) -> None:
+        """Create a categorized product with its optional quantity."""
+        await super().async_create_todo_item(self._normalize_item(item))
+
+    async def async_update_todo_item(self, item: TodoItem) -> None:
+        """Re-categorize a product whenever its name or details change."""
+        category = _description_tag(item.description, DESC_TAG_CATEGORY)
+        if (
+            category
+            and _description_tag(item.description, DESC_TAG_CATEGORY_MODE) == "manual"
+        ):
+            self._remember_product_category(item.summary or "", category)
+        await super().async_update_todo_item(self._normalize_item(item))
+
+    async def _async_set_task_recurrence(
+        self, item: str, rrule: str | None = None
+    ) -> None:
+        """Reject recurrence because shopping products never have deadlines."""
+        raise ServiceValidationError("Shopping list items cannot recur")
